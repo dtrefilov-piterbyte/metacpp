@@ -1,6 +1,6 @@
 #include "VisitorBase.h"
 
-namespace orm
+namespace metacpp
 {
 
 VisitorBase::VisitorBase()
@@ -31,4 +31,4 @@ void VisitorBase::visit(Object *obj)
 	postvisitStruct(obj, obj->metaObject()->structDescriptor());
 }
 
-} // namespace pkapi
+} // namespace metacpp

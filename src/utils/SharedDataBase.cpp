@@ -1,6 +1,6 @@
 #include "SharedDataBase.h"
 
-namespace orm
+namespace metacpp
 {
 
 SharedDataBase::SharedDataBase()

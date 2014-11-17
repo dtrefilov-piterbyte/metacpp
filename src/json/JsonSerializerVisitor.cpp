@@ -1,7 +1,7 @@
 #include "JsonSerializerVisitor.h"
 #include <cassert>
 
-namespace orm
+namespace metacpp
 {
 
 JsonSerializerVisitor::JsonSerializerVisitor(void)
@@ -22,6 +22,37 @@ void JsonSerializerVisitor::visitField(Object *obj, const FieldInfoDescriptor *d
 void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type, const void *pValue, const FieldInfoDescriptor *desc, Json::ArrayIndex i)
 {
 	Json::Value& val = desc ? parent[desc->m_pszName] : parent[i];
+#define ACCESS_NULLABLE(type) \
+    auto& field = *reinterpret_cast<const Nullable<type > *>(pValue); \
+    if (!field) return; \
+    pValue = &field.get();
+
+    if (desc && desc->m_nullable)
+    {
+        switch (type)
+        {
+        default:
+        case eFieldVoid:
+            throw std::invalid_argument(std::string("Unsupported nullable field type: ") + (char *)type);
+        case eFieldBool: {
+            ACCESS_NULLABLE(bool)
+            break;
+        }
+        case eFieldInt: {
+            ACCESS_NULLABLE(int32_t)
+            break;
+        }
+        case eFieldEnum:
+        case eFieldUint: {
+            ACCESS_NULLABLE(uint32_t)
+            break;
+        }
+        case eFieldFloat: {
+            ACCESS_NULLABLE(float)
+            break;
+        }
+        }
+    }
 	switch (type)
 	{
 	default:
@@ -40,7 +71,7 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 		val = *reinterpret_cast<const float *>(pValue);
 		break;
 	case eFieldString:
-        val = reinterpret_cast<const orm::String *>(pValue)->data();
+        val = reinterpret_cast<const metacpp::String *>(pValue)->data();
 		break;
 	case eFieldEnum:
 		if (desc)
@@ -52,7 +83,7 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 	{
 		assert(desc);	// nested arrays are not allowed
         {
-            const orm::Array<char> *arrayValue = reinterpret_cast<const orm::Array<char> *>(pValue);
+            const metacpp::Array<char> *arrayValue = reinterpret_cast<const metacpp::Array<char> *>(pValue);
             for (size_t i = 0; i < arrayValue->size(); ++i)
             {
                 const void *pSubValue = arrayValue->data() + i * desc->valueInfo.ext.m_array.elemSize;
@@ -75,4 +106,4 @@ const Json::Value& JsonSerializerVisitor::rootValue() const
 	return m_value;
 }
 
-} // namespace pkapi
+} // namespace metacpp

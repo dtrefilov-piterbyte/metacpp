@@ -2,7 +2,7 @@
 #include "SharedDataBase.h"
 #include <algorithm>
 
-namespace orm
+namespace metacpp
 {
 	template<typename T>
     class SharedDataPointer {
@@ -120,4 +120,4 @@ namespace orm
 		inline T *operator->() { this->detach(); return &this->m_d->m_data; }
 		inline const T *operator->() const { return &this->m_d->m_data; }
 	};
-} // namespace pkapi
+} // namespace metacpp

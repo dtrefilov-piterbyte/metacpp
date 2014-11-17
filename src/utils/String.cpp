@@ -16,7 +16,7 @@
 #include <cstdio>
 #endif // _WIN32
 
-namespace orm
+namespace metacpp
 {
 
     template<>

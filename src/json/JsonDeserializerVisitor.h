@@ -2,7 +2,7 @@
 #include "VisitorBase.h"
 #include <json/json.h>
 
-namespace orm
+namespace metacpp
 {
 
 class JsonDeserializerVisitor :
@@ -19,4 +19,4 @@ private:
 	const Json::Value& m_value;
 };
 
-} // namespace pkapi
+} // namespace metacpp

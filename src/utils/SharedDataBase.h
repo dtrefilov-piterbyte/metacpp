@@ -2,7 +2,7 @@
 #include <atomic>
 #include <type_traits>
 
-namespace orm
+namespace metacpp
 {
 
 template<typename T> class SharedDataPointer;
@@ -58,4 +58,4 @@ private:
     T m_data;
 };
 
-} // namespace pkapi
+} // namespace metacpp

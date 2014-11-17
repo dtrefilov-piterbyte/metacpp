@@ -6,7 +6,7 @@
 #include <string.h>
 #include <cassert>
 
-namespace orm
+namespace metacpp
 {
 template<typename T, typename Enable = void>
 struct TypeTraits;
@@ -289,4 +289,4 @@ public:
     void clear() { resize(0); }
 };
 
-} // namespace pkapi
+} // namespace metacpp

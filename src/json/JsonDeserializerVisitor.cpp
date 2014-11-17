@@ -1,7 +1,7 @@
 #include "JsonDeserializerVisitor.h"
 #include <cassert>
 
-namespace orm
+namespace metacpp
 {
 
 JsonDeserializerVisitor::JsonDeserializerVisitor(const Json::Value& val)
@@ -22,6 +22,42 @@ void JsonDeserializerVisitor::visitField(Object *obj, const FieldInfoDescriptor 
 void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const FieldInfoDescriptor *desc, Json::ArrayIndex i)
 {
 	Json::Value val = desc ? parent.get(desc->m_pszName, Json::nullValue) : parent.get(i, Json::nullValue);
+#define ACCESS_NULLABLE(type) \
+    auto& field = *reinterpret_cast<Nullable<type > *>(pValue); \
+    field.reset(!val.isNull()); \
+    if (val.isNull()) return; \
+    pValue = &field.get();
+
+    if (desc && desc->m_nullable)
+    {
+        switch (type)
+        {
+        default:
+        case eFieldVoid:
+            throw std::invalid_argument(std::string("Unsupported nullable field type: ") + (char *)type);
+        case eFieldBool: {
+            ACCESS_NULLABLE(bool)
+            break;
+        }
+        case eFieldInt: {
+            ACCESS_NULLABLE(int32_t)
+            break;
+        }
+        case eFieldEnum:
+        case eFieldUint: {
+            ACCESS_NULLABLE(uint32_t)
+            break;
+        }
+        case eFieldFloat: {
+            ACCESS_NULLABLE(float)
+            break;
+        }
+        case eFieldString: {
+            ACCESS_NULLABLE(metacpp::String)
+            break;
+        }
+        }
+    }
 	switch (type)
 	{
 	default:
@@ -32,11 +68,11 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 		*reinterpret_cast<bool *>(pValue) = val.asBool();
 		break;
 	case eFieldInt:
-		if (!val.isInt()) throw std::invalid_argument("Type mismatch");
+        if (!val.isIntegral()) throw std::invalid_argument("Type mismatch");
 		*reinterpret_cast<int32_t *>(pValue) = val.asInt();
 		break;
 	case eFieldUint:
-		if (!val.isUInt()) throw std::invalid_argument("Type mismatch");
+        if (!val.isIntegral()) throw std::invalid_argument("Type mismatch");
 		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
 		break;
 	case eFieldFloat:
@@ -45,7 +81,7 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 		break;
 	case eFieldString:
 		if (!val.isString()) throw std::invalid_argument("Type mismatch");
-        *reinterpret_cast<orm::String *>(pValue) = val.asString();
+        *reinterpret_cast<metacpp::String *>(pValue) = val.asString();
 		break;
 	case eFieldEnum:
 		if (desc && val.isString())
@@ -62,7 +98,7 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 		assert(desc);	// nested arrays are not allowed
 
         {
-            orm::Array<char> *arrayValue = reinterpret_cast<orm::Array<char> *>(pValue);
+            metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
             arrayValue->resize(val.size());
             for (size_t i = 0; i < val.size(); ++i)
             {
@@ -81,4 +117,4 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 	}	// switch
 }
 
-} // namespace pkapi
+} // namespace metacpp

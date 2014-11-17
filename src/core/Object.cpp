@@ -3,16 +3,16 @@
 #include "JsonSerializerVisitor.h"
 #include "JsonDeserializerVisitor.h"
 
-namespace orm
+namespace metacpp
 {
 
 Object::~Object()
 {
 }
 
-void Object::init(bool omit)
+void Object::init()
 {
-	pkInitVisitor vis(omit);
+    pkInitVisitor vis;
 	vis.visit(this);
 }
 
@@ -42,4 +42,9 @@ void Object::fromString(const String& s)
 	vis.visit(this);
 }
 
-} // namespace pkapi
+STRUCT_INFO_BEGIN(DummyObject)
+STRUCT_INFO_END(DummyObject)
+
+META_INFO(DummyObject)
+
+} // namespace metacpp

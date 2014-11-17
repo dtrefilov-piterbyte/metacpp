@@ -1,7 +1,7 @@
 #pragma once
 #include "Object.h"
 
-namespace orm
+namespace metacpp
 {
 
 class VisitorBase
@@ -16,4 +16,4 @@ protected:
 	virtual void postvisitStruct(Object *obj, const StructInfoDescriptor *);
 };
 
-} // namespace pkapi
+} // namespace metacpp

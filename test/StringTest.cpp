@@ -1,6 +1,6 @@
 #include "StringTest.h"
 
-using namespace orm;
+using namespace metacpp;
 
 void StringTest::testNull()
 {

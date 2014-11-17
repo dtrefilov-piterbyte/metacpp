@@ -1,19 +1,17 @@
 #pragma once
 #include "VisitorBase.h"
 
-namespace orm
+namespace metacpp
 {
 
 class pkInitVisitor :
 	public VisitorBase
 {
 public:
-	pkInitVisitor(bool omit);
+    pkInitVisitor();
 	~pkInitVisitor(void);
 
 	void visitField(Object *obj, const FieldInfoDescriptor *desc) override;
-private:
-	bool m_omit;
 };
 
-} // namespace pkapi
+} // namespace metacpp

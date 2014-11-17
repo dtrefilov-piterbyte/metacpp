@@ -1,7 +1,7 @@
 #pragma once
 #include "MetaObject.h"
 
-namespace orm
+namespace metacpp
 {
 
 /**
@@ -14,10 +14,9 @@ public:
 
 	/**
 		initializes object with default values from metainfo
-		\a omit - whether to skip optional fields (ie with mandatoriness eOptional) or not
 		\throws std::invalid_argument
 	*/
-	void init(bool omit = false);
+    void init();
 	
 	/**
 		performs json object serialization
@@ -34,12 +33,19 @@ public:
 	virtual const pkMetaObject *metaObject() const = 0;
 };
 
-} // namespace pkapi
+#define META_INFO_DECLARE(structName) \
+        const pkMetaObject *metaObject() const override { return &ms_metaObject; } \
+    private: \
+        static pkMetaObject ms_metaObject;
 
-#define PKMETA_INFO_DECLARE(structName) \
-		const pkMetaObject *metaObject() const override { return &ms_metaObject; } \
-	private: \
-		static pkMetaObject ms_metaObject;
+#define META_INFO(structName) \
+    pkMetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
 
-#define PKMETA_INFO(structName) \
-	pkMetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
+class DummyObject : public Object
+{
+public:
+    META_INFO_DECLARE(DummyObject)
+};
+
+
+} // namespace metacpp

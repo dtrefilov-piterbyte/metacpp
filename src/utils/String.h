@@ -6,7 +6,7 @@
 #include <sstream>
 #include "Array.h"
 
-namespace orm
+namespace metacpp
 {
 
 template<typename T>
@@ -423,4 +423,4 @@ std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const WString
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const WString& str);
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const String& wstr);
 
-} // namespace pkapi
+} // namespace metacpp

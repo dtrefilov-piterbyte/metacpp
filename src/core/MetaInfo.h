@@ -8,10 +8,11 @@
 #include <functional>
 #include <stack>
 #include <mutex>
-#include "../utils/Array.h"
-#include "../utils/String.h"
+#include "Array.h"
+#include "String.h"
+#include "Nullable.h"
 
-namespace orm
+namespace metacpp
 {
 class Object;
 }
@@ -32,9 +33,9 @@ enum EFieldType
 /** \brief Parameter determines assigning behaviour of the field */
 enum EMandatoriness
 {
-	eRequired,			/**< an exception is thrown if field value was not excplicitly specified  */
-	eOptional,			/**< ignoring omited descriptor */
-	eDefaultable		/**< field is assigned to default value */
+    eRequired,			/**< an exception is thrown if field value was not excplicitly specified  */
+    eOptional,			/**< ignoring omited descriptor */
+    eDefaultable		/**< field is assigned to default value */
 };
 
 /** \brief Type of an enum meta info */
@@ -87,6 +88,8 @@ struct FieldInfoDescriptor
 	size_t		m_dwSize;
 	ptrdiff_t	m_dwOffset;
 	EFieldType	m_eType;
+    bool        m_nullable;
+
 	struct Extension
 	{
         union UExtension
@@ -121,52 +124,52 @@ struct FieldInfoDescriptor
                 size_t          elemSize;
             } m_array;
         } ext;
-		EMandatoriness	mandatoriness;
-		
+        EMandatoriness	mandatoriness;
+
         explicit Extension()
 		{
             mandatoriness = eRequired;
-		}
+        }
         explicit Extension(bool v)
 		{
             ext.m_bool.defaultValue = v;
             mandatoriness = eDefaultable;
-		}
+        }
 		explicit Extension(int32_t v)
 		{
             ext.m_int.defaultValue = v;
-			mandatoriness = eDefaultable;
-		}
+            mandatoriness = eDefaultable;
+        }
 		explicit Extension(uint32_t v)
 		{
             ext.m_uint.defaultValue = v;
-			mandatoriness = eDefaultable;
-		}
+            mandatoriness = eDefaultable;
+        }
 		explicit Extension(float v)
 		{
             ext.m_float.defaultValue = v;
-			mandatoriness = eDefaultable;
-		}
+            mandatoriness = eDefaultable;
+        }
 		explicit Extension(const char *v)
 		{
             ext.m_string.defaultValue = v;
-			mandatoriness = eDefaultable;
-		}
-		explicit Extension(EMandatoriness m)
-		{
-			mandatoriness = m;
-		}
-		explicit Extension(EnumInfoDescriptor *enumInfo)
+            mandatoriness = eDefaultable;
+        }
+        explicit Extension(EMandatoriness m)
+        {
+            mandatoriness = m;
+        }
+        explicit Extension(EnumInfoDescriptor *enumInfo)
 		{
             ext.m_enum.enumInfo = enumInfo;
-			mandatoriness = eDefaultable;
-		}
+            mandatoriness = eDefaultable;
+        }
         explicit Extension(EFieldType elemType, size_t elemSize)
 		{
             ext.m_array.elemType = elemType;
             ext.m_array.elemSize = elemSize;
-			mandatoriness = eDefaultable;
-		}
+            mandatoriness = eDefaultable;
+        }
 	} valueInfo;
 };
 
@@ -214,14 +217,14 @@ struct PartialFieldInfoHelper<float> {
 };
 
 template<>
-struct PartialFieldInfoHelper<orm::String> {
+struct PartialFieldInfoHelper<metacpp::String> {
 	static constexpr EFieldType type() { return eFieldString; }
     static FieldInfoDescriptor::Extension extension(const char *v) { return FieldInfoDescriptor::Extension(v); }
     static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<typename T>
-struct PartialFieldInfoHelper<orm::Array<T> >
+struct PartialFieldInfoHelper<metacpp::Array<T> >
 {
     static constexpr EFieldType type() { return eFieldArray; }
 	static constexpr FieldInfoDescriptor::Extension extension()
@@ -230,7 +233,7 @@ struct PartialFieldInfoHelper<orm::Array<T> >
 	}
 };
 
-template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsPKObject = std::is_base_of<orm::Object, T>::value>
+template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
 struct FullFieldInfoHelper;
 
 template<typename T>
@@ -238,27 +241,30 @@ struct FullFieldInfoHelper<T, true, false>
 {
 	static constexpr EFieldType type() { return eFieldEnum; }
 	static constexpr FieldInfoDescriptor::Extension extension(EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
+    static constexpr bool nullable() { return false; }
 };
 
 
 template<typename T>
 struct FullFieldInfoHelper<T, false, false> : public PartialFieldInfoHelper<T>
 {
+    static constexpr bool nullable() { return false; }
 };
 
 template<typename T>
 struct FullFieldInfoHelper<T, false, true>
 {
 	static constexpr EFieldType type() { return eFieldObject; }
-	static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(eDefaultable); }
+    static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(eDefaultable); }
+    static constexpr bool nullable() { return false; }
 };
-/*
-template<typename T, size_t N>
-struct FullFieldInfoHelper<T[N], false, false> {
-	static constexpr EFieldType type() { return eFieldArray; }
-	static constexpr FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(FullFieldInfoHelper<T>::type(), N, m); }
+
+template<typename T>
+struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelper<T>
+{
+    static constexpr bool nullable() { return true; }
 };
-*/
+
 #define STRUCT_INFO_BEGIN(struc) \
 	extern FieldInfoDescriptor _fieldInfos_##struc[]; \
 	StructInfoDescriptor _strucInfo_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc }; \
@@ -269,15 +275,22 @@ struct FullFieldInfoHelper<T[N], false, false> {
 	StructInfoDescriptor _strucInfo_##struc = { #struc, sizeof(struc), &STRUCT_INFO(super), _fieldInfos_##struc }; \
 	FieldInfoDescriptor _fieldInfos_##struc[] = {
 
+// field info sequence terminator
 #define STRUCT_INFO_END(struc) \
-		{ 0, 0, 0, eFieldVoid, FieldInfoDescriptor::Extension() } \
+        { 0, 0, 0, eFieldVoid, false, FieldInfoDescriptor::Extension() } \
 	};
 
 #define STRUCT_INFO(struc) _strucInfo_##struc
 #define STRUCT_INFO_DECLARE(struc) extern StructInfoDescriptor _strucInfo_##struc;
 
-#define FIELD_INFO(struc, field, ...) \
-		{ #field, sizeof(decltype(struc::field)), offsetof(struc, field), FullFieldInfoHelper<decltype(struc::field)>::type(), FullFieldInfoHelper<decltype(struc::field)>::extension(__VA_ARGS__) },
+#define FIELD_INFO(struc, field, ...) { \
+    /* name */      #field, \
+    /* size */      sizeof(decltype(struc::field)), \
+    /* offset */    offsetof(struc, field), \
+    /* type */      FullFieldInfoHelper<decltype(struc::field)>::type(), \
+    /* nullable */  FullFieldInfoHelper<decltype(struc::field)>::nullable(), \
+    /* extension */ FullFieldInfoHelper<decltype(struc::field)>::extension(__VA_ARGS__) \
+    },
 
 #define ENUM_INFO_BEGIN(_enum, type, def) \
 	extern EnumValueInfoDescriptor _enumValueInfos_##_enum[]; \

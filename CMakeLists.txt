@@ -24,6 +24,7 @@ SET(ORM_SRC_DIRS
     "src/utils"
     "src/core"
     "src/json"
+    "src/sql"
 )
 
 LIST(APPEND INCLUDE_DIRS ${ORM_SRC_DIRS})

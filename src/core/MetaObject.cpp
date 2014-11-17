@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iostream>
 
-namespace orm
+namespace metacpp
 {
 
 pkMetaObject::pkMetaObject(const StructInfoDescriptor *descriptor)
@@ -29,4 +29,4 @@ void pkMetaObject::preparseFields() const
 	m_initialized = true;
 }
 
-} // namespace pkapi
+} // namespace metacpp
