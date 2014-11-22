@@ -15,4 +15,5 @@ public:
 	void testSubStr2();
 	void testStringBuilder();
     void testAssign(const char *v);
+    void testStreams(const char *str);
 };

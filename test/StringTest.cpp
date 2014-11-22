@@ -1,4 +1,5 @@
 #include "StringTest.h"
+#include <sstream>
 
 using namespace metacpp;
 
@@ -143,11 +144,28 @@ void StringTest::testAssign(const char *str)
     ASSERT_EQ(s1, str);
 }
 
+
 TEST_F(StringTest, TestAssign)
 {
     testAssign("");
     testAssign("asdlaasd");
     testAssign(nullptr);
+}
+
+void StringTest::testStreams(const char *str)
+{
+    std::ostringstream oss;
+    oss << String(str);
+    std::istringstream iss(oss.str());
+    String s;
+    iss >> s;
+    ASSERT_EQ(s, str);
+}
+
+TEST_F(StringTest, testStreams)
+{
+    testAssign("");
+    testAssign("asdlaasd");
 }
 
 TEST_F(StringTest, TestAWConversion)

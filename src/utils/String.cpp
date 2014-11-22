@@ -345,4 +345,24 @@ namespace metacpp
     {
         return os << string_cast<WString>(wstr);
     }
+
+    std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const String& str)
+    {
+        return os >> str.data();
+    }
+
+    std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const WString& wstr)
+    {
+        return os >> string_cast<String>(wstr);
+    }
+
+    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const WString& str)
+    {
+        return os >> str.data();
+    }
+
+    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const String& wstr)
+    {
+        return os >> string_cast<WString>(wstr);
+    }
 }

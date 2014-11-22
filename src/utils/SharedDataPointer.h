@@ -22,8 +22,8 @@ namespace metacpp
 		}
 
         virtual ~SharedDataPointer()
-		{
-			if (m_d && !m_d->deref()) delete m_d;
+        {
+            clear();
 		}
 
         inline bool operator==(const SharedDataPointer& rhs) const { return m_d == rhs.m_d; }
@@ -73,7 +73,8 @@ namespace metacpp
 
         void clear()
         {
-            if (m_d) m_d->deref();
+            if (m_d && !m_d->deref())
+                delete m_d;
             m_d = nullptr;
         }
 

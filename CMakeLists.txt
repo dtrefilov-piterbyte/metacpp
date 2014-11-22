@@ -20,11 +20,11 @@ ENDIF(UNIX)
 FILE(STRINGS ${VERSION_FILE} PRO_VERSION)
 
 SET(ORM_SRC_DIRS
-    "src"
-    "src/utils"
-    "src/core"
-    "src/json"
-    "src/sql"
+    "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/src/utils"
+    "${CMAKE_SOURCE_DIR}/src/core"
+    "${CMAKE_SOURCE_DIR}/src/json"
+    "${CMAKE_SOURCE_DIR}/src/sql"
 )
 
 LIST(APPEND INCLUDE_DIRS ${ORM_SRC_DIRS})
