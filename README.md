@@ -1,3 +1,3 @@
 metacpp
 =======
-A project aimed on investigation of various uses of reflection in C++.
+A project providing ways of object serialzation and introspection in C++.
