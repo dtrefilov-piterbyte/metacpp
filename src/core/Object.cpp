@@ -42,9 +42,4 @@ void Object::fromString(const String& s)
 	vis.visit(this);
 }
 
-STRUCT_INFO_BEGIN(DummyObject)
-STRUCT_INFO_END(DummyObject)
-
-META_INFO(DummyObject)
-
 } // namespace metacpp

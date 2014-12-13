@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHAREDDATAPOINTER_H
+#define SHAREDDATAPOINTER_H
 #include "SharedDataBase.h"
 #include <algorithm>
 
@@ -122,3 +123,4 @@ namespace metacpp
 		inline const T *operator->() const { return &this->m_d->m_data; }
 	};
 } // namespace metacpp
+#endif // SHAREDDATAPOINTER_H

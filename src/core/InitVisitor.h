@@ -1,4 +1,6 @@
-#pragma once
+#ifndef INITVISITOR_H
+#define INITVISITOR_H
+
 #include "VisitorBase.h"
 
 namespace metacpp
@@ -15,3 +17,5 @@ public:
 };
 
 } // namespace metacpp
+
+#endif // INITVISITOR_H

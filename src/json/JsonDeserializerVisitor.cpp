@@ -1,5 +1,6 @@
 #include "JsonDeserializerVisitor.h"
 #include <cassert>
+#include <time.h>
 
 namespace metacpp
 {
@@ -54,6 +55,10 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
         }
         case eFieldString: {
             ACCESS_NULLABLE(metacpp::String)
+            break;
+        }
+        case eFieldTime: {
+            ACCESS_NULLABLE(std::time_t);
             break;
         }
         }
@@ -114,6 +119,13 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
 		break;
 	}
+    case eFieldTime: {
+        if (!val.isString()) throw std::invalid_argument("Type mismatch");
+        struct tm tm;
+        strptime(val.asCString(), "%Y-%m-%d %H:%M:%S", &tm);
+        *reinterpret_cast<std::time_t *>(pValue) = timegm(&tm);
+        break;
+    }
 	}	// switch
 }
 

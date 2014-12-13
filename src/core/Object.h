@@ -1,4 +1,5 @@
-#pragma once
+#ifndef OBJECT_H
+#define OBJECT_H
 #include "MetaObject.h"
 
 namespace metacpp
@@ -41,11 +42,7 @@ public:
 #define META_INFO(structName) \
     pkMetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
 
-class DummyObject : public Object
-{
-public:
-    META_INFO_DECLARE(DummyObject)
-};
-
+STRUCT_INFO_DECLARE(Object)
 
 } // namespace metacpp
+#endif // OBJECT_H

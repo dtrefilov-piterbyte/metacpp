@@ -1,4 +1,5 @@
-#pragma once
+#ifndef METAINFO_H
+#define METAINFO_H
 // A very trivial meta-system implementation for automation of module configuration parsing
 
 #include <string>
@@ -8,6 +9,7 @@
 #include <functional>
 #include <stack>
 #include <mutex>
+#include <ctime>
 #include "Array.h"
 #include "String.h"
 #include "Nullable.h"
@@ -28,6 +30,7 @@ enum EFieldType
 	eFieldEnum		= 'e',
 	eFieldObject	= 'o',
 	eFieldArray		= 'a',
+    eFieldTime      = 't',
 };
 
 /** \brief Parameter determines assigning behaviour of the field */
@@ -233,6 +236,13 @@ struct PartialFieldInfoHelper<metacpp::Array<T> >
 	}
 };
 
+template<>
+struct PartialFieldInfoHelper<std::time_t>
+{
+    static constexpr EFieldType type() { return eFieldTime; }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
+};
+
 template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
 struct FullFieldInfoHelper;
 
@@ -316,3 +326,5 @@ template<typename T>
 const T& accessField(const void *obj, const FieldInfoDescriptor *fieldInfo) {
 	return *reinterpret_cast<T *>(reinterpret_cast<char *>(obj) + fieldInfo->m_dwOffset);
 }
+
+#endif // METAINFO_H

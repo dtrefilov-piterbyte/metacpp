@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRINGTEST_H
+#define STRINGTEST_H
 #include "String.h"
 #include <gtest/gtest.h>
 
@@ -17,3 +18,4 @@ public:
     void testAssign(const char *v);
     void testStreams(const char *str);
 };
+#endif // STRINGTEST_H

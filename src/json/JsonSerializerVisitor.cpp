@@ -1,5 +1,7 @@
 #include "JsonSerializerVisitor.h"
 #include <cassert>
+#include <time.h>
+#include <mutex>
 
 namespace metacpp
 {
@@ -51,6 +53,10 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
             ACCESS_NULLABLE(float)
             break;
         }
+        case eFieldTime: {
+            ACCESS_NULLABLE(std::time_t)
+            break;
+        }
         }
     }
 	switch (type)
@@ -98,6 +104,15 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 		val = nestedSerializer.rootValue();
 		break;
 	}
+    case eFieldTime: {
+        char buf[50];
+        static std::mutex mtx;
+        std::lock_guard<std::mutex> _guard(mtx);
+        auto tm = gmtime(reinterpret_cast<const time_t *>(pValue));
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", tm);
+        val = buf;
+        break;
+    }
 	}	// switch
 }
 

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ARRAY_H
+#define ARRAY_H
 #include <algorithm>
 #include "SharedDataBase.h"
 #include "SharedDataPointer.h"
@@ -290,3 +291,4 @@ public:
 };
 
 } // namespace metacpp
+#endif // ARRAY_H

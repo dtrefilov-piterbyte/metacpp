@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRING_H
+#define STRING_H
 #include <string>
 #include <string.h>
 #include <stdio.h>
@@ -429,3 +430,4 @@ std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const
 std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const String& wstr);
 
 } // namespace metacpp
+#endif // STRING_H

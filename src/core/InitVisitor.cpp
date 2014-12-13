@@ -51,6 +51,12 @@ void pkInitVisitor::visitField(Object *obj, const FieldInfoDescriptor *desc)
             else
                 accessField<Nullable<int32_t > >(obj, desc) = desc->valueInfo.ext.m_float.defaultValue;
             break;
+        case eFieldTime:
+            if (eOptional == desc->valueInfo.mandatoriness)
+                accessField<Nullable<int32_t > >(obj, desc).reset();
+            else
+                accessField<Nullable<std::time_t> >(obj, desc) = -1;
+            break;
         }
         return;
     }
@@ -84,6 +90,8 @@ void pkInitVisitor::visitField(Object *obj, const FieldInfoDescriptor *desc)
     case eFieldObject: {
         accessField<Object>(obj, desc).init();
 		break;
+    case eFieldTime:
+            accessField<std::time_t>(obj, desc) = -1;
     }
     }
 }

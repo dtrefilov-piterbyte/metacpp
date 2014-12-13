@@ -1,4 +1,5 @@
-#pragma once
+#ifndef VISITOR_BASE_H
+#define VISITOR_BASE_H
 #include "Object.h"
 
 namespace metacpp
@@ -17,3 +18,4 @@ protected:
 };
 
 } // namespace metacpp
+#endif // VISITOR_BASE_H

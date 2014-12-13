@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHAREDDATABASE_H
+#define SHAREDDATABASE_H
 #include <atomic>
 #include <type_traits>
 
@@ -59,3 +60,4 @@ private:
 };
 
 } // namespace metacpp
+#endif // SHAREDDATABASE_H

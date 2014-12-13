@@ -1,4 +1,5 @@
-#pragma once
+#ifndef METAOBJECT_H
+#define METAOBJECT_H
 #include "MetaInfo.h"
 #include <vector>
 
@@ -25,3 +26,4 @@ private:
 };
 
 } // namespace metacpp
+#endif // METAOBJECT_H

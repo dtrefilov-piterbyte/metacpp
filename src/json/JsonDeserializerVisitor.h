@@ -1,4 +1,5 @@
-#pragma once
+#ifndef JSONDESERIALIZERVISITOR_H
+#define JSONDESERIALIZERVISITOR_H
 #include "VisitorBase.h"
 #include <json/json.h>
 
@@ -20,3 +21,4 @@ private:
 };
 
 } // namespace metacpp
+#endif // JSONDESERIALIZERVISITOR_H

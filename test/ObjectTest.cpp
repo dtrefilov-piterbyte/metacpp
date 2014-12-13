@@ -41,6 +41,7 @@ struct TestStruct : public TestBaseStruct
     String strValue;
 	TestSubStruct substruct;
     Array<String> arrValue;
+    time_t timeValue;
 
     Nullable<EEnumTest> optEnumValue;
     Nullable<bool> optBoolValue;
@@ -66,6 +67,7 @@ STRUCT_INFO_DERIVED_BEGIN(TestStruct, TestBaseStruct)
 	FIELD_INFO(TestStruct, strValue, "testValue")
 	FIELD_INFO(TestStruct, substruct)
 	FIELD_INFO(TestStruct, arrValue)
+    FIELD_INFO(TestStruct, timeValue)
 
     FIELD_INFO(TestStruct, optEnumValue, &ENUM_INFO(EEnumTest))
     FIELD_INFO(TestStruct, optBoolValue, true)
@@ -93,27 +95,29 @@ META_INFO(TestBaseStruct)
 void ObjectTest::testMetaInfo()
 {
 	TestStruct t;
-    EXPECT_EQ(std::string(t.metaObject()->className()), "TestStruct") << "invalid className";
-    EXPECT_EQ(t.metaObject()->totalFields(), 14) << "invalid number of fields";
+    EXPECT_EQ(std::string(t.metaObject()->className()), "TestStruct");
+    EXPECT_EQ(t.metaObject()->totalFields(), 15);
 	auto sd = t.metaObject()->structDescriptor();
-    EXPECT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct)) << "invalid superclass";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->m_pszName), "enumValue") << "invalid enum type";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->m_eType, eFieldEnum) << "invalid enum type";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_defaultValue, eEnumValueUnk) << "invalid enum default type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_enumName), "EEnumTest") << "invalid enum name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_type, eEnumSimple) << "invalid enum type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(2)->m_pszName), "boolValue") << "invalid bool name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(2)->m_eType, eFieldBool) << "invalid bool type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(3)->m_pszName), "intValue") << "invalid int name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(3)->m_eType, eFieldInt) << "invalid int type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(4)->m_pszName), "uintValue") << "invalid uint name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(4)->m_eType, eFieldUint) << "invalid uint type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(5)->m_pszName), "floatValue") << "invalid float name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(5)->m_eType, eFieldFloat) << "invalid float type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(6)->m_pszName), "strValue") << "invalid string name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(6)->m_eType, eFieldString) << "invalid string type";
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(7)->m_pszName), "substruct") << "invalid object name";
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(7)->m_eType, eFieldObject) << "invalid object type";
+    EXPECT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->m_pszName), "enumValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->m_eType, eFieldEnum);
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_defaultValue, eEnumValueUnk);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_enumName), "EEnumTest");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_type, eEnumSimple);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(2)->m_pszName), "boolValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(2)->m_eType, eFieldBool);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(3)->m_pszName), "intValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(3)->m_eType, eFieldInt);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(4)->m_pszName), "uintValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(4)->m_eType, eFieldUint);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(5)->m_pszName), "floatValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(5)->m_eType, eFieldFloat);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(6)->m_pszName), "strValue");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(6)->m_eType, eFieldString);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(7)->m_pszName), "substruct");
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(7)->m_eType, eFieldObject);
+    EXPECT_EQ(t.metaObject()->fieldDescriptor(9)->m_eType, eFieldTime);
+    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(9)->m_pszName), "timeValue");
 
 }
 
@@ -121,19 +125,20 @@ void ObjectTest::testInitVisitor()
 {
 	TestStruct t;
 	t.init();
-    EXPECT_EQ(t.enumValue, eEnumValueUnk) << "t.enumValue incorrectly initilized";
-    EXPECT_EQ(t.boolValue, true) << "t.boolValue incorrectly initilized";
-    EXPECT_EQ(t.intValue, -1) << "t.intValue incorrectly initilized";
-    EXPECT_EQ(t.uintValue, 123154) << "t.uintValue incorrectly initilized";
-    EXPECT_EQ(t.floatValue, 25.0f) << "t.intValue incorrectly initilized";
-    EXPECT_EQ(t.strValue, "testValue") << "t.strValue incorrectly initilized";
+    EXPECT_EQ(t.enumValue, eEnumValueUnk);
+    EXPECT_EQ(t.boolValue, true);
+    EXPECT_EQ(t.intValue, -1);
+    EXPECT_EQ(t.uintValue, 123154);
+    EXPECT_EQ(t.floatValue, 25.0f);
+    EXPECT_EQ(t.strValue, "testValue");
     EXPECT_EQ(t.substruct.name, "TestSubStruct");
-    EXPECT_TRUE(t.arrValue.empty()) << "t.arrValue incorrectly initialized";
-    EXPECT_EQ(*t.optEnumValue, eEnumValueUnk) << "t.optEnumValue incorrectly initialized";
-    EXPECT_EQ(*t.optBoolValue, true) << "t.optBoolValue incorrectly initialized";
-    EXPECT_EQ(*t.optIntValue, -1) << "t.optIntValue incorrectly initialized";
-    EXPECT_EQ(*t.optUintValue, 123154) << "t.optUintValue incorrectly initialized";
-    ASSERT_FALSE(t.optFloatValue) << "t.optFloatValue incorrectly initialized";
+    EXPECT_TRUE(t.arrValue.empty());
+    EXPECT_EQ(*t.optEnumValue, eEnumValueUnk);
+    EXPECT_EQ(*t.optBoolValue, true);
+    EXPECT_EQ(*t.optIntValue, -1);
+    EXPECT_EQ(*t.optUintValue, 123154);
+    EXPECT_FALSE(t.optFloatValue);
+    EXPECT_EQ(t.timeValue, (std::time_t)-1);
 }
 
 void ObjectTest::testSerialization()
@@ -152,6 +157,7 @@ void ObjectTest::testSerialization()
     t.arrValue.push_back("asdj");
     t.arrValue.push_back("");
     t.optFloatValue = 2.5;
+    t.timeValue = time(NULL);
     t2.fromString(t.toString());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
@@ -170,6 +176,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(*t2.optIntValue, -1);
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
+    EXPECT_EQ(t.timeValue, t2.timeValue);
 }
 
 TEST_F(ObjectTest, MetaInfoTest)
