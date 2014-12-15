@@ -15,21 +15,21 @@ JsonDeserializerVisitor::~JsonDeserializerVisitor(void)
 {
 }
 
-void JsonDeserializerVisitor::visitField(Object *obj, const FieldInfoDescriptor *desc)
+void JsonDeserializerVisitor::visitField(Object *obj, const MetaField *field)
 {
-	ParseValue(m_value, desc->m_eType, reinterpret_cast<char *>(obj) + desc->m_dwOffset, desc);
+    ParseValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
 }
 
-void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const FieldInfoDescriptor *desc, Json::ArrayIndex i)
+void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaField *field, Json::ArrayIndex i)
 {
-	Json::Value val = desc ? parent.get(desc->m_pszName, Json::nullValue) : parent.get(i, Json::nullValue);
+    Json::Value val = field ? parent.get(field->name(), Json::nullValue) : parent.get(i, Json::nullValue);
 #define ACCESS_NULLABLE(type) \
-    auto& field = *reinterpret_cast<Nullable<type > *>(pValue); \
-    field.reset(!val.isNull()); \
+    auto& f = *reinterpret_cast<Nullable<type > *>(pValue); \
+    f.reset(!val.isNull()); \
     if (val.isNull()) return; \
-    pValue = &field.get();
+    pValue = &f.get();
 
-    if (desc && desc->m_nullable)
+    if (field && field->nullable())
     {
         switch (type)
         {
@@ -89,9 +89,9 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
         *reinterpret_cast<metacpp::String *>(pValue) = val.asString();
 		break;
 	case eFieldEnum:
-		if (desc && val.isString())
+        if (field && val.isString())
 		{
-            *reinterpret_cast<uint32_t *>(pValue) = desc->valueInfo.ext.m_enum.enumInfo->fromString(val.asString());
+            *reinterpret_cast<uint32_t *>(pValue) = reinterpret_cast<const MetaFieldEnum *>(field)->fromString(val.asCString());
 			break;
 		}
 		if (!val.isUInt()) throw std::invalid_argument("Type mismatch");
@@ -100,15 +100,15 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 	case eFieldArray:
 	{
 		if (!val.isArray() && !val.isNull())  throw std::invalid_argument("Type mismatch");
-		assert(desc);	// nested arrays are not allowed
+        assert(field);	// nested arrays are not allowed
 
         {
             metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
             arrayValue->resize(val.size());
             for (size_t i = 0; i < val.size(); ++i)
             {
-                void *pValue = arrayValue->data() + desc->valueInfo.ext.m_array.elemSize * i;
-                ParseValue(val, desc->valueInfo.ext.m_array.elemType, pValue, nullptr, i);
+                void *pValue = arrayValue->data() + reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize() * i;
+                ParseValue(val, reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(), pValue, nullptr, i);
             }
         }
 

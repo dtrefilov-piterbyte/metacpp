@@ -31,16 +31,16 @@ public:
 	*/
     void fromString(const String &s);
 
-	virtual const pkMetaObject *metaObject() const = 0;
+	virtual const MetaObject *metaObject() const = 0;
 };
 
 #define META_INFO_DECLARE(structName) \
-        const pkMetaObject *metaObject() const override { return &ms_metaObject; } \
+        const MetaObject *metaObject() const override { return &ms_metaObject; } \
     private: \
-        static pkMetaObject ms_metaObject;
+        static MetaObject ms_metaObject;
 
 #define META_INFO(structName) \
-    pkMetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
+    MetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
 
 STRUCT_INFO_DECLARE(Object)
 

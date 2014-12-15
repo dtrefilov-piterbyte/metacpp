@@ -12,9 +12,9 @@ public:
 	virtual ~VisitorBase(void);
 	void visit(Object *obj);
 protected:
-	virtual void previsitStruct(Object *obj, const StructInfoDescriptor *);
-	virtual void visitField(Object *obj, const FieldInfoDescriptor *);
-    virtual void postvisitStruct(Object *obj, const StructInfoDescriptor *);
+    virtual void previsitStruct(Object *obj);
+    virtual void visitField(Object *obj, const MetaField *);
+    virtual void postvisitStruct(Object *obj);
 };
 
 } // namespace metacpp

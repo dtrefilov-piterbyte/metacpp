@@ -22,6 +22,6 @@ namespace sql
         int64_t m_id;
         Object *m_record;
 };
-}
+} // namespace sql
 } // namespace metacpp
 #endif // SQLSTORABLE_H

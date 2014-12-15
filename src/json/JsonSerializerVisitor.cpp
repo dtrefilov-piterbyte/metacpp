@@ -16,20 +16,21 @@ JsonSerializerVisitor::~JsonSerializerVisitor(void)
 {
 }
 
-void JsonSerializerVisitor::visitField(Object *obj, const FieldInfoDescriptor *desc)
+void JsonSerializerVisitor::visitField(Object *obj, const MetaField *field)
 {
-	appendSubValue(m_value, desc->m_eType, reinterpret_cast<char *>(obj) + desc->m_dwOffset, desc);
+    appendSubValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
 }
 
-void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type, const void *pValue, const FieldInfoDescriptor *desc, Json::ArrayIndex i)
+void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
+                                           const MetaField *field, Json::ArrayIndex i)
 {
-	Json::Value& val = desc ? parent[desc->m_pszName] : parent[i];
+    Json::Value& val = field ? parent[field->name()] : parent[i];
 #define ACCESS_NULLABLE(type) \
-    auto& field = *reinterpret_cast<const Nullable<type > *>(pValue); \
-    if (!field) return; \
-    pValue = &field.get();
+    auto& f = *reinterpret_cast<const Nullable<type > *>(pValue); \
+    if (!f) return; \
+    pValue = &f.get();
 
-    if (desc && desc->m_nullable)
+    if (field && field->nullable())
     {
         switch (type)
         {
@@ -80,20 +81,20 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
         val = reinterpret_cast<const metacpp::String *>(pValue)->data();
 		break;
 	case eFieldEnum:
-		if (desc)
-            val = desc->valueInfo.ext.m_enum.enumInfo->toString(*reinterpret_cast<const uint32_t *>(pValue));
+        if (field)
+            val = reinterpret_cast<const MetaFieldEnum *>(field)->toString(*reinterpret_cast<const uint32_t *>(pValue));
 		else
 			val = *reinterpret_cast<const uint32_t *>(pValue);
 		break;
 	case eFieldArray:
 	{
-		assert(desc);	// nested arrays are not allowed
+        assert(field);	// nested arrays are not allowed
         {
             const metacpp::Array<char> *arrayValue = reinterpret_cast<const metacpp::Array<char> *>(pValue);
             for (size_t i = 0; i < arrayValue->size(); ++i)
             {
-                const void *pSubValue = arrayValue->data() + i * desc->valueInfo.ext.m_array.elemSize;
-                appendSubValue(val, desc->valueInfo.ext.m_array.elemType, pSubValue, nullptr, i);
+                const void *pSubValue = arrayValue->data() + i * reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize();
+                appendSubValue(val, reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(), pSubValue, nullptr, i);
             }
         }
 		break;

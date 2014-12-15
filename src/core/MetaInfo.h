@@ -62,27 +62,6 @@ struct EnumInfoDescriptor
 	const char		*m_enumName;
 	uint32_t		m_defaultValue;
 	EnumValueInfoDescriptor *m_valueDescriptors;
-
-	const char *toString(uint32_t value)
-	{
-		for (EnumValueInfoDescriptor *desc = m_valueDescriptors; desc->m_pszValue; ++desc)
-			if (desc->m_uValue == value) return desc->m_pszValue;
-		return nullptr;
-	}
-
-	uint32_t fromString(const std::string& strValue)
-	{
-		for (EnumValueInfoDescriptor *desc = m_valueDescriptors; desc->m_pszValue; ++desc)
-			if (strValue == desc->m_pszValue) return desc->m_uValue;
-		return m_defaultValue;
-	}
-
-	EnumValueInfoDescriptor *findDescriptorByName(const std::string& name)
-	{
-		for (EnumValueInfoDescriptor *desc = m_valueDescriptors; desc->m_pszValue; ++desc)
-			if (name == desc->m_pszValue) return desc;
-		return nullptr;
-	}
 };
 
 struct FieldInfoDescriptor
@@ -316,15 +295,5 @@ struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelp
 
 #define VALUE_INFO(name) \
 	{ #name, (uint32_t)name },
-
-template<typename T>
-T& accessField(void *obj, const FieldInfoDescriptor *fieldInfo) {
-	return *reinterpret_cast<T *>(reinterpret_cast<char *>(obj) + fieldInfo->m_dwOffset);
-}
-
-template<typename T>
-const T& accessField(const void *obj, const FieldInfoDescriptor *fieldInfo) {
-	return *reinterpret_cast<T *>(reinterpret_cast<char *>(obj) + fieldInfo->m_dwOffset);
-}
 
 #endif // METAINFO_H

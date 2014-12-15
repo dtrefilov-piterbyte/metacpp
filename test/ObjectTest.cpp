@@ -97,27 +97,27 @@ void ObjectTest::testMetaInfo()
 	TestStruct t;
     EXPECT_EQ(std::string(t.metaObject()->className()), "TestStruct");
     EXPECT_EQ(t.metaObject()->totalFields(), 15);
-	auto sd = t.metaObject()->structDescriptor();
-    EXPECT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->m_pszName), "enumValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->m_eType, eFieldEnum);
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_defaultValue, eEnumValueUnk);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_enumName), "EEnumTest");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(1)->valueInfo.ext.m_enum.enumInfo->m_type, eEnumSimple);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(2)->m_pszName), "boolValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(2)->m_eType, eFieldBool);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(3)->m_pszName), "intValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(3)->m_eType, eFieldInt);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(4)->m_pszName), "uintValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(4)->m_eType, eFieldUint);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(5)->m_pszName), "floatValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(5)->m_eType, eFieldFloat);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(6)->m_pszName), "strValue");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(6)->m_eType, eFieldString);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(7)->m_pszName), "substruct");
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(7)->m_eType, eFieldObject);
-    EXPECT_EQ(t.metaObject()->fieldDescriptor(9)->m_eType, eFieldTime);
-    EXPECT_EQ(std::string(t.metaObject()->fieldDescriptor(9)->m_pszName), "timeValue");
+    auto sd = t.metaObject()->descriptor();
+    ASSERT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
+    ASSERT_EQ(std::string(t.metaObject()->field(1)->name()), "enumValue");
+    ASSERT_EQ(t.metaObject()->field(1)->type(), eFieldEnum);
+    ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);
+    ASSERT_EQ(std::string(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumName()), "EEnumTest");
+    ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumType(), eEnumSimple);
+    ASSERT_EQ(std::string(t.metaObject()->field(2)->name()), "boolValue");
+    ASSERT_EQ(t.metaObject()->field(2)->type(), eFieldBool);
+    ASSERT_EQ(std::string(t.metaObject()->field(3)->name()), "intValue");
+    ASSERT_EQ(t.metaObject()->field(3)->type(), eFieldInt);
+    ASSERT_EQ(std::string(t.metaObject()->field(4)->name()), "uintValue");
+    ASSERT_EQ(t.metaObject()->field(4)->type(), eFieldUint);
+    ASSERT_EQ(std::string(t.metaObject()->field(5)->name()), "floatValue");
+    ASSERT_EQ(t.metaObject()->field(5)->type(), eFieldFloat);
+    ASSERT_EQ(std::string(t.metaObject()->field(6)->name()), "strValue");
+    ASSERT_EQ(t.metaObject()->field(6)->type(), eFieldString);
+    ASSERT_EQ(std::string(t.metaObject()->field(7)->name()), "substruct");
+    ASSERT_EQ(t.metaObject()->field(7)->type(), eFieldObject);
+    ASSERT_EQ(t.metaObject()->field(9)->type(), eFieldTime);
+    ASSERT_EQ(std::string(t.metaObject()->field(9)->name()), "timeValue");
 
 }
 

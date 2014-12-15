@@ -12,86 +12,92 @@ pkInitVisitor::~pkInitVisitor(void)
 {
 }
 
-void pkInitVisitor::visitField(Object *obj, const FieldInfoDescriptor *desc)
+void pkInitVisitor::visitField(Object *obj, const MetaField *field)
 {
-    if (desc->m_nullable)
+    if (field->nullable())
     {
-        switch (desc->m_eType)
+        switch (field->type())
         {
         default:
         case eFieldVoid:
-            throw std::invalid_argument(std::string("Unknown field type: ") + (char)desc->m_eType);
+            throw std::invalid_argument(std::string("Unknown field type: ") + (char)field->type());
         case eFieldBool:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<bool > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<bool> >(obj).reset();
             else
-                accessField<Nullable<bool > >(obj, desc) = desc->valueInfo.ext.m_bool.defaultValue;
+                field->access<Nullable<bool> >(obj) =
+                        reinterpret_cast<const MetaFieldBool *>(field)->defaultValue();
             break;
         case eFieldInt:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<int32_t > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<int32_t> >(obj).reset();
             else
-                accessField<Nullable<int32_t > >(obj, desc) = desc->valueInfo.ext.m_int.defaultValue;
+                field->access<Nullable<int32_t> >(obj) =
+                        reinterpret_cast<const MetaFieldInt *>(field)->defaultValue();
             break;
         case eFieldUint:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<int32_t > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<uint32_t> >(obj).reset();
             else
-                accessField<Nullable<int32_t > >(obj, desc) = desc->valueInfo.ext.m_uint.defaultValue;
+                field->access<Nullable<uint32_t> >(obj) =
+                        reinterpret_cast<const MetaFieldUint *>(field)->defaultValue();
             break;
         case eFieldEnum:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<int32_t > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<uint32_t> >(obj).reset();
             else
-                accessField<Nullable<int32_t > >(obj, desc) = desc->valueInfo.ext.m_enum.enumInfo->m_defaultValue;
+                field->access<Nullable<uint32_t> >(obj) =
+                        reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue();
             break;
         case eFieldFloat:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<int32_t > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<float> >(obj).reset();
             else
-                accessField<Nullable<int32_t > >(obj, desc) = desc->valueInfo.ext.m_float.defaultValue;
+                field->access<Nullable<float> >(obj) =
+                        reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue();
             break;
         case eFieldTime:
-            if (eOptional == desc->valueInfo.mandatoriness)
-                accessField<Nullable<int32_t > >(obj, desc).reset();
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<std::time_t> >(obj).reset();
             else
-                accessField<Nullable<std::time_t> >(obj, desc) = -1;
+                field->access<Nullable<std::time_t> >(obj) = (std::time_t)-1;
             break;
         }
         return;
     }
 
-    switch (desc->m_eType)
+    switch (field->type())
 	{
 	default:
 	case eFieldVoid:
-		throw std::invalid_argument(std::string("Unknown field type: ") + (char)desc->m_eType);
+        throw std::invalid_argument(std::string("Unknown field type: ") + (char)field->type());
     case eFieldBool:
-        accessField<bool>(obj, desc) = desc->valueInfo.ext.m_bool.defaultValue;
+        field->access<bool>(obj) = reinterpret_cast<const MetaFieldBool *>(field)->defaultValue();
 		break;
     case eFieldInt:
-        accessField<int32_t>(obj, desc) = desc->valueInfo.ext.m_int.defaultValue;
+        field->access<int32_t>(obj) = reinterpret_cast<const MetaFieldInt *>(field)->defaultValue();
 		break;
 	case eFieldUint:
-        accessField<uint32_t>(obj, desc) = desc->valueInfo.ext.m_uint.defaultValue;
+        field->access<uint32_t>(obj) = reinterpret_cast<const MetaFieldUint *>(field)->defaultValue();
 		break;
     case eFieldFloat:
-        accessField<float>(obj, desc) = desc->valueInfo.ext.m_float.defaultValue;
+        field->access<float>(obj) = reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue();
 		break;
     case eFieldString:
-        accessField<metacpp::String>(obj, desc) = desc->valueInfo.ext.m_string.defaultValue;
+        field->access<metacpp::String>(obj) = reinterpret_cast<const MetaFieldString *>(field)->defaultValue();
 		break;
     case eFieldEnum:
-        accessField<uint32_t>(obj, desc) = desc->valueInfo.ext.m_enum.enumInfo->m_defaultValue;
+        field->access<uint32_t>(obj) = reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue();
 		break;
     case eFieldArray:
-        accessField<metacpp::Array<char> >(obj, desc).clear();
+        field->access<metacpp::Array<char> >(obj).clear();
 		break;
     case eFieldObject: {
-        accessField<Object>(obj, desc).init();
+        field->access<Object>(obj).init();
 		break;
     case eFieldTime:
-            accessField<std::time_t>(obj, desc) = -1;
+        field->access<std::time_t>(obj) = (std::time_t)-1;
+        break;
     }
     }
 }
