@@ -7,6 +7,7 @@ namespace sql
 
 
 SqlStatementBase::SqlStatementBase()
+    : m_prepared(false)
 {
 
 }
@@ -14,6 +15,16 @@ SqlStatementBase::SqlStatementBase()
 SqlStatementBase::~SqlStatementBase()
 {
 
+}
+
+bool SqlStatementBase::prepared() const
+{
+    return m_prepared;
+}
+
+void SqlStatementBase::setPrepared(bool val)
+{
+    m_prepared = val;
 }
 
 SqlStatementBasePtr SqlStatementFactory::createInstance(SqlStatementType type)

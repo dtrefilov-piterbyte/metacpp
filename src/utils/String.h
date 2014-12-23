@@ -28,7 +28,7 @@ class StringBuilder;
 template<typename T>
 class StringBase;
 
-/** \brief String in native system encoding (ANSI Windows platforms and UTF-8 on linux) */
+/** \brief String in native system encoding (ANSI on Windows platforms and UTF-8 on linux) */
 typedef StringBase<char> String;
 /** \brief String in UTF16-LE encoding (for use with Win32 API, JNI and others) */
 typedef StringBase<char16_t> WString;

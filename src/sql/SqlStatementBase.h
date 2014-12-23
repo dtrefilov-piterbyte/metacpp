@@ -26,6 +26,10 @@ public:
 
     virtual SqlStatementType type() const = 0;
     virtual String buildQuery(SqlStatementBuilderBase *builder) const = 0;
+    virtual bool prepared() const;
+    virtual void setPrepared(bool val = true);
+protected:
+    bool m_prepared;
 };
 
 typedef std::shared_ptr<SqlStatementBase> SqlStatementBasePtr;
