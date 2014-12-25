@@ -1,15 +1,19 @@
 #ifndef SQLTRANSACTION_H
 #define SQLTRANSACTION_H
-#include "connectors/SqlConnectorBase.h"
 
 namespace metacpp
 {
 namespace sql
 {
 
+namespace connectors
+{
+    class SqlConnectorBase;
+}
+
 class SqlTransaction
 {
-    // created via SqlConnectorBase
+    // never instantiated directly, created via SqlConnectorBase
     SqlTransaction(connectors::SqlConnectorBase *connector);
 public:
 
@@ -18,8 +22,9 @@ public:
     connectors::SqlConnectorBase *connector();
 private:
     connectors::SqlConnectorBase *m_connector;
-
 };
+
+// TODO: needed some kind of SqlTransactionGuard with AutoCommit and AutoRollback disposition behaviour (as wrapper over SqlTransaction?)
 
 } // namespace sql
 } // namespace metacpp

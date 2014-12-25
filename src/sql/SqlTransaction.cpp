@@ -1,4 +1,5 @@
 #include "SqlTransaction.h"
+#include "connectors/SqlConnectorBase.h"
 
 namespace metacpp
 {

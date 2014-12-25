@@ -6,8 +6,8 @@ namespace sql
 {
 
 
-SqlStatementBase::SqlStatementBase()
-    : m_prepared(false)
+SqlStatementBase::SqlStatementBase(const String& queryText)
+    : m_prepared(false), m_queryText(queryText)
 {
 
 }
@@ -27,10 +27,9 @@ void SqlStatementBase::setPrepared(bool val)
     m_prepared = val;
 }
 
-SqlStatementBasePtr SqlStatementFactory::createInstance(SqlStatementType type)
+const String& SqlStatementBase::queryText() const
 {
-    SqlStatementBasePtr result;
-    return result;
+    return m_queryText;
 }
 
 } // namespace sql

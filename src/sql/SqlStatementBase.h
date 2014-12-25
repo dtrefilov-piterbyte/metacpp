@@ -9,38 +9,31 @@ namespace metacpp
 {
 namespace sql
 {
-class SqlStatementBuilderBase;
 
 enum SqlStatementType
 {
-    SqlStatementTypeSelect,
-    SqlStatementTypeUpdate,
-    SqlStatementTypeDelete
+    eSqlStatementTypeUnknown,
+    eSqlStatementTypeSelect,
+    eSqlStatementTypeUpdate,
+    eSqlStatementTypeDelete,
 };
 
 class SqlStatementBase
 {
+protected:
+    SqlStatementBase(const String& queryText);
 public:
-    SqlStatementBase();
+    SqlStatementBase(const SqlStatementBase&)=delete;
     virtual ~SqlStatementBase();
 
-    virtual SqlStatementType type() const = 0;
-    virtual String buildQuery(SqlStatementBuilderBase *builder) const = 0;
+    virtual SqlStatementType type() const;
     virtual bool prepared() const;
     virtual void setPrepared(bool val = true);
+    virtual const String& queryText() const;
 protected:
     bool m_prepared;
-};
-
-typedef std::shared_ptr<SqlStatementBase> SqlStatementBasePtr;
-
-class SelectSqlStatement;
-class UpdateSqlStatement;
-class DeleteSqlStatement;
-
-class SqlStatementFactory : public FactoryBase<SqlStatementBasePtr, SqlStatementType>
-{
-    SqlStatementBasePtr createInstance(SqlStatementType type);
+    String m_queryText;
+    SqlStatementType m_type;
 };
 
 } // namespace sql
