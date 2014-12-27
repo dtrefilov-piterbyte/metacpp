@@ -268,6 +268,7 @@ public:
 	void squeeze() { this->detach(); this->m_d->_squeeze(); }
 	void erase(size_t i) { this->detach(); this->m_d->_erase(i, i + 1); } 
 	void erase(size_t from, size_t to) { this->detach(); this->m_d->_erase(from, to); } 
+    void erase(const_iterator it) { erase(it - begin()); }
 
 	reference operator[](size_t i) { this->detach(); assert(i < size()); return this->m_d->_data()[i]; }
 	const_reference operator[](size_t i) const { assert(i < size()); return this->m_d->_data()[i]; }

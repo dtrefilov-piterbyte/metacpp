@@ -4,10 +4,12 @@ namespace metacpp
 {
 namespace sql
 {
+namespace connectors
+{
 
 
-SqlStatementBase::SqlStatementBase(const String& queryText)
-    : m_prepared(false), m_queryText(queryText)
+SqlStatementBase::SqlStatementBase(SqlStatementType type, const String& queryText)
+    : m_prepared(false), m_queryText(queryText), m_type(type), m_done(false)
 {
 
 }
@@ -27,10 +29,16 @@ void SqlStatementBase::setPrepared(bool val)
     m_prepared = val;
 }
 
+bool SqlStatementBase::done() const
+{
+    return m_done;
+}
+
 const String& SqlStatementBase::queryText() const
 {
     return m_queryText;
 }
 
+} // namespace connectors
 } // namespace sql
 } // namespace metacpp

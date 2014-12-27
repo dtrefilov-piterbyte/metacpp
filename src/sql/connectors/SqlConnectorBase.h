@@ -3,7 +3,7 @@
 #include "SqlResultSet.h"
 #include "SqlStatementBase.h"
 #include "SqlTransaction.h"
-#include "Object.h"
+#include "SqlStorable.h"
 
 namespace metacpp
 {
@@ -31,24 +31,10 @@ public:
     virtual ~SqlConnectorBase();
 
     /** \brief Perform initial connection to the database */
-    bool connect();
+    virtual bool connect() = 0;
 
     /** \brief Close connection to the database */
-    bool disconnect();
-
-    /** \brief Prepare statement */
-    virtual bool prepare(SqlStatementBase *statement) = 0;
-
-    /** \brief Bind object fields to the statement arguments
-     * Arguments order and count in statement should match field in the object
-    */
-    virtual bool bindArguments(SqlStatementBase *statement, Object *object) = 0;
-
-    /** \brief Execute statement */
-    virtual bool execStatement() = 0;
-
-    /** \brief Fetch row */
-    virtual bool fetchNext() = 0;
+    virtual bool disconnect() = 0;
 
     /** \brief create a new transaction using existing connection to the database.
      * After you finish with transaction you should return it back to the connector

@@ -9,19 +9,22 @@ namespace sql
 namespace connectors
 {
     class SqlConnectorBase;
+    class SqlTransactionImpl;
 }
 
 class SqlTransaction
 {
     // never instantiated directly, created via SqlConnectorBase
-    SqlTransaction(connectors::SqlConnectorBase *connector);
+    SqlTransaction(connectors::SqlConnectorBase *connector,
+                   connectors::SqlTransactionImpl *impl);
 public:
 
-    ~SqlTransaction();
+    virtual ~SqlTransaction();
 
     connectors::SqlConnectorBase *connector();
 private:
     connectors::SqlConnectorBase *m_connector;
+    connectors::SqlTransactionImpl *m_impl;
 };
 
 // TODO: needed some kind of SqlTransactionGuard with AutoCommit and AutoRollback disposition behaviour (as wrapper over SqlTransaction?)

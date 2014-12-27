@@ -6,8 +6,8 @@ namespace metacpp
 namespace sql
 {
 
-SqlTransaction::SqlTransaction(connectors::SqlConnectorBase *connector)
-    : m_connector(connector)
+SqlTransaction::SqlTransaction(connectors::SqlConnectorBase *connector, connectors::SqlTransactionImpl *impl)
+    : m_connector(connector), m_impl(impl)
 {
 }
 

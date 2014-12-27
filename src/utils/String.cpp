@@ -329,7 +329,8 @@ namespace metacpp
 
     std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const String& str)
     {
-        return os << str.data();
+        os.rdbuf()->sputn(str.data(), str.size());
+        return os;
     }
 
     std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const WString& wstr)
@@ -339,7 +340,8 @@ namespace metacpp
 
     std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const WString& str)
     {
-        return os << str.data();
+        os.rdbuf()->sputn(str.data(), str.size());
+        return os;
     }
 
     std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const String& wstr)

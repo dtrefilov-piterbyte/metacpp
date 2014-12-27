@@ -32,6 +32,7 @@ SET(ORM_SRC_DIRS
     "${CMAKE_SOURCE_DIR}/src/json"
     "${CMAKE_SOURCE_DIR}/src/sql"
     "${CMAKE_SOURCE_DIR}/src/sql/connectors"
+    "${CMAKE_SOURCE_DIR}/src/sql/connectors/sqlite3"
 )
 
 LIST(APPEND INCLUDE_DIRS ${ORM_SRC_DIRS})

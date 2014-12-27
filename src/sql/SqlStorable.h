@@ -7,6 +7,7 @@ namespace metacpp
 {
 namespace sql
 {
+    /** Base interface for persistable objects */
     class SqlStorable
     {
         SqlStorable(Object *record);
