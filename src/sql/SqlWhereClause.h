@@ -16,7 +16,7 @@ public:
     virtual ~WhereClauseBuilder() { }
 
     /** \brief print sql subexpression into a stream */
-    virtual std::ostream& buildStatement(std::ostream& os) const = 0;
+    virtual std::ostream& printExpression(std::ostream& os) const = 0;
     virtual bool complex() const { return false; }
 };
 
@@ -33,7 +33,7 @@ public:
     {
     }
 
-    std::ostream& buildStatement(std::ostream& os) const override
+    std::ostream& printExpression(std::ostream& os) const override
     {
         return os << m_string;
     }
@@ -58,10 +58,10 @@ public:
     {
     }
 
-    std::ostream& buildStatement(std::ostream& os) const override
+    std::ostream& printExpression(std::ostream& os) const override
     {
         if (m_left.complex()) os << "("; // parenthesis
-        m_left.buildStatement(os);
+        m_left.printExpression(os);
         if (m_left.complex()) os << ")"; // parenthesis
 
         switch (m_operator)
@@ -77,8 +77,9 @@ public:
         }
 
         if (m_right.complex()) os << "("; // parenthesis
-        m_right.buildStatement(os);
+        m_right.printExpression(os);
         if (m_right.complex()) os << ")"; // parenthesis
+        return os;
     }
 
     bool complex() const override
@@ -89,6 +90,26 @@ private:
     Operator m_operator;
     const WhereClauseBuilder& m_left;
     const WhereClauseBuilder& m_right;
+};
+
+class NegationWhereClauseBuilder : public WhereClauseBuilder
+{
+public:
+    NegationWhereClauseBuilder(const WhereClauseBuilder& inner)
+        : m_inner(inner)
+    {
+    }
+
+    std::ostream& printExpression(std::ostream& os) const override
+    {
+        os << "NOT ";
+        if (m_inner.complex()) os << "(";
+        m_inner.printExpression(os);
+        if (m_inner.complex()) os << ")";
+        return os;
+    }
+private:
+    const WhereClauseBuilder& m_inner;
 };
 
 ComplexWhereClauseBuilder operator &&(const WhereClauseBuilder& left,
@@ -103,19 +124,29 @@ ComplexWhereClauseBuilder operator ||(const WhereClauseBuilder& left,
     return ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::OperatorOr, left, right);
 }
 
+NegationWhereClauseBuilder operator !(const WhereClauseBuilder& inner)
+{
+    return NegationWhereClauseBuilder(inner);
+}
+
 /**
     \brief Basic column matcher
 */
 template<typename TObj, typename TField>
 class SqlColumnMatcherBase
 {
-protected:
+public:
     explicit SqlColumnMatcherBase(const MetaField *metaField)
         : m_metaField(metaField)
     {
     }
 
     const MetaField *metaField() const { return m_metaField; }
+
+    virtual String columnName() const
+    {
+        return String(TObj::staticMetaObject()->name()) + "." + this->metaField()->name();
+    }
 
 private:
     const MetaField *m_metaField;
@@ -158,15 +189,14 @@ private:
     ExplicitWhereClauseBuilder helper_val(const TField& val, const char *comp) const
     {
         TValueEvaluator eval;
-        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
-            this->metaField()->name() + comp + eval(val));
+        return ExplicitWhereClauseBuilder(this->columnName() + comp + eval(val));
     }
 
     template<typename TObj1, typename TField1>
     ExplicitWhereClauseBuilder helper_col(const SqlColumnMatcherBase<TObj1, TField1>& other, const char *comp) const
     {
-        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." + this->metaField()->name() + comp +
-            TObj1::staticMetaObject()->name() + "." + other->metaField()->name());
+        return ExplicitWhereClauseBuilder(this->columnName() + comp +
+            other.columnName());
 
     }
 };
@@ -214,6 +244,12 @@ public:
     explicit SqlColumnPartialMatcher(const MetaField *metaField)
         : SqlColumnExpressionMatcher<TObj, String, ValueEvaluator<String> >(metaField)
     {
+    }
+
+    ExplicitWhereClauseBuilder like(const String& val) const
+    {
+        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
+            this->metaField()->name() + " LIKE \'" + val + "\'");
     }
 };
 

@@ -14,11 +14,7 @@ namespace sql
     public:
         virtual ~SqlStorable();
 
-        int getId() const;
-        void setId();
-    protected:
-        Object *getRecord();
-        void setRecord();
+        virtual const MetaField *primaryKey() const = 0;
     protected:
         int64_t m_id;
         Object *m_record;
