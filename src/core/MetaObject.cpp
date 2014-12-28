@@ -1,6 +1,7 @@
 #include "MetaObject.h"
 #include <algorithm>
 #include <iostream>
+#include <mutex>
 
 namespace metacpp
 {
@@ -14,7 +15,7 @@ MetaObject::~MetaObject(void)
 {
 }
 
-const char *MetaObject::className() const
+const char *MetaObject::name() const
 {
     return m_descriptor->m_strucName;
 }
@@ -25,6 +26,18 @@ const MetaField *MetaObject::field(size_t i) const
     return m_fields[i].get();
 }
 
+const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
+{
+    preparseFields();
+    auto it = std::lower_bound(m_fields.begin(), m_fields.end(), offset,
+        [](const std::unique_ptr<MetaField>& field, ptrdiff_t off) -> bool
+        {
+            return field->offset() < off;
+        }
+    );
+    return it ==  m_fields.end() ? nullptr : it->get();
+}
+
 size_t MetaObject::totalFields() const
 {
     preparseFields();
@@ -33,6 +46,9 @@ size_t MetaObject::totalFields() const
 
 void MetaObject::preparseFields() const
 {
+    static std::mutex _mutex;
+    std::lock_guard<std::mutex> _guard(_mutex);
+
 	if (m_initialized) return;
     MetaFieldFactory factory;
 	for (const StructInfoDescriptor *desc = m_descriptor; desc; desc = desc->m_superDescriptor)

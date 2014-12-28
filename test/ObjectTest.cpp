@@ -95,7 +95,7 @@ META_INFO(TestBaseStruct)
 void ObjectTest::testMetaInfo()
 {
 	TestStruct t;
-    EXPECT_EQ(std::string(t.metaObject()->className()), "TestStruct");
+    EXPECT_EQ(std::string(t.metaObject()->name()), "TestStruct");
     EXPECT_EQ(t.metaObject()->totalFields(), 15);
     auto sd = t.metaObject()->descriptor();
     ASSERT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));

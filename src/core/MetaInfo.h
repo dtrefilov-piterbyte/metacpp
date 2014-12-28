@@ -174,35 +174,35 @@ template<>
 struct PartialFieldInfoHelper<bool> {
 	static constexpr EFieldType type() { return eFieldBool; }
     static FieldInfoDescriptor::Extension extension(bool v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<>
 struct PartialFieldInfoHelper<int32_t> {
 	static constexpr EFieldType type() { return eFieldInt; }
     static FieldInfoDescriptor::Extension extension(int32_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<>
 struct PartialFieldInfoHelper<uint32_t> {
 	static constexpr EFieldType type() { return eFieldUint; }
     static FieldInfoDescriptor::Extension extension(uint32_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<>
 struct PartialFieldInfoHelper<float> {
 	static constexpr EFieldType type() { return eFieldFloat; }
     static FieldInfoDescriptor::Extension extension(float v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<>
 struct PartialFieldInfoHelper<metacpp::String> {
 	static constexpr EFieldType type() { return eFieldString; }
     static FieldInfoDescriptor::Extension extension(const char *v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m) { return FieldInfoDescriptor::Extension(m); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<typename T>

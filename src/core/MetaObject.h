@@ -17,8 +17,9 @@ public:
     explicit MetaObject(const StructInfoDescriptor *descriptor);
     ~MetaObject(void);
 
-    const char *className() const;
+    const char *name() const;
     const MetaField *field(size_t i) const;
+    const MetaField *fieldByOffset(ptrdiff_t offset) const;
     size_t totalFields() const;
     const StructInfoDescriptor *descriptor() const { return m_descriptor; }
 private:

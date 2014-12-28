@@ -46,7 +46,6 @@ T string_cast(const String& strA);
 template<typename T>
 T string_cast(const WString& strW);
 
-
 template<typename T>
 class StringData : public ArrayData<T>
 {
@@ -329,6 +328,23 @@ private:
     const StringBase<T>& m_str;
 };
 
+template<typename T>
+class StringBuilderHelper<std::basic_string<T> >
+{
+public:
+    typedef T CharT;
+
+    StringBuilderHelper(const std::basic_string<T>& str)
+        : m_str(str)
+    {
+    }
+
+    size_t length() const { return m_str.length(); }
+    void appendTo(StringBase<CharT>& acc) const { acc.append(m_str.c_str(), m_str.length()); }
+private:
+    const std::basic_string<T>& m_str;
+};
+
 template<typename T1, typename T2>
 class StringBuilderHelper<StringBuilder<T1, T2> >
 {
@@ -384,6 +400,18 @@ StringBuilder<StringBase<T>, StringBase<T> > operator +(const StringBase<T>& a, 
 }
 
 template<typename T>
+StringBuilder<StringBase<T>, StringBase<T> > operator +(const StringBase<T>& a, const std::basic_string<T>& b)
+{
+    return StringBuilder<StringBase<T>, std::basic_string<T> >(a, b);
+}
+
+template<typename T>
+StringBuilder<StringBase<T>, StringBase<T> > operator +(const std::basic_string<T>& a, const StringBase<T>& b)
+{
+    return StringBuilder<std::basic_string<T>, StringBase<T> >(a, b);
+}
+
+template<typename T>
 StringBuilder<StringBase<T>, T *> operator +(const StringBase<T>& a, const T *b)
 {
     return StringBuilder<StringBase<T>, T *>(a, b);
@@ -405,6 +433,18 @@ template<typename T, typename T1, typename T2>
 StringBuilder<StringBuilder<T1, T2>, StringBase<T>> operator +(const StringBuilder<T1, T2>& a, const StringBase<T>& b)
 {
     return StringBuilder<StringBuilder<T1, T2>, StringBase<T> >(a, b);
+}
+
+template<typename T, typename T1, typename T2>
+StringBuilder<StringBase<T>, StringBuilder<T1, T2> > operator +(const std::basic_string<T>& a, const StringBuilder<T1, T2>& b)
+{
+    return StringBuilder<std::basic_string<T>, StringBuilder<T1, T2> >(a, b);
+}
+
+template<typename T, typename T1, typename T2>
+StringBuilder<StringBuilder<T1, T2>, StringBase<T>> operator +(const StringBuilder<T1, T2>& a, const std::basic_string<T>& b)
+{
+    return StringBuilder<StringBuilder<T1, T2>, std::basic_string<T> >(a, b);
 }
 
 template<typename T, typename T1, typename T2>
