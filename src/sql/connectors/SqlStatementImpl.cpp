@@ -1,4 +1,4 @@
-#include "SqlStatementBase.h"
+#include "SqlStatementImpl.h"
 
 namespace metacpp
 {
@@ -8,33 +8,33 @@ namespace connectors
 {
 
 
-SqlStatementBase::SqlStatementBase(SqlStatementType type, const String& queryText)
+SqlStatementImpl::SqlStatementImpl(SqlStatementType type, const String& queryText)
     : m_prepared(false), m_queryText(queryText), m_type(type), m_done(false)
 {
 
 }
 
-SqlStatementBase::~SqlStatementBase()
+SqlStatementImpl::~SqlStatementImpl()
 {
 
 }
 
-bool SqlStatementBase::prepared() const
+bool SqlStatementImpl::prepared() const
 {
     return m_prepared;
 }
 
-void SqlStatementBase::setPrepared(bool val)
+void SqlStatementImpl::setPrepared(bool val)
 {
     m_prepared = val;
 }
 
-bool SqlStatementBase::done() const
+bool SqlStatementImpl::done() const
 {
     return m_done;
 }
 
-const String& SqlStatementBase::queryText() const
+const String& SqlStatementImpl::queryText() const
 {
     return m_queryText;
 }

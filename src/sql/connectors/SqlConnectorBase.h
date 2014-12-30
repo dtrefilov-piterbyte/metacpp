@@ -1,7 +1,7 @@
 #ifndef SQLCONNECTORBASE_H
 #define SQLCONNECTORBASE_H
 #include "SqlResultSet.h"
-#include "SqlStatementBase.h"
+#include "SqlStatementImpl.h"
 #include "SqlTransaction.h"
 #include "SqlStorable.h"
 

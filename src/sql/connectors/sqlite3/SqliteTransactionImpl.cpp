@@ -24,15 +24,15 @@ SqliteTransactionImpl::~SqliteTransactionImpl()
         cerror() << "sqlite3_close(): " << describeSqliteError(error);
 }
 
-SqlStatementBase *SqliteTransactionImpl::createStatement(SqlStatementType type, const String& queryText)
+SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, const String& queryText)
 {
     std::lock_guard<std::mutex> _guard(m_statementsMutex);
-    SqliteStatement *statement = new SqliteStatement(type, queryText);
+    SqliteStatementImpl *statement = new SqliteStatementImpl(type, queryText);
     m_statements.push_back(statement);
     return statement;
 }
 
-bool SqliteTransactionImpl::prepare(SqlStatementBase *statement)
+bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
 {
     const String& query = statement->queryText();
     sqlite3_stmt *stmt;
@@ -43,26 +43,18 @@ bool SqliteTransactionImpl::prepare(SqlStatementBase *statement)
         cerror() << "sqlite3_prepare_v2(): " << describeSqliteError(error);
         return false;
     }
-    reinterpret_cast<SqliteStatement *>(statement)->setHandle(stmt);
+    reinterpret_cast<SqliteStatementImpl *>(statement)->setHandle(stmt);
     return true;
 }
 
-bool SqliteTransactionImpl::bindArguments(SqlStatementBase *statement, SqlStorable *storable)
-{
-    if (statement->type() == eSqlStatementTypeUpdate || statement->type() == eSqlStatementTypeUpdate)
-    {
-        // TODO:
-    }
-}
-
-bool SqliteTransactionImpl::execStatement(SqlStatementBase *statement)
+bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement)
 {
     if (!statement->prepared())
     {
         cerror() << "SqliteTransactionImpl::execStatement(): should be prepared first";
         return false;
     }
-    int error = sqlite3_step(reinterpret_cast<SqliteStatement *>(statement)->handle());
+    int error = sqlite3_step(reinterpret_cast<SqliteStatementImpl *>(statement)->handle());
     if (SQLITE_DONE == error)
     {
         statement->setDone();
@@ -79,7 +71,7 @@ bool SqliteTransactionImpl::execStatement(SqlStatementBase *statement)
     }
 }
 
-bool SqliteTransactionImpl::fetchNext(SqlStatementBase *statement, SqlStorable *storable)
+bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *storable)
 {
     if (!statement->prepared())
     {
@@ -90,7 +82,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementBase *statement, SqlStorable *
     if (statement->done())
         return false;
 
-    int error = sqlite3_step(reinterpret_cast<SqliteStatement *>(statement)->handle());
+    int error = sqlite3_step(reinterpret_cast<SqliteStatementImpl *>(statement)->handle());
     if (SQLITE_DONE == error)
     {
         statement->setDone();
@@ -103,15 +95,15 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementBase *statement, SqlStorable *
     }
     else
     {
-        cerror() << "sqlite3_stop(): " << describeSqliteError(error);
+        cerror() << "sqlite3_step(): " << describeSqliteError(error);
         return false;
     }
 }
 
-bool SqliteTransactionImpl::closeStatement(SqlStatementBase *statement)
+bool SqliteTransactionImpl::closeStatement(SqlStatementImpl *statement)
 {
     std::lock_guard<std::mutex> _guard(m_statementsMutex);
-    SqliteStatement *sqliteStatement = reinterpret_cast<SqliteStatement *>(statement);
+    SqliteStatementImpl *sqliteStatement = reinterpret_cast<SqliteStatementImpl *>(statement);
     auto it = std::find(m_statements.begin(), m_statements.end(), sqliteStatement);
     if (it == m_statements.end())
     {

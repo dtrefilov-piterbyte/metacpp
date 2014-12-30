@@ -1,6 +1,6 @@
 #ifndef SQLITESTATEMENT_H
 #define SQLITESTATEMENT_H
-#include "SqlStatementBase.h"
+#include "SqlStatementImpl.h"
 #include <sqlite3.h>
 
 namespace metacpp
@@ -12,11 +12,11 @@ namespace connectors
 namespace sqlite
 {
 
-class SqliteStatement : public SqlStatementBase
+class SqliteStatementImpl : public SqlStatementImpl
 {
 public:
-    SqliteStatement(SqlStatementType type, const String& queryText);
-    ~SqliteStatement();
+    SqliteStatementImpl(SqlStatementType type, const String& queryText);
+    ~SqliteStatementImpl();
 
     sqlite3_stmt *handle() const;
     void setHandle(sqlite3_stmt *handle);

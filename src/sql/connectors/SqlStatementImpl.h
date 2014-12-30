@@ -4,6 +4,7 @@
 #include <memory>
 #include "String.h"
 #include "Utils.h"
+#include "SqlStatement.h"
 
 namespace metacpp
 {
@@ -12,25 +13,16 @@ namespace sql
 namespace connectors
 {
 
-enum SqlStatementType
-{
-    eSqlStatementTypeUnknown,
-    eSqlStatementTypeSelect,
-    eSqlStatementTypeInsert,
-    eSqlStatementTypeUpdate,
-    eSqlStatementTypeDelete,
-};
-
 /**
-    \brief
+    \brief Base class for all statements
 */
-class SqlStatementBase
+class SqlStatementImpl
 {
 protected:
-    SqlStatementBase(SqlStatementType type, const String& queryText);
+    SqlStatementImpl(SqlStatementType type, const String& queryText);
 public:
-    SqlStatementBase(const SqlStatementBase&)=delete;
-    virtual ~SqlStatementBase();
+    SqlStatementImpl(const SqlStatementImpl&)=delete;
+    virtual ~SqlStatementImpl();
 
     /** \brief Get statement type */
     virtual SqlStatementType type() const;

@@ -1,7 +1,7 @@
 #ifndef SQLITETRANSACTIONIMPL_H
 #define SQLITETRANSACTIONIMPL_H
 #include "SqlTransactionImpl.h"
-#include "SqliteStatement.h"
+#include "SqliteStatementImpl.h"
 #include "Array.h"
 #include <sqlite3.h>
 #include <mutex>
@@ -21,15 +21,14 @@ public:
     SqliteTransactionImpl(sqlite3 *dbHandle);
     ~SqliteTransactionImpl();
 
-    SqlStatementBase *createStatement(SqlStatementType type, const String& queryText) override;
-    bool prepare(SqlStatementBase *statement) override;
-    bool bindArguments(SqlStatementBase *statement, SqlStorable *storable) override;
-    bool execStatement(SqlStatementBase *statement) override;
-    bool fetchNext(SqlStatementBase *statement, SqlStorable *storable) override;
-    bool closeStatement(SqlStatementBase *statement) override;
+    SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) override;
+    bool prepare(SqlStatementImpl *statement) override;
+    bool execStatement(SqlStatementImpl *statement) override;
+    bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
+    bool closeStatement(SqlStatementImpl *statement) override;
 private:
     sqlite3 *m_dbHandle;
-    Array<SqliteStatement *> m_statements;
+    Array<SqliteStatementImpl *> m_statements;
     std::mutex m_statementsMutex;
 };
 

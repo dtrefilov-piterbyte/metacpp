@@ -1,7 +1,7 @@
 #ifndef SQLTRANSACTIONIMPL_H
 #define SQLTRANSACTIONIMPL_H
 #include "SqlStorable.h"
-#include "SqlStatementBase.h"
+#include "SqlStatementImpl.h"
 
 namespace metacpp
 {
@@ -21,24 +21,19 @@ public:
     virtual ~SqlTransactionImpl();
 
     /** \brief Create a statement */
-    virtual SqlStatementBase *createStatement(SqlStatementType type, const String& queryText) = 0;
+    virtual SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) = 0;
 
     /** \brief Prepare statement */
-    virtual bool prepare(SqlStatementBase *statement) = 0;
-
-    /** \brief Bind object fields to the statement arguments
-     * Arguments order and count in statement should match field in the object
-    */
-    virtual bool bindArguments(SqlStatementBase *statement, SqlStorable *storable) = 0;
+    virtual bool prepare(SqlStatementImpl *statement) = 0;
 
     /** \brief Execute statement */
-    virtual bool execStatement(SqlStatementBase *statement) = 0;
+    virtual bool execStatement(SqlStatementImpl *statement) = 0;
 
     /** \brief Write result of select operaation into storable and move cursor to the next row */
-    virtual bool fetchNext(SqlStatementBase *statement, SqlStorable *storable) = 0;
+    virtual bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) = 0;
 
     /** \brief Destroy statement */
-    virtual bool closeStatement(SqlStatementBase *statement) = 0;
+    virtual bool closeStatement(SqlStatementImpl *statement) = 0;
 
 };
 

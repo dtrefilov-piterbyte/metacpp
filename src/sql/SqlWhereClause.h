@@ -172,7 +172,6 @@ public:
     ExplicitWhereClauseBuilder operator !=(const TField& val) const { return helper_val(val, " != "); }
 
     // Operators for JOINs
-    // TODO: traits? will kill compile times?
     template<typename TObj1, typename TField1>
     ExplicitWhereClauseBuilder operator <(const SqlColumnMatcherBase<TObj1, TField1>& other) const { return helper_col(other, " < "); }
     template<typename TObj1, typename TField1>
@@ -248,9 +247,10 @@ public:
 
     ExplicitWhereClauseBuilder like(const String& val) const
     {
-        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
-            this->metaField()->name() + " LIKE \'" + val + "\'");
+        return ExplicitWhereClauseBuilder(this->columnName() + " LIKE \'" + val + "\'");
     }
+
+    // TODO: lower, upper, trimming functions etc.
 };
 
 template<typename TObj, typename TField>
@@ -262,6 +262,8 @@ public:
         : SqlColumnExpressionMatcher<TObj, TField, ValueEvaluator<TField> >(metaField)
     {
     }
+
+    // TODO: min, max, abs, etc.
 };
 
 template<typename TObj, typename TField>
