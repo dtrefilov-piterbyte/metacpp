@@ -20,8 +20,8 @@ public:
     const char *name() const;
     const MetaField *field(size_t i) const;
     const MetaField *fieldByOffset(ptrdiff_t offset) const;
+    const MetaField *fieldByName(const String& name) const;
     size_t totalFields() const;
-    const StructInfoDescriptor *descriptor() const { return m_descriptor; }
 private:
 	void preparseFields() const;
 
@@ -46,9 +46,6 @@ public:
     virtual EFieldType type() const;
     virtual bool nullable() const;
     virtual EMandatoriness mandatoriness() const;
-
-    // TODO: remove
-    const FieldInfoDescriptor *descriptor() const;
 
     template<typename T>
     T& access(Object *obj) const {

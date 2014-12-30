@@ -97,8 +97,8 @@ void ObjectTest::testMetaInfo()
 	TestStruct t;
     EXPECT_EQ(std::string(t.metaObject()->name()), "TestStruct");
     EXPECT_EQ(t.metaObject()->totalFields(), 15);
-    auto sd = t.metaObject()->descriptor();
-    ASSERT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
+    //auto sd = t.metaObject()->descriptor();
+    //ASSERT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
     ASSERT_EQ(std::string(t.metaObject()->field(1)->name()), "enumValue");
     ASSERT_EQ(t.metaObject()->field(1)->type(), eFieldEnum);
     ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);

@@ -123,11 +123,6 @@ public:
 	const T *data() const { return this->m_d ? this->m_d->_data() : empty().data(); }
 	const T *c_str() const { return this->m_d ? this->m_d->_data() : empty().data(); }
 
-    inline bool operator==(const StringBase& rhs) const { return equals(rhs); }
-    inline bool operator!=(const StringBase& rhs) const { return !equals(rhs); }
-	inline bool operator==(const T *rhs) const { return equals(rhs); }
-	inline bool operator!=(const T *rhs) const { return !equals(rhs); }
-
 	bool isNull() const { return !this->m_d || !this->m_d->_data(); }
 	bool isNullOrEmpty() const { return isNull() || !*this->m_d->_data(); }
 
@@ -270,6 +265,25 @@ private:
 
 template<typename T>
 StringBase<T> StringBase<T>::ms_null;
+
+template<typename T>
+inline bool operator==(const StringBase<T>& lhs, const StringBase<T>& rhs) { return lhs.equals(rhs); }
+
+template<typename T>
+inline bool operator!=(const StringBase<T>& lhs, const StringBase<T>& rhs) { return !lhs.equals(rhs); }
+
+template<typename T>
+inline bool operator==(const StringBase<T>& lhs, const T *rhs) { return lhs.equals(rhs); }
+
+template<typename T>
+inline bool operator!=(const StringBase<T>& lhs, const T *rhs) { return !lhs.equals(rhs); }
+
+template<typename T>
+inline bool operator==(const T *lhs, const StringBase<T>& rhs) { return rhs.equals(lhs); }
+
+template<typename T>
+inline bool operator!=(const T *lhs, const StringBase<T>& rhs) { return !rhs.equals(lhs); }
+
 
 /** \brief Helper class for copy-on-write string concatenation */
 template<typename T1, typename T2>

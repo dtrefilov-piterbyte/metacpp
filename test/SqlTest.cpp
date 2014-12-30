@@ -1,5 +1,7 @@
 #include "SqlTest.h"
 #include "SqlWhereClause.h"
+#include "SqlStorable.h"
+#include "SqlStatement.h"
 
 using namespace ::metacpp;
 using namespace ::metacpp::sql;
@@ -23,6 +25,8 @@ STRUCT_INFO_END(Person)
 
 META_INFO(Person)
 
+typedef STORABLE(Person, id) PersonStorable;
+
 class City : public Object
 {
 public:
@@ -39,13 +43,14 @@ STRUCT_INFO_END(City)
 
 META_INFO(City)
 
+typedef STORABLE(City, id) CityStorable;
+
 TEST_F(SqlTest, test1)
 {
-    std::ostringstream ss;
-    (COLUMN(Person, age).isNull() ||
-            !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == "Jack") &&
-            COLUMN(Person, cityId) == COLUMN(City, id)).
-            printExpression(ss);
-    cdebug() << ss.str();
-    ASSERT_EQ(String(getMetaField(&Person::age)->name()), "age");
+    PersonStorable person;
+    SqlStatementSelect statement(&person);
+    cdebug() << statement.innerJoin<City>().limit(10).where((COLUMN(Person, age).isNull() ||
+        !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == "Jack")) &&
+        COLUMN(Person, cityId) == COLUMN(City, id)).buildQuery(SqlSyntaxSqlite);
+
 }

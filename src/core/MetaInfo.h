@@ -26,6 +26,7 @@ enum EFieldType
 	eFieldInt		= 'i',
 	eFieldUint		= 'u',
 	eFieldFloat		= 'f',
+    eFieldDouble	= 'd',
 	eFieldString	= 's',
 	eFieldEnum		= 'e',
 	eFieldObject	= 'o',

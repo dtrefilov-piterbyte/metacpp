@@ -46,12 +46,17 @@ public:
 STRUCT_INFO_DECLARE(Object)
 
 
+template<typename TObj, typename TField>
+static constexpr ptrdiff_t getMemberOffset(const TField TObj::*member)
+{
+    return reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<const TObj *>(NULL)->*member));
+}
+
 /** \brief Usage: getMetaField(&Object::field); */
 template<typename TObj, typename TField>
-static const MetaField *getMetaField(const TField TObj::*member)
+static constexpr const MetaField *getMetaField(const TField TObj::*member)
 {
-    return TObj::staticMetaObject()->fieldByOffset
-        (reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<const TObj *>(NULL)->*member)));
+    return TObj::staticMetaObject()->fieldByOffset(getMemberOffset(member));
 }
 
 } // namespace metacpp

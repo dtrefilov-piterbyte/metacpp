@@ -1,5 +1,5 @@
-#ifndef SQLSTATEMENTBASE_H
-#define SQLSTATEMENTBASE_H
+#ifndef SQLSTATEMENTIMPL_H
+#define SQLSTATEMENTIMPL_H
 #include <iostream>
 #include <memory>
 #include "String.h"
@@ -47,5 +47,5 @@ protected:
 } // namespace sql
 } // namespace metacpp
 
-#endif // SQLSTATEMENTBASE_H
+#endif // SQLSTATEMENTIMPL_H
 

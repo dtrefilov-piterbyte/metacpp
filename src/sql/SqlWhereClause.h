@@ -16,7 +16,7 @@ public:
     virtual ~WhereClauseBuilder() { }
 
     /** \brief print sql subexpression into a stream */
-    virtual std::ostream& printExpression(std::ostream& os) const = 0;
+    virtual String expression() const = 0;
     virtual bool complex() const { return false; }
 };
 
@@ -24,26 +24,18 @@ public:
 class ExplicitWhereClauseBuilder : public WhereClauseBuilder
 {
 public:
-    ExplicitWhereClauseBuilder(const String& s)
-        : m_string(s)
-    {
-    }
+    ExplicitWhereClauseBuilder(const String& s);
 
-    ~ExplicitWhereClauseBuilder()
-    {
-    }
+    ~ExplicitWhereClauseBuilder();
 
-    std::ostream& printExpression(std::ostream& os) const override
-    {
-        return os << m_string;
-    }
+    String expression() const override;
 
 private:
     String m_string;
 };
 
 /** Where clause compined from two others using 'and' or 'or' operators */
-class ComplexWhereClauseBuilder : public WhereClauseBuilder
+class ComplexWhereClauseBuilder : public ExplicitWhereClauseBuilder
 {
 public:
     enum Operator
@@ -53,78 +45,38 @@ public:
     };
 
     ComplexWhereClauseBuilder(Operator op, const WhereClauseBuilder& left,
-                              const WhereClauseBuilder& right)
-        : m_operator(op), m_left(left), m_right(right)
-    {
-    }
-
-    std::ostream& printExpression(std::ostream& os) const override
-    {
-        if (m_left.complex()) os << "("; // parenthesis
-        m_left.printExpression(os);
-        if (m_left.complex()) os << ")"; // parenthesis
-
-        switch (m_operator)
-        {
-        case OperatorAnd:
-            os << " AND ";
-            break;
-        case OperatorOr:
-            os << " OR ";
-            break;
-        default:
-            throw std::invalid_argument("Wrong operator");
-        }
-
-        if (m_right.complex()) os << "("; // parenthesis
-        m_right.printExpression(os);
-        if (m_right.complex()) os << ")"; // parenthesis
-        return os;
-    }
+                              const WhereClauseBuilder& right);
 
     bool complex() const override
     {
         return true;
     }
 private:
-    Operator m_operator;
-    const WhereClauseBuilder& m_left;
-    const WhereClauseBuilder& m_right;
+    String buildExpression(Operator op, const WhereClauseBuilder& left,
+                              const WhereClauseBuilder& right);
 };
 
-class NegationWhereClauseBuilder : public WhereClauseBuilder
+class NegationWhereClauseBuilder : public ExplicitWhereClauseBuilder
 {
 public:
-    NegationWhereClauseBuilder(const WhereClauseBuilder& inner)
-        : m_inner(inner)
-    {
-    }
+    NegationWhereClauseBuilder(const WhereClauseBuilder& inner);
 
-    std::ostream& printExpression(std::ostream& os) const override
-    {
-        os << "NOT ";
-        if (m_inner.complex()) os << "(";
-        m_inner.printExpression(os);
-        if (m_inner.complex()) os << ")";
-        return os;
-    }
-private:
-    const WhereClauseBuilder& m_inner;
+    String buildExpression(const WhereClauseBuilder& inner);
 };
 
-ComplexWhereClauseBuilder operator &&(const WhereClauseBuilder& left,
+inline ComplexWhereClauseBuilder operator &&(const WhereClauseBuilder& left,
                                       const WhereClauseBuilder& right)
 {
     return ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::OperatorAnd, left, right);
 }
 
-ComplexWhereClauseBuilder operator ||(const WhereClauseBuilder& left,
+inline ComplexWhereClauseBuilder operator ||(const WhereClauseBuilder& left,
                                       const WhereClauseBuilder& right)
 {
     return ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::OperatorOr, left, right);
 }
 
-NegationWhereClauseBuilder operator !(const WhereClauseBuilder& inner)
+inline NegationWhereClauseBuilder operator !(const WhereClauseBuilder& inner)
 {
     return NegationWhereClauseBuilder(inner);
 }
@@ -262,8 +214,6 @@ public:
         : SqlColumnExpressionMatcher<TObj, TField, ValueEvaluator<TField> >(metaField)
     {
     }
-
-    // TODO: min, max, abs, etc.
 };
 
 template<typename TObj, typename TField>

@@ -38,6 +38,17 @@ const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
     return it ==  m_fields.end() ? nullptr : it->get();
 }
 
+const MetaField *MetaObject::fieldByName(const String &name) const
+{
+    preparseFields();
+    auto it = std::find_if(m_fields.begin(), m_fields.end(),
+        [name](const std::unique_ptr<MetaField>& field)
+        {
+            return name == field->name();
+        });
+    return it == m_fields.end() ? nullptr : it->get();
+}
+
 size_t MetaObject::totalFields() const
 {
     preparseFields();
@@ -97,11 +108,6 @@ EFieldType MetaField::type() const
 bool MetaField::nullable() const
 {
     return m_descriptor->m_nullable;
-}
-
-const FieldInfoDescriptor *MetaField::descriptor() const
-{
-    return m_descriptor;
 }
 
 EMandatoriness MetaField::mandatoriness() const
