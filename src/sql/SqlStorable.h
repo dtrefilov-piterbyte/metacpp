@@ -17,9 +17,7 @@ namespace sql
         virtual ~SqlStorable();
 
         virtual const MetaField *primaryKey() const = 0;
-        virtual const Object *record() const = 0;
-    protected:
-        int64_t m_id;
+        virtual Object *record() = 0;
     };
 
     template<typename TObj, ptrdiff_t PKeyOff>
@@ -35,7 +33,12 @@ namespace sql
             return TObj::staticMetaObject()->fieldByOffset(PKeyOff);
         }
 
-        const Object *record() const override
+        Object *record() override
+        {
+            return &m_record;
+        }
+
+        TObj *obj()
         {
             return &m_record;
         }

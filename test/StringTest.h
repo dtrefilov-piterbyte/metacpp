@@ -17,5 +17,7 @@ public:
 	void testStringBuilder();
     void testAssign(const char *v);
     void testStreams(const char *str);
+    void testJoin();
+    void testMap();
 };
 #endif // STRINGTEST_H

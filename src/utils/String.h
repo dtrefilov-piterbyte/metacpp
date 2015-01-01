@@ -20,6 +20,7 @@ struct StringHelper
     static int strncasecmp(const T *a, const T *b, size_t size);
     static T *strcpy(T *dest, const T *source) ;
     static T *strncpy(T *dest, const T *source, size_t n);
+    static const T *strstr(const T *haystack, const T *needle);
 };
 
 template<typename LT, typename RT>
@@ -27,6 +28,9 @@ class StringBuilder;
 
 template<typename T>
 class StringBase;
+
+template<typename T>
+class StringArrayBase;
 
 /** \brief String in native system encoding (ANSI on Windows platforms and UTF-8 on linux) */
 typedef StringBase<char> String;
@@ -242,9 +246,9 @@ public:
         return string_cast<StringBase>(s.c_str(), s.length());
 	}
 
-    Array<StringBase<T> > split(T separator, bool keepEmptyElements = false) const
+    StringArrayBase<T> split(T separator, bool keepEmptyElements = false) const
 	{
-        Array<StringBase<T> > result;
+        StringArrayBase<T> result;
 		result.reserve(20);
 		auto b = begin(), e = end();
 		while (true)
@@ -283,6 +287,44 @@ inline bool operator==(const T *lhs, const StringBase<T>& rhs) { return rhs.equa
 
 template<typename T>
 inline bool operator!=(const T *lhs, const StringBase<T>& rhs) { return !rhs.equals(lhs); }
+
+template<typename T>
+class StringArrayBase : public Array<StringBase<T> >
+{
+public:
+    StringArrayBase()
+    {
+
+    }
+
+    StringArrayBase(const Array<StringBase<T> >& o) : Array<StringBase<T> >(o)
+    {
+    }
+
+    StringArrayBase(const StringBase<T> *data, size_t size)
+        : Array<StringBase<T> >(data, size)
+    {
+    }
+
+    StringArrayBase(const std::initializer_list<StringBase<T> >& init)
+        : Array<StringBase<T> >(init)
+    {
+    }
+
+    StringBase<T> join(const StringBase<T> delim = StringBase<T>())
+    {
+        StringBase<T> res;
+        for (size_t i = 0; i < this->size(); ++i)
+        {
+            res += (*this)[i];
+            if (i != this->size() - 1) res += delim;
+        }
+        return res;
+    }
+};
+
+typedef StringArrayBase<char> StringArray;
+typedef StringArrayBase<char16_t> WStringArray;
 
 
 /** \brief Helper class for copy-on-write string concatenation */

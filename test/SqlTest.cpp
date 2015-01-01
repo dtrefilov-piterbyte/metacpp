@@ -1,7 +1,8 @@
 #include "SqlTest.h"
-#include "SqlWhereClause.h"
+#include "SqlColumnMatcher.h"
 #include "SqlStorable.h"
 #include "SqlStatement.h"
+#include "CDebug.h"
 
 using namespace ::metacpp;
 using namespace ::metacpp::sql;
@@ -38,7 +39,7 @@ public:
 
 STRUCT_INFO_BEGIN(City)
     FIELD_INFO(City, id)
-    FIELD_INFO(City, name)
+    FIELD_INFO(City, name, "Moscow")
 STRUCT_INFO_END(City)
 
 META_INFO(City)
@@ -48,9 +49,20 @@ typedef STORABLE(City, id) CityStorable;
 TEST_F(SqlTest, test1)
 {
     PersonStorable person;
-    SqlStatementSelect statement(&person);
-    cdebug() << statement.innerJoin<City>().limit(10).where((COLUMN(Person, age).isNull() ||
-        !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == "Jack")) &&
-        COLUMN(Person, cityId) == COLUMN(City, id)).buildQuery(SqlSyntaxSqlite);
+    person.record()->init();
+    person.obj()->age.reset();
+
+    SqlStatementSelect statementSelect(&person);
+    cdebug() << statementSelect.innerJoin<City>().where((COLUMN(Person, age).isNull() ||
+        !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == String("Jack"))) &&
+        COLUMN(Person, cityId) == COLUMN(City, id)).limit(10).buildQuery(SqlSyntaxSqlite);
+
+    SqlStatementInsert statementInsert(&person);
+    cdebug() << statementInsert.buildQuery(SqlSyntaxSqlite);
+
+    SqlStatementUpdate statementUpdate(&person);
+    cdebug() << statementUpdate.from<City>().where(
+                    COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow"))
+                .buildQuery(SqlSyntaxSqlite);
 
 }

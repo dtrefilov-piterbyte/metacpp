@@ -13,6 +13,7 @@ void StringTest::testNull()
     EXPECT_FALSE(str2.isNullOrEmpty());
     EXPECT_TRUE(String::null().isNull());
     EXPECT_FALSE(String::empty().isNull());
+    EXPECT_TRUE(String::empty().isNullOrEmpty());
 }
 
 TEST_F(StringTest, TestNull)
@@ -166,6 +167,17 @@ TEST_F(StringTest, testStreams)
 {
     testAssign("");
     testAssign("asdlaasd");
+}
+
+void StringTest::testJoin()
+{
+    StringArray strArr = { "lorem", "ipsum", "dolor", "sit", "amet" };
+    ASSERT_EQ(strArr.join(" "), "lorem ipsum dolor sit amet");
+}
+
+TEST_F(StringTest, testJoin)
+{
+    testJoin();
 }
 
 TEST_F(StringTest, TestAWConversion)

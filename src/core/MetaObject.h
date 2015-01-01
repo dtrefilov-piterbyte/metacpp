@@ -54,7 +54,7 @@ public:
 
     template<typename T>
     const T& access(const Object *obj) const {
-        return *reinterpret_cast<T *>(reinterpret_cast<char *>(obj) + offset());
+        return *reinterpret_cast<const T *>(reinterpret_cast<const char *>(obj) + offset());
     }
 
 protected:

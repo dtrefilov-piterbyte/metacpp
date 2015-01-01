@@ -4,7 +4,6 @@
 #include "SqlWhereClause.h"
 #include "SqlTransaction.h"
 #include "SqlResultSet.h"
-#include <list>
 
 namespace metacpp
 {
@@ -44,6 +43,7 @@ public:
     virtual SqlStatementType type() const = 0;
 protected:
     virtual String buildQuery(SqlSyntax syntax) const = 0;
+    String fieldValue(const MetaField *field) const;
 protected:
     SqlStorable *m_storable;
 };
@@ -112,7 +112,7 @@ private:
     JoinType m_joinType;
     Nullable<size_t> m_limit;
     Nullable<size_t> m_offset;
-    std::vector<const MetaObject *> m_joins;
+    Array<const MetaObject *> m_joins;
 };
 
 
@@ -123,6 +123,7 @@ public:
     ~SqlStatementInsert();
 
     SqlStatementType type() const override;
+    String buildQuery(SqlSyntax syntax) const override;
 
     void exec(SqlTransaction& transaction);
 };
@@ -134,11 +135,28 @@ public:
     ~SqlStatementUpdate();
 
     SqlStatementType type() const override;
+    String buildQuery(SqlSyntax syntax) const override;
 
     /** reference other tables */
-    SqlStatementUpdate& join(...);
+    template<typename TObj>
+    SqlStatementUpdate& from()
+    {
+        m_joins.push_back(TObj::staticMetaObject());
+        return *this;
+    }
+
+    template<typename TObj1, typename TObj2, typename... TOthers>
+    SqlStatementUpdate& from()
+    {
+        from<TObj1>();
+        return from<TObj2, TOthers...>();
+    }
+
     SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
     void exec(SqlTransaction& transaction);
+private:
+    Array<const MetaObject *> m_joins;
+    String m_whereClause;
 };
 
 class SqlStatementDelete : public SqlStatementBase

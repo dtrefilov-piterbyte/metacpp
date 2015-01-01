@@ -63,6 +63,12 @@ namespace metacpp
         return ::strncpy(dest, source, n);
     }
 
+    template<>
+    const char *StringHelper<char>::strstr(const char *haystack, const char *needle)
+    {
+        return ::strstr(haystack, needle);
+    }
+
 
 #ifdef _WIN32
     template<>
@@ -107,7 +113,12 @@ namespace metacpp
     char16_t *StringHelper<char16_t>::strncpy(char16_t *dest, const char16_t *source, size_t n) {
         return ::wcsncpy(dest, source, n);
     }
-};
+
+    template<>
+    const char16_t *StringHelper<char16_t>::strstr(const char16_t *haystack, const char16_t *needle)
+    {
+        return ::wcsstr(haystack, needle);
+    }
 #else
     template<>
     size_t StringHelper<char16_t>::strlen(const char16_t *str)
@@ -182,6 +193,29 @@ namespace metacpp
         char16_t *result = dest;
         while (*source && n--) *dest++ = *source++;
         return result;
+    }
+
+    template<>
+    const char16_t *StringHelper<char16_t>::strstr(const char16_t *haystack, const char16_t *needle)
+    {
+        if (!haystack || !needle)
+            return nullptr;
+
+        while (*haystack)
+        {
+            bool match = true;
+            for (const char16_t *p = needle, *p1 = haystack; *p && *p1; ++p, ++p1)
+            {
+                if (*p != *p1)
+                {
+                    match = false;
+                    break;
+                }
+            }
+            if (match)
+                return haystack;
+            ++haystack;
+        }
     }
 
 #endif

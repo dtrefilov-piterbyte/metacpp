@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <string.h>
 #include <cassert>
+#include <functional>
 
 namespace metacpp
 {
@@ -249,10 +250,17 @@ public:
 	{
     }
 
-    explicit Array(const T *data, size_t size)
+    Array(const T *data, size_t size)
         : Base(new ArrayData<T>(data, size))
 	{
 	}
+
+    Array(const std::initializer_list<T>& init)
+    {
+        reserve(init.size());
+        for (auto& item : init)
+            push_back(item);
+    }
 
     ~Array()
 	{
@@ -289,6 +297,16 @@ public:
 	void pop_front() { this->detach(); this->m_d->_pop_front(); }
 
     void clear() { resize(0); }
+
+    template<typename TRes>
+    Array<TRes> map(const std::function<TRes (const T&)>& functor)
+    {
+        Array<TRes> res;
+        res.reserve(size());
+        for (size_t i = 0; i < size(); ++i)
+            res.push_back(functor((*this)[i]));
+        return res;
+    }
 };
 
 } // namespace metacpp
