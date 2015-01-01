@@ -32,11 +32,9 @@ private:
 template<typename T>
 struct ValueEvaluator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
-    std::string operator()(const T& val) const
+    String operator()(const T& val) const
     {
-        std::ostringstream ss;
-        ss << val;
-        return ss.str();
+        return String::fromValue(val);
     }
 };
 
@@ -174,7 +172,7 @@ template<typename TField>
 class SqlColumnMatcherExplicitExpression : public SqlColumnMatcherSubexpression<TField>
 {
 public:
-    SqlColumnMatcherExplicitExpression(const String& expr)
+    explicit SqlColumnMatcherExplicitExpression(const String& expr)
         : m_expr(expr)
     {
 
@@ -192,146 +190,154 @@ private:
     String m_expr;
 };
 
-/** relational operators forming final where clause */
-template<typename TField>
-ExplicitWhereClauseBuilder operator <(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<typename T, typename Enable = void>
+struct TypePromotionPriorityHelper;
+
+template<>
+struct TypePromotionPriorityHelper<long double>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " < " + rhs.expression());
-}
+    static constexpr int priority() { return 0; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator <=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<double>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " <= " + rhs.expression());
-}
+    static constexpr int priority() { return 1; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<float>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " > " + rhs.expression());
-}
+    static constexpr int priority() { return 2; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<long long unsigned int>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " >= " + rhs.expression());
-}
+    static constexpr int priority() { return 3; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator ==(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<long long int>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " = " + rhs.expression());
-}
+    static constexpr int priority() { return 4; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator !=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<long unsigned int>
 {
-    return ExplicitWhereClauseBuilder(lhs.expression() + " < " + rhs.expression());
-}
+    static constexpr int priority() { return 5; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator <(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<long int>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " < " + rhs.expression());
-}
+    static constexpr int priority() { return 6; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator <=(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<unsigned int>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " <= " + rhs.expression());
-}
+    static constexpr int priority() { return 7; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<>
+struct TypePromotionPriorityHelper<int>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " > " + rhs.expression());
-}
+    static constexpr int priority() { return 8; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >=(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+// all others are promoted to int
+template<typename T>
+struct TypePromotionPriorityHelper<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " >= " + rhs.expression());
-}
+    static constexpr int priority() { return 1000; }
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator ==(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+enum _PromotionType
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " = " + rhs.expression());
-}
+    _PromoteToFirst,
+    _PromoteToSecond,
+    _PromoteToInt
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator !=(const TField& lhs,
-                                      const SqlColumnMatcherSubexpression<TField>& rhs)
+template<typename T1, typename T2, _PromotionType>
+struct TypePromotionHelper;
+
+template<typename T1, typename T2>
+struct TypePromotionHelper<T1, T2, _PromoteToFirst>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(eval(lhs) + " < " + rhs.expression());
-}
+    typedef T1 PromotionType;
+};
 
-
-template<typename TField>
-ExplicitWhereClauseBuilder operator <(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
+template<typename T1, typename T2>
+struct TypePromotionHelper<T1, T2, _PromoteToSecond>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " < " + eval(rhs));
-}
+    typedef T2 PromotionType;
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator <=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
+template<typename T1, typename T2>
+struct TypePromotionHelper<T1, T2, _PromoteToInt>
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " <= " + eval(rhs));
-}
+    typedef int PromotionType;
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
+template<typename TField1, typename TField2>
+struct TypePromotion
 {
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " > " + eval(rhs));
-}
+    typedef typename TypePromotionHelper<TField1, TField2,
+    TypePromotionPriorityHelper<TField1>::priority() >= 1000 &&
+    TypePromotionPriorityHelper<TField2>::priority() >= 1000 ? _PromoteToInt :
+    (TypePromotionPriorityHelper<TField1>::priority() <
+     TypePromotionPriorityHelper<TField2>::priority() ?
+         _PromoteToFirst : _PromoteToSecond)>::PromotionType Type;
+};
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator >=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
-{
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " >= " + eval(rhs));
-}
+//static_assert(std::is_same<typename TypePromotion<int, char>::Type, int>::value, "int with char should promote to int");
+//static_assert(std::is_same<typename TypePromotion<short, char>::Type, int>::value, "short with char should promote to int");
+//static_assert(std::is_same<typename TypePromotion<short, float>::Type, float>::value, "short with float should promote to float");
+//static_assert(std::is_same<typename TypePromotion<float, float>::Type, float>::value, "float with float should promote to float");
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator ==(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
-{
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " = " + eval(rhs));
-}
+#define _INST_REL_OPERATOR(op, sqlop) \
+    template<typename TField1, typename TField2> \
+    typename std::enable_if<std::is_same<TField1, TField2>::value || \
+    (std::is_arithmetic<TField1>::value && \
+    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    operator op(const SqlColumnMatcherSubexpression<TField1>& lhs, \
+               const SqlColumnMatcherSubexpression<TField2>& rhs) \
+    { \
+        return ExplicitWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + rhs.expression()); \
+    } \
+    \
+    template<typename TField1, typename TField2> \
+    typename std::enable_if<std::is_same<TField1, TField2>::value || \
+    (std::is_arithmetic<TField1>::value && \
+    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    operator op(const TField1& lhs, \
+               const SqlColumnMatcherSubexpression<TField2>& rhs) \
+    { \
+        ValueEvaluator<TField1> eval;\
+        return ExplicitWhereClauseBuilder(eval(lhs) + " " #sqlop " " + rhs.expression()); \
+    } \
+    template<typename TField1, typename TField2> \
+    typename std::enable_if<std::is_same<TField1, TField2>::value || \
+    (std::is_arithmetic<TField1>::value && \
+    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    operator op(const SqlColumnMatcherSubexpression<TField1>& lhs, \
+               const TField2& rhs) \
+    { \
+        ValueEvaluator<TField2> eval;\
+        return ExplicitWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + eval(rhs)); \
+    } \
 
-template<typename TField>
-ExplicitWhereClauseBuilder operator !=(const SqlColumnMatcherSubexpression<TField>& lhs,
-                                      const TField& rhs)
-{
-    ValueEvaluator<TField> eval;
-    return ExplicitWhereClauseBuilder(lhs.expression() + " < " + eval(rhs));
-}
+_INST_REL_OPERATOR(==, =)
+_INST_REL_OPERATOR(!=, !=)
+_INST_REL_OPERATOR(>=, >=)
+_INST_REL_OPERATOR(<=, <=)
+_INST_REL_OPERATOR(>, >)
+_INST_REL_OPERATOR(<, <)
 
+#undef _INST_REL_OPERATOR
 
 /** unary - */
 template<typename TField>
@@ -340,6 +346,50 @@ operator-(const SqlColumnMatcherSubexpression<TField>& inner)
 {
     return SqlColumnMatcherExplicitExpression<TField>("(-" + inner.expression() + ")");
 }
+
+/** unary + */
+template<typename TField>
+SqlColumnMatcherExplicitExpression<TField>
+operator+(const SqlColumnMatcherSubexpression<TField>& inner)
+{
+    return SqlColumnMatcherExplicitExpression<TField>("(+" + inner.expression() + ")");
+}
+
+#define _INST_BINARY_OPERATOR(op) \
+template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
+SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+operator op(const SqlColumnMatcherSubexpression<TField1>& lhs, \
+          const TField2& rhs) \
+{ \
+    ValueEvaluator<TField2> eval; \
+    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>( \
+        "(" + lhs.expression() + " " #op " " + eval(rhs) + ")"); \
+} \
+template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
+SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+operator op(const TField1& lhs, \
+          const SqlColumnMatcherSubexpression<TField2>& rhs) \
+{ \
+    ValueEvaluator<TField1> eval; \
+    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>("(" + eval(lhs) + " " #op " " + rhs.expression() + ")"); \
+} \
+template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
+SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+operator op(const SqlColumnMatcherSubexpression<TField1>& lhs, \
+          const SqlColumnMatcherSubexpression<TField2>& rhs) \
+{ \
+    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>( \
+                "(" + lhs.expression() + " " #op + " " + rhs.expression() + ")"); \
+}
+
+_INST_BINARY_OPERATOR(+)
+_INST_BINARY_OPERATOR(-)
+_INST_BINARY_OPERATOR(*)
+_INST_BINARY_OPERATOR(/)
+_INST_BINARY_OPERATOR(%)
+
+
+#undef _INST_BINARY_OPERATOR
 
 } // namespace sql
 } // namespace metacpp

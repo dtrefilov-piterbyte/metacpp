@@ -13,6 +13,7 @@ public:
     int             id;
     String          name;
     Nullable<int>   age;
+    Nullable<float> cat_weight;
     int             cityId;
 
     META_INFO_DECLARE(Person)
@@ -21,6 +22,7 @@ public:
 STRUCT_INFO_BEGIN(Person)
     FIELD_INFO(Person, name)
     FIELD_INFO(Person, age)
+    FIELD_INFO(Person, cat_weight)
     FIELD_INFO(Person, cityId)
 STRUCT_INFO_END(Person)
 
@@ -54,6 +56,7 @@ TEST_F(SqlTest, test1)
 
     SqlStatementSelect statementSelect(&person);
     cdebug() << statementSelect.innerJoin<City>().where((COLUMN(Person, age).isNull() ||
+        (COLUMN(Person, age) + 2.5  * COLUMN(Person, cat_weight)) > 250 ||
         !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == String("Jack"))) &&
         COLUMN(Person, cityId) == COLUMN(City, id)).limit(10).buildQuery(SqlSyntaxSqlite);
 
