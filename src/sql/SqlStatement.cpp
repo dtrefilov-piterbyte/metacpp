@@ -220,12 +220,17 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
     res = "UPDATE " + tblName;
     auto pkey = m_storable->primaryKey();
     StringArray sets;
-    for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
+    if (!m_sets.size())
     {
-        auto field = m_storable->record()->metaObject()->field(i);
-        if (field != pkey)
-            sets.push_back(String(field->name()) + " = " + fieldValue(field));
+        for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
+        {
+            auto field = m_storable->record()->metaObject()->field(i);
+            if (field != pkey)
+                sets.push_back(String(field->name()) + " = " + fieldValue(field));
+        }
     }
+    else
+        sets = m_sets;
     res += " SET " + sets.join(", ");
 
     if (m_joins.size())

@@ -1,5 +1,6 @@
 #include "SqlTest.h"
 #include "SqlColumnMatcher.h"
+#include "SqlColumnAssignment.h"
 #include "SqlStorable.h"
 #include "SqlStatement.h"
 #include "CDebug.h"
@@ -64,8 +65,7 @@ TEST_F(SqlTest, test1)
     cdebug() << statementInsert.buildQuery(SqlSyntaxSqlite);
 
     SqlStatementUpdate statementUpdate(&person);
-    cdebug() << statementUpdate.from<City>().where(
-                    COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow"))
+    cdebug() << statementUpdate.from<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
+                .where(COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow"))
                 .buildQuery(SqlSyntaxSqlite);
-
 }

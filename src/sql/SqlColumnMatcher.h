@@ -12,6 +12,9 @@ namespace sql
 template<typename T, typename = void>
 struct ValueEvaluator;
 
+template<typename TObj1, typename TField1, typename TField2>
+class SqlColumnAssignment;
+
 template<>
 struct ValueEvaluator<String>
 {
@@ -88,8 +91,32 @@ public:
         return String(TObj::staticMetaObject()->name()) + "." + this->metaField()->name();
     }
 
+
 private:
     const MetaField *m_metaField;
+};
+
+/** Typed expression represented as a raw expression string (TODO: bad practice?) */
+template<typename TField>
+class SqlColumnMatcherExplicitExpression : public SqlColumnMatcherSubexpression<TField>
+{
+public:
+    explicit SqlColumnMatcherExplicitExpression(const String& expr)
+        : m_expr(expr)
+    {
+
+    }
+
+    ~SqlColumnMatcherExplicitExpression()
+    {
+    }
+
+    String expression() const override
+    {
+        return m_expr;
+    }
+private:
+    String m_expr;
 };
 
 template<typename TObj, typename TField, typename Enable = void>
@@ -133,6 +160,20 @@ public:
         : SqlColumnPartialMatcher<TObj, TField>(getMetaField(member))
     {
     }
+
+    template<typename TField2>
+    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    operator=(const SqlColumnMatcherSubexpression<TField2>& rhs)
+    {
+        return SqlColumnAssignment<TObj, TField, TField2>(*this, rhs);
+    }
+
+    template<typename TField2>
+    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    operator=(const TField2& rhs)
+    {
+        return SqlColumnAssignment<TObj, TField, TField2>(*this, SqlColumnMatcherValue<TField2>(rhs));
+    }
 };
 
 
@@ -157,6 +198,25 @@ public:
         return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
             this->metaField()->name() + " IS NOT NULL");
     }
+
+    template<typename TField2>
+    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    operator=(const SqlColumnMatcherSubexpression<TField2>& rhs)
+    {
+        return SqlColumnAssignment<TObj, TField, TField2>(*this, rhs);
+    }
+
+    template<typename TField2>
+    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    operator=(const TField2& rhs)
+    {
+        return SqlColumnAssignment<TObj, TField, TField2>(*this, SqlColumnMatcherValue<TField2>(rhs));
+    }
+
+    SqlColumnAssignment<TObj, TField, TField> operator=(std::nullptr_t)
+    {
+        return SqlColumnAssignment<TObj, TField, TField>(*this, SqlColumnMatcherExplicitExpression<TField>("NULL"));
+    }
 };
 
 template<typename TObj, typename TField>
@@ -166,29 +226,6 @@ SqlColumnFullMatcher<TObj, TField> GetColumnMatcher(const TField TObj::*member)
 }
 
 #define COLUMN(Table, Column) GetColumnMatcher(&Table::Column)
-
-/** Typed expression represented as a raw expression string (TODO: bad practice?) */
-template<typename TField>
-class SqlColumnMatcherExplicitExpression : public SqlColumnMatcherSubexpression<TField>
-{
-public:
-    explicit SqlColumnMatcherExplicitExpression(const String& expr)
-        : m_expr(expr)
-    {
-
-    }
-
-    ~SqlColumnMatcherExplicitExpression()
-    {
-    }
-
-    String expression() const override
-    {
-        return m_expr;
-    }
-private:
-    String m_expr;
-};
 
 template<typename T, typename Enable = void>
 struct TypePromotionPriorityHelper;

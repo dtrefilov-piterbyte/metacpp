@@ -4,6 +4,7 @@
 #include "SqlWhereClause.h"
 #include "SqlTransaction.h"
 #include "SqlResultSet.h"
+#include "SqlColumnAssignment.h"
 
 namespace metacpp
 {
@@ -152,11 +153,36 @@ public:
         return from<TObj2, TOthers...>();
     }
 
+    template<typename TObj>
+    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment1)
+    {
+        m_sets.push_back(assignment1.expression());
+        return *this;
+    }
+
+    template<typename TObj>
+    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2)
+    {
+        m_sets.push_back(assignment1.expression());
+        m_sets.push_back(assignment2.expression());
+        return *this;
+    }
+
+    // all assignments should be performed on same table
+    template<typename TObj, typename... TRest>
+    typename std::enable_if<sizeof...(TRest) != 0, SqlStatementUpdate>::type&
+        set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2, TRest... rest)
+    {
+        m_sets.push_back(assignment1.expression());
+        return set(assignment2, rest...);
+    }
+
     SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
     void exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
     String m_whereClause;
+    StringArray m_sets;
 };
 
 class SqlStatementDelete : public SqlStatementBase
