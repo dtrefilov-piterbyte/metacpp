@@ -191,10 +191,29 @@ public:
     explicit SqlStatementDelete(SqlStorable *storable);
     ~SqlStatementDelete();
 
+    SqlStatementType type() const override;
+    String buildQuery(SqlSyntax syntax) const override;
+
     /** reference other tables */
-    SqlStatementUpdate& join(...);
-    SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
+    template<typename TObj>
+    SqlStatementDelete& from()
+    {
+        m_joins.push_back(TObj::staticMetaObject());
+        return *this;
+    }
+
+    template<typename TObj1, typename TObj2, typename... TOthers>
+    SqlStatementDelete& from()
+    {
+        from<TObj1>();
+        return from<TObj2, TOthers...>();
+    }
+    SqlStatementDelete &where(const WhereClauseBuilder& whereClause);
     void exec(SqlTransaction& transaction);
+private:
+    Array<const MetaObject *> m_joins;
+    String m_whereClause;
+
 };
 
 

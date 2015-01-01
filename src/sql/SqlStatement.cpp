@@ -265,5 +265,58 @@ void SqlStatementUpdate::exec(SqlTransaction &transaction)
     throw std::runtime_error("Not implemented");
 }
 
+SqlStatementDelete::SqlStatementDelete(SqlStorable *storable)
+    : SqlStatementBase(storable)
+{
+}
+
+SqlStatementDelete::~SqlStatementDelete()
+{
+}
+
+SqlStatementType SqlStatementDelete::type() const
+{
+    return eSqlStatementTypeDelete;
+}
+
+String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
+{
+    String res;
+    String tblName = m_storable->record()->metaObject()->name();
+    res = "DELETE FROM " + tblName;
+
+    if (m_joins.size())
+    {
+        String refs;
+        for (size_t i = 0; i < m_joins.size(); ++i)
+        {
+            refs += m_joins[i]->name();
+            if (i != m_joins.size() - 1)
+                refs += ", ";
+        }
+        if (SqlSyntaxSqlite == syntax)
+            res += " WHERE EXISTS (SELECT * FROM " + refs + " WHERE " + m_whereClause + ")";
+        else
+        {
+            res += "USING " + refs + " WHERE " + m_whereClause;
+        }
+    }
+    else
+        res += " WHERE " + m_whereClause;
+    return res;
+
+}
+
+SqlStatementDelete &SqlStatementDelete::where(const WhereClauseBuilder &whereClause)
+{
+    m_whereClause = whereClause.expression();
+    return *this;
+}
+
+void SqlStatementDelete::exec(SqlTransaction &transaction)
+{
+    throw std::runtime_error("Not implemented");
+}
+
 } // namespace sql
 } // namespace metacpp
