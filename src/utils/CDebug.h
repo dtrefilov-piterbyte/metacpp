@@ -5,7 +5,6 @@
 #include <mutex>
 #include <list>
 #include <memory>
-#include <boost/optional.hpp>
 
 enum eLogLevel {
     _LOG_DEBUG,
@@ -22,12 +21,6 @@ public:
     CDebug(const char *fmt, ...);
     CDebug(eLogLevel level, const char *fmt, ...);
     ~CDebug();
-
-    template<typename T>
-    CDebug& operator<<(const boost::optional<T>& rhs) {
-        rhs ? (m_strbuf << *rhs) : (m_strbuf << "(null)");
-        return *this;
-    }
 
     template<typename T>
     CDebug& operator <<(const T& v) { m_strbuf << v; return *this; }
