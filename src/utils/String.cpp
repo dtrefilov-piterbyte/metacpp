@@ -133,7 +133,7 @@ namespace metacpp
     {
         while (true)
         {
-            if (*a != *b) return (int)*a - (int)*b;
+            if (*a != *b) return *a - *b;
             if (!*a) return 0;
             ++a; ++b;
         }

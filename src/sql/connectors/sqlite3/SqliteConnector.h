@@ -23,9 +23,12 @@ public:
 
     bool connect() override;
     bool disconnect() override;
-    SqlTransaction *beginTransaction() override;
-    bool commitTransaction(SqlTransaction *transaction) override;
-    bool rollbackTransaction(SqlTransaction *transaction) override;
+    SqlTransactionImpl *beginTransaction() override;
+    bool commitTransaction(SqlTransactionImpl *transaction) override;
+    bool rollbackTransaction(SqlTransactionImpl *transaction) override;
+
+private:
+    bool closeTransaction(SqlTransactionImpl *transaction, const char *closeStmt);
 private:
     String m_databaseName;
     sqlite3 *m_dbHandle; // main database handle

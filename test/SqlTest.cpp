@@ -21,6 +21,7 @@ public:
 };
 
 STRUCT_INFO_BEGIN(Person)
+    FIELD_INFO(Person, id)
     FIELD_INFO(Person, name)
     FIELD_INFO(Person, age)
     FIELD_INFO(Person, cat_weight)
@@ -65,12 +66,12 @@ TEST_F(SqlTest, test1)
     cdebug() << statementInsert.buildQuery(SqlSyntaxSqlite);
 
     SqlStatementUpdate statementUpdate(&person);
-    cdebug() << statementUpdate.from<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
+    cdebug() << statementUpdate.ref<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
                 .where(COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow"))
                 .buildQuery(SqlSyntaxSqlite);
 
     SqlStatementDelete statementDelete(&person);
-    cdebug() << statementDelete.from<City>().where(
+    cdebug() << statementDelete.ref<City>().where(
                     COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Bobruysk"))
                 .buildQuery(SqlSyntaxSqlite);
 }

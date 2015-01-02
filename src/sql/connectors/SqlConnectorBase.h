@@ -2,8 +2,11 @@
 #define SQLCONNECTORBASE_H
 #include "SqlResultSet.h"
 #include "SqlStatementImpl.h"
-#include "SqlTransaction.h"
+#include "SqlTransactionImpl.h"
 #include "SqlStorable.h"
+#include <atomic>
+#include <map>
+#include "String.h"
 
 namespace metacpp
 {
@@ -41,14 +44,23 @@ public:
      * using either commitTransaction or or rollbackTransaction
      * NOTE: Level of isolation for transaction is implementation defined
     */
-    virtual SqlTransaction *beginTransaction() = 0;
+    virtual SqlTransactionImpl *beginTransaction() = 0;
 
     /** \brief execute all commands and make all changes made within given transaction persistent */
-    virtual bool commitTransaction(SqlTransaction *transaction) = 0;
+    virtual bool commitTransaction(SqlTransactionImpl *transaction) = 0;
 
     /** \brief cancel all changes made within given transaction */
-    virtual bool rollbackTransaction(SqlTransaction *transaction) = 0;
+    virtual bool rollbackTransaction(SqlTransactionImpl *transaction) = 0;
 
+    static bool setDefaultConnector(SqlConnectorBase *connector);
+    static SqlConnectorBase *getDefaultConnector();
+
+    static bool setNamedConnector(SqlConnectorBase *connector, const String& connectionName);
+    static SqlConnectorBase *getNamedConnector(const String &connectionName);
+private:
+    static std::atomic<SqlConnectorBase *> ms_defaultConnector;
+    static std::mutex ms_namedConnectorsMutex;
+    static std::map<String, SqlConnectorBase *> ms_namedConnectors;
 };
 
 } // namespace connectors

@@ -28,10 +28,11 @@ bool SqliteConnector::connect()
         cwarning() << "SqliteConnector::connect(): database connection seems to be already opened";
         return true;
     }
-    int error = sqlite3_open(m_databaseName.c_str(), &m_dbHandle);
+    int error = sqlite3_open_v2(m_databaseName.c_str(), &m_dbHandle,
+                             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
     if (SQLITE_OK != error)
     {
-        cerror() << "sqlite3_open(): " << describeSqliteError(error);
+        cerror() << "sqlite3_open_v2(): " << describeSqliteError(error);
         return false;
     }
     cdebug() << "SqliteConnector::connect(): main database connection successfully created";
@@ -45,10 +46,10 @@ bool SqliteConnector::disconnect()
         cwarning() << "SqliteConnector::disconnect(): database connection was not previously successfully created";
         return true;
     }
-    int error = sqlite3_close(m_dbHandle);
+    int error = sqlite3_close_v2(m_dbHandle);
     if (SQLITE_OK != error)
     {
-        cerror() << "sqlite3_close(): " << describeSqliteError(error);
+        cerror() << "sqlite3_close_v2(): " << describeSqliteError(error);
         return false;
     }
     cdebug() << "SqliteConnector::disconnect(): main database connection closed";
@@ -62,19 +63,64 @@ bool SqliteConnector::disconnect()
     return true;
 }
 
-SqlTransaction *SqliteConnector::beginTransaction()
+SqlTransactionImpl *SqliteConnector::beginTransaction()
 {
-    return nullptr;
+    int error;
+    sqlite3 *dbHandle;
+    error = sqlite3_open_v2(m_databaseName.c_str(), &dbHandle,
+                             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
+    if (SQLITE_OK != error)
+    {
+        cfatal() << "sqlite3_open_v2(): " << describeSqliteError(error);
+        return nullptr;
+    }
+    char *errorMessage;
+    error = sqlite3_exec(dbHandle, "BEGIN TRANSACTION", nullptr, nullptr, &errorMessage);
+    if (SQLITE_OK != error)
+    {
+        cfatal() << "Failed to start transaction with sqlite3_exec(): " << errorMessage;
+        return nullptr;
+    }
+    SqliteTransactionImpl *result = new SqliteTransactionImpl(dbHandle);
+    {
+        std::lock_guard<std::mutex> _guard(m_transactionMutex);
+        m_transactions.push_back(result);
+    }
+    return result;
 }
 
-bool SqliteConnector::commitTransaction(SqlTransaction *transaction)
+bool SqliteConnector::commitTransaction(SqlTransactionImpl *transaction)
 {
-    return false;
+    return closeTransaction(transaction, "COMMIT TRANSACTION");
 }
 
-bool SqliteConnector::rollbackTransaction(SqlTransaction *transaction)
+bool SqliteConnector::rollbackTransaction(SqlTransactionImpl *transaction)
 {
-    return false;
+    return closeTransaction(transaction, "ROLLBACK TRANSACTION");
+}
+
+bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction, const char *closeStmt)
+{
+    SqliteTransactionImpl *sqliteTransaction = reinterpret_cast<SqliteTransactionImpl *>(transaction);
+    char *errorMessage;
+    int error;
+    error = sqlite3_exec(sqliteTransaction->dbHandle(), closeStmt, nullptr, nullptr, &errorMessage);
+    if (SQLITE_OK != error)
+    {
+        cfatal() << "Failed to commit transaction: " << errorMessage;
+        return false;
+    }
+    {
+        std::lock_guard<std::mutex> _guard(m_transactionMutex);
+        auto it = std::find(m_transactions.begin(), m_transactions.end(), sqliteTransaction);
+        if (it != m_transactions.end())
+        {
+            m_transactions.erase(it);
+            return true;
+        }
+        cerror() << "SqliteConnector::commitTransaction(): no such transaction";
+        return false;
+    }
 }
 
 const char *describeSqliteError(int errorCode)

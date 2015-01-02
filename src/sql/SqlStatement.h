@@ -2,7 +2,6 @@
 #define SQLSTATEMENT_H
 #include "SqlStorable.h"
 #include "SqlWhereClause.h"
-#include "SqlTransaction.h"
 #include "SqlResultSet.h"
 #include "SqlColumnAssignment.h"
 
@@ -11,7 +10,9 @@ namespace metacpp
 namespace sql
 {
 
-// TODO: think how to implement composite statements, i.e.
+class SqlTransaction;
+
+// TODO: think how to implement composite statements with agregate functions, i.e.
 // select city.* from city where not (select avg(age) from person where cityid = city.id) > 12;
 
 enum SqlStatementType
@@ -140,17 +141,17 @@ public:
 
     /** reference other tables */
     template<typename TObj>
-    SqlStatementUpdate& from()
+    SqlStatementUpdate& ref()
     {
         m_joins.push_back(TObj::staticMetaObject());
         return *this;
     }
 
     template<typename TObj1, typename TObj2, typename... TOthers>
-    SqlStatementUpdate& from()
+    SqlStatementUpdate& ref()
     {
-        from<TObj1>();
-        return from<TObj2, TOthers...>();
+        ref<TObj1>();
+        return ref<TObj2, TOthers...>();
     }
 
     template<typename TObj>
@@ -196,17 +197,17 @@ public:
 
     /** reference other tables */
     template<typename TObj>
-    SqlStatementDelete& from()
+    SqlStatementDelete& ref()
     {
         m_joins.push_back(TObj::staticMetaObject());
         return *this;
     }
 
     template<typename TObj1, typename TObj2, typename... TOthers>
-    SqlStatementDelete& from()
+    SqlStatementDelete& ref()
     {
-        from<TObj1>();
-        return from<TObj2, TOthers...>();
+        ref<TObj1>();
+        return ref<TObj2, TOthers...>();
     }
     SqlStatementDelete &where(const WhereClauseBuilder& whereClause);
     void exec(SqlTransaction& transaction);

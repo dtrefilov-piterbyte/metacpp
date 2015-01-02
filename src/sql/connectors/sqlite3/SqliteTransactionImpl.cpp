@@ -19,9 +19,17 @@ SqliteTransactionImpl::SqliteTransactionImpl(sqlite3 *dbHandle)
 
 SqliteTransactionImpl::~SqliteTransactionImpl()
 {
+    {
+        std::lock_guard<std::mutex> _guard(m_statementsMutex);
+        if (m_statements.size())
+        {
+            cwarning() << "There's still " << m_statements.size() <<
+                          " unclosed statements while destroing the sqlite transaction";
+        }
+    }
     int error;
-    if (SQLITE_OK != (error = sqlite3_close(m_dbHandle)))
-        cerror() << "sqlite3_close(): " << describeSqliteError(error);
+    if (SQLITE_OK != (error = sqlite3_close_v2(m_dbHandle)))
+        cerror() << "sqlite3_close_v2(): " << describeSqliteError(error);
 }
 
 SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, const String& queryText)

@@ -515,6 +515,12 @@ StringBuilder<StringBuilder<T1, T2>, T *> operator +(const StringBuilder<T1, T2>
     return StringBuilder<StringBuilder<T1, T2>, T *>(a, b);
 }
 
+template<typename T>
+bool operator<(const StringBase<T>& a, const StringBase<T>& b)
+{
+    return StringHelper<T>::strcmp(a.data(), b.data()) < 0;
+}
+
 std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const String& str);
 std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const WString& wstr);
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const WString& str);
