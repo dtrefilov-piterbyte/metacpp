@@ -15,7 +15,7 @@ public:
     int             id;
     String          name;
     Nullable<int>   age;
-    Nullable<float> cat_weight;
+    Nullable<double> cat_weight;
     int             cityId;
 
     META_INFO_DECLARE(Person)
@@ -51,7 +51,6 @@ META_INFO(City)
 
 typedef STORABLE(City, id) CityStorable;
 
-/*
 TEST_F(SqlTest, test1)
 {
     PersonStorable person;
@@ -77,7 +76,6 @@ TEST_F(SqlTest, test1)
                     COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Bobruysk"))
                 .buildQuery(SqlSyntaxSqlite);
 }
-*/
 
 void SqlTest::SetUp()
 {

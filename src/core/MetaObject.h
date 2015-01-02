@@ -80,7 +80,7 @@ public:
     {
     }
 
-    inline int defaultValue() const { return m_descriptor->valueInfo.ext.m_int.defaultValue; }
+    inline int32_t defaultValue() const { return m_descriptor->valueInfo.ext.m_int.defaultValue; }
 };
 
 class MetaFieldUint : public MetaField
@@ -92,6 +92,28 @@ public:
     }
 
     inline uint32_t defaultValue() const { return m_descriptor->valueInfo.ext.m_uint.defaultValue; }
+};
+
+class MetaFieldInt64 : public MetaField
+{
+public:
+    MetaFieldInt64(const FieldInfoDescriptor *fieldDescriptor)
+        : MetaField(fieldDescriptor)
+    {
+    }
+
+    inline int64_t defaultValue() const { return m_descriptor->valueInfo.ext.m_int64.defaultValue; }
+};
+
+class MetaFieldUint64 : public MetaField
+{
+public:
+    MetaFieldUint64(const FieldInfoDescriptor *fieldDescriptor)
+        : MetaField(fieldDescriptor)
+    {
+    }
+
+    inline uint64_t defaultValue() const { return m_descriptor->valueInfo.ext.m_uint64.defaultValue; }
 };
 
 class MetaFieldFloat : public MetaField
@@ -176,10 +198,10 @@ public:
     inline size_t arrayElementSize() const { return m_descriptor->valueInfo.ext.m_array.elemSize; }
 };
 
-class MetaFieldTime : public MetaField
+class MetaFieldDateTime : public MetaField
 {
 public:
-    MetaFieldTime(const FieldInfoDescriptor *fieldDescriptor)
+    MetaFieldDateTime(const FieldInfoDescriptor *fieldDescriptor)
         : MetaField(fieldDescriptor)
     {
     }

@@ -13,6 +13,7 @@
 #include "Array.h"
 #include "String.h"
 #include "Nullable.h"
+#include "DateTime.h"
 
 namespace metacpp
 {
@@ -25,13 +26,15 @@ enum EFieldType
 	eFieldBool		= 'b',
 	eFieldInt		= 'i',
 	eFieldUint		= 'u',
+    eFieldInt64     = 'i' | ('6' << 8) | ('4' << 16),
+    eFieldUint64    = 'u' | ('6' << 8) | ('4' << 16),
     eFieldFloat		= 'f',
     eFieldDouble    = 'd',
 	eFieldString	= 's',
 	eFieldEnum		= 'e',
 	eFieldObject	= 'o',
 	eFieldArray		= 'a',
-    eFieldTime      = 't',
+    eFieldDateTime      = 't',
 };
 
 /** \brief Parameter determines assigning behaviour of the field */
@@ -91,15 +94,23 @@ struct FieldInfoDescriptor
             } m_int;
             struct
 			{
-				uint32_t		defaultValue;
+                uint32_t	defaultValue;
             } m_uint;
+            struct
+            {
+                int64_t     defaultValue;
+            } m_int64;
+            struct
+            {
+                uint64_t    defaultValue;
+            } m_uint64;
             struct
 			{
 				float		defaultValue;
             } m_float;
             struct
             {
-                double defaultValue;
+                double      defaultValue;
             } m_double;
             struct
 			{
@@ -130,6 +141,16 @@ struct FieldInfoDescriptor
 		explicit Extension(uint32_t v)
 		{
             ext.m_uint.defaultValue = v;
+            mandatoriness = eDefaultable;
+        }
+        explicit Extension(int64_t v)
+        {
+            ext.m_int64.defaultValue = v;
+            mandatoriness = eDefaultable;
+        }
+        explicit Extension(uint64_t v)
+        {
+            ext.m_uint64.defaultValue = v;
             mandatoriness = eDefaultable;
         }
 		explicit Extension(float v)
@@ -203,6 +224,20 @@ struct PartialFieldInfoHelper<uint32_t> {
 };
 
 template<>
+struct PartialFieldInfoHelper<int64_t> {
+    static constexpr EFieldType type() { return eFieldInt64; }
+    static FieldInfoDescriptor::Extension extension(int64_t v) { return FieldInfoDescriptor::Extension(v); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
+};
+
+template<>
+struct PartialFieldInfoHelper<uint64_t> {
+    static constexpr EFieldType type() { return eFieldUint64; }
+    static FieldInfoDescriptor::Extension extension(uint64_t v) { return FieldInfoDescriptor::Extension(v); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
+};
+
+template<>
 struct PartialFieldInfoHelper<float> {
 	static constexpr EFieldType type() { return eFieldFloat; }
     static FieldInfoDescriptor::Extension extension(float v) { return FieldInfoDescriptor::Extension(v); }
@@ -223,6 +258,12 @@ struct PartialFieldInfoHelper<metacpp::String> {
     static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
+template<>
+struct PartialFieldInfoHelper<metacpp::DateTime> {
+    static constexpr EFieldType type() { return eFieldDateTime; }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
+};
+
 template<typename T>
 struct PartialFieldInfoHelper<metacpp::Array<T> >
 {
@@ -231,13 +272,6 @@ struct PartialFieldInfoHelper<metacpp::Array<T> >
 	{
         return FieldInfoDescriptor::Extension(PartialFieldInfoHelper<T>::type(), sizeof(T));
 	}
-};
-
-template<>
-struct PartialFieldInfoHelper<std::time_t>
-{
-    static constexpr EFieldType type() { return eFieldTime; }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 
 template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>

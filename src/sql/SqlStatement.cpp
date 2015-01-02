@@ -38,6 +38,10 @@ String SqlStatementBase::fieldValue(const MetaField *field) const
     case eFieldUint:
     case eFieldEnum:
         _FIELD_VAL_ARITH(uint32_t)
+    case eFieldInt64:
+        _FIELD_VAL_ARITH(int64_t)
+    case eFieldUint64:
+        _FIELD_VAL_ARITH(uint64_t)
     case eFieldFloat:
         _FIELD_VAL_ARITH(float)
     case eFieldDouble:
@@ -55,8 +59,15 @@ String SqlStatementBase::fieldValue(const MetaField *field) const
         throw std::runtime_error("Can store only plain objects");
     case eFieldArray:
         throw std::runtime_error("Can store only plain objects");
-    case eFieldTime:
-        throw std::runtime_error("TODO: need datetime");
+    case eFieldDateTime:
+        if (field->nullable())
+        {
+            if (field->access<Nullable<DateTime> >(m_storable->record()))
+                return "NULL";
+            else
+                return "\'" + field->access<Nullable<DateTime> >(m_storable->record()).get().toISOString() + "\'";
+            return "\'" + field->access<DateTime>(m_storable->record()).toISOString() + "\'";
+        }
     default:
         throw std::runtime_error("Unknown field type");
     }

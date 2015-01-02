@@ -132,6 +132,10 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             case eFieldUint:
                 _ASSIGN_FIELD(uint32_t, SQLITE_INTEGER, sqlite3_column_int64(stmt, i))
                 break;
+            case eFieldUint64:
+            case eFieldInt64:
+                _ASSIGN_FIELD(int64_t, SQLITE_INTEGER, sqlite3_column_int64(stmt, i))
+                break;
             case eFieldFloat:
                 _ASSIGN_FIELD(float, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
                 break;
@@ -141,8 +145,8 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             case eFieldString:
                 _ASSIGN_FIELD(String, SQLITE_TEXT, (const char *)sqlite3_column_text(stmt, i))
                 break;
-            case eFieldTime:
-                throw std::runtime_error("Datetime unimplemented");
+            case eFieldDateTime:
+                _ASSIGN_FIELD(DateTime, SQLITE_TEXT, DateTime::fromISOString((const char *)sqlite3_column_text(stmt, i)))
                 break;
             case eFieldObject:
             case eFieldArray:

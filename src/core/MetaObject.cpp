@@ -129,6 +129,12 @@ std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescr
     case eFieldUint:
         result.reset(new MetaFieldUint(arg));
         break;
+    case eFieldInt64:
+        result.reset(new MetaFieldInt64(arg));
+        break;
+    case eFieldUint64:
+        result.reset(new MetaFieldUint64(arg));
+        break;
     case eFieldFloat:
         result.reset(new MetaFieldFloat(arg));
         break;
@@ -147,8 +153,8 @@ std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescr
     case eFieldArray:
         result.reset(new MetaFieldArray(arg));
         break;
-    case eFieldTime:
-        result.reset(new MetaFieldTime(arg));
+    case eFieldDateTime:
+        result.reset(new MetaFieldDateTime(arg));
         break;
     }
     return result;

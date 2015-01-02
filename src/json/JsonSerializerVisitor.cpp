@@ -50,6 +50,14 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
             ACCESS_NULLABLE(uint32_t)
             break;
         }
+        case eFieldInt64: {
+            ACCESS_NULLABLE(int64_t)
+            break;
+        }
+        case eFieldUint64: {
+            ACCESS_NULLABLE(uint64_t)
+            break;
+        }
         case eFieldFloat: {
             ACCESS_NULLABLE(float)
             break;
@@ -58,8 +66,8 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
             ACCESS_NULLABLE(double)
             break;
         }
-        case eFieldTime: {
-            ACCESS_NULLABLE(std::time_t)
+        case eFieldDateTime: {
+            ACCESS_NULLABLE(DateTime)
             break;
         }
         }
@@ -78,6 +86,12 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 	case eFieldUint:
 		val = *reinterpret_cast<const uint32_t *>(pValue);
 		break;
+    case eFieldInt64:
+        val = (Json::Int64)*reinterpret_cast<const int64_t *>(pValue);
+        break;
+    case eFieldUint64:
+        val = (Json::UInt64)*reinterpret_cast<const uint64_t *>(pValue);
+        break;
 	case eFieldFloat:
 		val = *reinterpret_cast<const float *>(pValue);
 		break;
@@ -112,13 +126,8 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 		val = nestedSerializer.rootValue();
 		break;
 	}
-    case eFieldTime: {
-        char buf[50];
-        static std::mutex mtx;
-        std::lock_guard<std::mutex> _guard(mtx);
-        auto tm = gmtime(reinterpret_cast<const time_t *>(pValue));
-        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", tm);
-        val = buf;
+    case eFieldDateTime: {
+        val = reinterpret_cast<const metacpp::DateTime *>(pValue)->toISOString().c_str();
         break;
     }
 	}	// switch

@@ -3,6 +3,7 @@
 #include <string>
 #include <memory>
 #include "JsonSerializerVisitor.h"
+#include "CDebug.h"
 
 using namespace metacpp;
 
@@ -41,7 +42,7 @@ struct TestStruct : public TestBaseStruct
     String strValue;
 	TestSubStruct substruct;
     Array<String> arrValue;
-    time_t timeValue;
+    DateTime datetimeValue;
 
     Nullable<EEnumTest> optEnumValue;
     Nullable<bool> optBoolValue;
@@ -66,14 +67,15 @@ STRUCT_INFO_DERIVED_BEGIN(TestStruct, TestBaseStruct)
     FIELD_INFO(TestStruct, doubleValue, 25.0)
 	FIELD_INFO(TestStruct, strValue, "testValue")
 	FIELD_INFO(TestStruct, substruct)
-	FIELD_INFO(TestStruct, arrValue)
-    FIELD_INFO(TestStruct, timeValue)
+    FIELD_INFO(TestStruct, arrValue)
 
     FIELD_INFO(TestStruct, optEnumValue, &ENUM_INFO(EEnumTest))
     FIELD_INFO(TestStruct, optBoolValue, true)
     FIELD_INFO(TestStruct, optIntValue, -1)
     FIELD_INFO(TestStruct, optUintValue, 123154)
     FIELD_INFO(TestStruct, optFloatValue, eOptional)
+
+    FIELD_INFO(TestStruct, datetimeValue)
 STRUCT_INFO_END(TestStruct)
 
 META_INFO(TestStruct)
@@ -116,8 +118,6 @@ void ObjectTest::testMetaInfo()
     ASSERT_EQ(t.metaObject()->field(6)->type(), eFieldString);
     ASSERT_EQ(std::string(t.metaObject()->field(7)->name()), "substruct");
     ASSERT_EQ(t.metaObject()->field(7)->type(), eFieldObject);
-    ASSERT_EQ(t.metaObject()->field(9)->type(), eFieldTime);
-    ASSERT_EQ(std::string(t.metaObject()->field(9)->name()), "timeValue");
 
 }
 
@@ -138,7 +138,6 @@ void ObjectTest::testInitVisitor()
     EXPECT_EQ(*t.optIntValue, -1);
     EXPECT_EQ(*t.optUintValue, 123154);
     EXPECT_FALSE(t.optFloatValue);
-    EXPECT_EQ(t.timeValue, (std::time_t)-1);
 }
 
 void ObjectTest::testSerialization()
@@ -157,7 +156,7 @@ void ObjectTest::testSerialization()
     t.arrValue.push_back("asdj");
     t.arrValue.push_back("");
     t.optFloatValue = 2.5;
-    t.timeValue = time(NULL);
+    t.datetimeValue = DateTime(time(NULL));
     t2.fromString(t.toString());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
@@ -176,7 +175,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(*t2.optIntValue, -1);
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
-    EXPECT_EQ(t.timeValue, t2.timeValue);
+    EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
 }
 
 TEST_F(ObjectTest, MetaInfoTest)

@@ -49,6 +49,14 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
             ACCESS_NULLABLE(uint32_t)
             break;
         }
+        case eFieldInt64: {
+            ACCESS_NULLABLE(int64_t)
+            break;
+        }
+        case eFieldUint64: {
+            ACCESS_NULLABLE(uint64_t)
+            break;
+        }
         case eFieldFloat: {
             ACCESS_NULLABLE(float)
             break;
@@ -61,8 +69,8 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
             ACCESS_NULLABLE(metacpp::String)
             break;
         }
-        case eFieldTime: {
-            ACCESS_NULLABLE(std::time_t);
+        case eFieldDateTime: {
+            ACCESS_NULLABLE(metacpp::DateTime);
             break;
         }
         }
@@ -84,6 +92,14 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
         if (!val.isIntegral()) throw std::invalid_argument("Type mismatch");
 		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
 		break;
+    case eFieldInt64:
+        if (!val.isIntegral()) throw std::invalid_argument("Type mismatch");
+        *reinterpret_cast<int64_t *>(pValue) = val.asInt64();
+        break;
+    case eFieldUint64:
+        if (!val.isIntegral()) throw std::invalid_argument("Type mismatch");
+        *reinterpret_cast<uint64_t *>(pValue) = val.asUInt64();
+        break;
 	case eFieldFloat:
 		if (!val.isDouble()) throw std::invalid_argument("Type mismatch");
 		*reinterpret_cast<float *>(pValue) = (float)val.asDouble();
@@ -127,11 +143,9 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
 		break;
 	}
-    case eFieldTime: {
+    case eFieldDateTime: {
         if (!val.isString()) throw std::invalid_argument("Type mismatch");
-        struct tm tm;
-        strptime(val.asCString(), "%Y-%m-%d %H:%M:%S", &tm);
-        *reinterpret_cast<std::time_t *>(pValue) = timegm(&tm);
+        *reinterpret_cast<DateTime *>(pValue) = DateTime::fromISOString(val.asCString());
         break;
     }
 	}	// switch
