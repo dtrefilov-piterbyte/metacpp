@@ -187,10 +187,12 @@ const char *describeSqliteError(int errorCode)
         return "2nd parameter to sqlite3_bind out of range";
     case SQLITE_NOTADB:
         return "File opened that is not a database file";
+        /*
     case SQLITE_NOTICE:
         return "Notifications from sqlite3_log()";
     case SQLITE_WARNING:
         return "Warnings from sqlite3_log()";
+        */
     case SQLITE_ROW:
         return "sqlite3_step() has another row ready";
     case SQLITE_DONE:
