@@ -96,9 +96,14 @@ SqlStatementType SqlStatementSelect::type() const
 String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
 {
     (void)syntax;
+    if (!m_storable->record()->metaObject()->totalFields())
+        throw std::runtime_error("Invalid storable");
     String res;
     String tblName = m_storable->record()->metaObject()->name();
-    res = "SELECT " + tblName + ".* FROM " + tblName;
+    StringArray columns;
+    for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
+        columns.push_back(tblName + "." + m_storable->record()->metaObject()->field(i)->name());
+    res = "SELECT " + columns.join(", ") + " FROM " + tblName;
     if (m_whereClause.size())
     {
         if (m_joins.size())
@@ -237,7 +242,7 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
     {
         if (SqlSyntaxSqlite == syntax)
         {
-            res += " WHERE EXISTS (SELECT * FROM ";
+            res += " WHERE EXISTS (SELECT 1 FROM ";
             for (size_t i = 0; i < m_joins.size(); ++i)
             {
                 res += m_joins[i]->name();
@@ -295,7 +300,7 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
                 refs += ", ";
         }
         if (SqlSyntaxSqlite == syntax)
-            res += " WHERE EXISTS (SELECT * FROM " + refs + " WHERE " + m_whereClause + ")";
+            res += " WHERE EXISTS (SELECT 1 FROM " + refs + " WHERE " + m_whereClause + ")";
         else
         {
             res += "USING " + refs + " WHERE " + m_whereClause;
