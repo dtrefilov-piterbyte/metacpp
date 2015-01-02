@@ -3,6 +3,7 @@
 #include "SqlColumnAssignment.h"
 #include "SqlStorable.h"
 #include "SqlStatement.h"
+#include "SqlTransaction.h"
 #include "CDebug.h"
 
 using namespace ::metacpp;
@@ -50,6 +51,7 @@ META_INFO(City)
 
 typedef STORABLE(City, id) CityStorable;
 
+/*
 TEST_F(SqlTest, test1)
 {
     PersonStorable person;
@@ -74,4 +76,35 @@ TEST_F(SqlTest, test1)
     cdebug() << statementDelete.ref<City>().where(
                     COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Bobruysk"))
                 .buildQuery(SqlSyntaxSqlite);
+}
+*/
+
+void SqlTest::SetUp()
+{
+    m_conn = new connectors::sqlite::SqliteConnector("file:memdb1?mode=memory&cache=shared");
+    connectors::SqlConnectorBase::setDefaultConnector(m_conn);
+    ASSERT_TRUE(m_conn->connect());
+}
+
+void SqlTest::TearDown()
+{
+    connectors::SqlConnectorBase::setDefaultConnector(nullptr);
+    delete m_conn;
+}
+
+void SqlTest::transactionsTest()
+{
+    {
+        SqlTransaction transaction;
+        ASSERT_NO_THROW(transaction.commit());
+    }
+    {
+        SqlTransaction transaction;
+        ASSERT_NO_THROW(transaction.rollback());
+    }
+}
+
+TEST_F(SqlTest, transactionsTest)
+{
+    transactionsTest();
 }

@@ -1,4 +1,5 @@
 #include "SqlStatement.h"
+#include "SqlTransaction.h"
 
 namespace metacpp
 {
@@ -6,7 +7,7 @@ namespace sql
 {
 
 SqlStatementBase::SqlStatementBase(SqlStorable *storable)
-    : m_storable(storable)
+    : m_storable(storable), m_impl(nullptr)
 {
 
 }
@@ -157,7 +158,10 @@ SqlStatementSelect &SqlStatementSelect::where(const WhereClauseBuilder &whereCla
 
 SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 {
-    throw std::runtime_error("Not implemented");
+    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!transaction.impl()->prepare(m_impl))
+        throw std::runtime_error("Failed to prepare statement");
+    return SqlResultSet(transaction, m_impl, m_storable);
 }
 
 SqlStatementInsert::SqlStatementInsert(SqlStorable *storable)
@@ -194,11 +198,6 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
         }
     }
     return res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
-}
-
-void SqlStatementInsert::exec(SqlTransaction &transaction)
-{
-    throw std::runtime_error("Not implemented");
 }
 
 SqlStatementUpdate::SqlStatementUpdate(SqlStorable *storable)
@@ -265,11 +264,6 @@ SqlStatementUpdate &SqlStatementUpdate::where(const WhereClauseBuilder &whereCla
     return *this;
 }
 
-void SqlStatementUpdate::exec(SqlTransaction &transaction)
-{
-    throw std::runtime_error("Not implemented");
-}
-
 SqlStatementDelete::SqlStatementDelete(SqlStorable *storable)
     : SqlStatementBase(storable)
 {
@@ -316,11 +310,6 @@ SqlStatementDelete &SqlStatementDelete::where(const WhereClauseBuilder &whereCla
 {
     m_whereClause = whereClause.expression();
     return *this;
-}
-
-void SqlStatementDelete::exec(SqlTransaction &transaction)
-{
-    throw std::runtime_error("Not implemented");
 }
 
 } // namespace sql

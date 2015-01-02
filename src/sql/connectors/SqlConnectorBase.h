@@ -52,6 +52,8 @@ public:
     /** \brief cancel all changes made within given transaction */
     virtual bool rollbackTransaction(SqlTransactionImpl *transaction) = 0;
 
+    virtual SqlSyntax sqlSyntax() const = 0;
+
     static bool setDefaultConnector(SqlConnectorBase *connector);
     static SqlConnectorBase *getDefaultConnector();
 

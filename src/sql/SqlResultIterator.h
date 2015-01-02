@@ -1,16 +1,39 @@
 #ifndef SQLRESULTITERATOR_H
 #define SQLRESULTITERATOR_H
+#include "Object.h"
 
 namespace metacpp
 {
 namespace sql
 {
 
+class SqlResultSet;
+static const int ROW_ID_PAST_THE_END = -1;
+static const int ROW_ID_INVALID = -2;
+
+/** Forward iterator for iterating over sql result rows */
 class SqlResultIterator
 {
 public:
-    SqlResultIterator();
+    explicit SqlResultIterator(SqlResultSet *resultSet, int rowId);
+    SqlResultIterator(const SqlResultIterator& other);
     virtual ~SqlResultIterator();
+
+    SqlResultIterator& operator=(const SqlResultIterator& rhs);
+    bool operator==(const SqlResultIterator& rhs);
+    bool operator!=(const SqlResultIterator& rhs);
+
+    SqlResultIterator& operator++();
+    inline int rowId() const { return m_rowId; }
+private:
+    inline void setRowId(int rowId) { m_rowId = rowId; }
+    bool fetchNext();
+private:
+    friend class SqlResultSet;
+
+    SqlResultSet *m_resultSet;
+    int m_rowId;
+
 };
 
 } // namespace sql

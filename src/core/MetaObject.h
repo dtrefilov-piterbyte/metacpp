@@ -20,7 +20,7 @@ public:
     const char *name() const;
     const MetaField *field(size_t i) const;
     const MetaField *fieldByOffset(ptrdiff_t offset) const;
-    const MetaField *fieldByName(const String& name) const;
+    const MetaField *fieldByName(const String& name, bool caseSensetive = false) const;
     size_t totalFields() const;
 private:
 	void preparseFields() const;

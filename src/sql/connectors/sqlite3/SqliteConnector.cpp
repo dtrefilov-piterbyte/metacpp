@@ -18,7 +18,8 @@ SqliteConnector::SqliteConnector(const String &databaseName)
 
 SqliteConnector::~SqliteConnector()
 {
-
+    if (m_dbHandle)
+        disconnect();
 }
 
 bool SqliteConnector::connect()
@@ -35,7 +36,6 @@ bool SqliteConnector::connect()
         cerror() << "sqlite3_open_v2(): " << describeSqliteError(error);
         return false;
     }
-    cdebug() << "SqliteConnector::connect(): main database connection successfully created";
     return true;
 }
 
@@ -52,7 +52,6 @@ bool SqliteConnector::disconnect()
         cerror() << "sqlite3_close_v2(): " << describeSqliteError(error);
         return false;
     }
-    cdebug() << "SqliteConnector::disconnect(): main database connection closed";
 
     {
         std::lock_guard<std::mutex> _guard(m_transactionMutex);
@@ -99,6 +98,11 @@ bool SqliteConnector::rollbackTransaction(SqlTransactionImpl *transaction)
     return closeTransaction(transaction, "ROLLBACK TRANSACTION");
 }
 
+SqlSyntax SqliteConnector::sqlSyntax() const
+{
+    return SqlSyntaxSqlite;
+}
+
 bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction, const char *closeStmt)
 {
     SqliteTransactionImpl *sqliteTransaction = reinterpret_cast<SqliteTransactionImpl *>(transaction);
@@ -116,6 +120,7 @@ bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction, const ch
         if (it != m_transactions.end())
         {
             m_transactions.erase(it);
+            delete transaction;
             return true;
         }
         cerror() << "SqliteConnector::commitTransaction(): no such transaction";

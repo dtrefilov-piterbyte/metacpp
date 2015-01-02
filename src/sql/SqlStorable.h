@@ -8,6 +8,15 @@ namespace metacpp
 {
 namespace sql
 {
+    enum SqlSyntax
+    {
+        SqlSyntaxUnknown,
+        SqlSyntaxSqlite,
+        SqlSyntaxPostgresql,
+        SqlSyntaxMysql,
+        SqlSyntaxMssql
+    };
+
     /** Base interface for persistable objects */
     class SqlStorable
     {

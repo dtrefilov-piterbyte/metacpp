@@ -10,8 +10,6 @@ namespace metacpp
 namespace sql
 {
 
-class SqlTransaction;
-
 // TODO: think how to implement composite statements with agregate functions, i.e.
 // select city.* from city where not (select avg(age) from person where cityid = city.id) > 12;
 
@@ -24,14 +22,7 @@ enum SqlStatementType
     eSqlStatementTypeDelete,
 };
 
-enum SqlSyntax
-{
-    SqlSyntaxUnknown,
-    SqlSyntaxSqlite,
-    SqlSyntaxPostgresql,
-    SqlSyntaxMysql,
-    SqlSyntaxMssql
-};
+class SqlTransaction;
 
 /** \brief Base class for all common-types statement builders */
 class SqlStatementBase
@@ -48,6 +39,7 @@ protected:
     String fieldValue(const MetaField *field) const;
 protected:
     SqlStorable *m_storable;
+    connectors::SqlStatementImpl *m_impl;
 };
 
 class SqlStatementSelect : public SqlStatementBase

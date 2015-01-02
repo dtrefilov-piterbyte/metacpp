@@ -19,6 +19,11 @@ SqlStatementImpl::~SqlStatementImpl()
 
 }
 
+SqlStatementType SqlStatementImpl::type() const
+{
+    return m_type;
+}
+
 bool SqlStatementImpl::prepared() const
 {
     return m_prepared;
@@ -32,6 +37,11 @@ void SqlStatementImpl::setPrepared(bool val)
 bool SqlStatementImpl::done() const
 {
     return m_done;
+}
+
+void SqlStatementImpl::setDone(bool val)
+{
+    m_done = val;
 }
 
 const String& SqlStatementImpl::queryText() const

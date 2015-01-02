@@ -59,6 +59,7 @@ bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement)
 {
     if (!statement->prepared())
     {
+        // TODO: should be an exception
         cerror() << "SqliteTransactionImpl::execStatement(): should be prepared first";
         return false;
     }
@@ -89,8 +90,8 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
     // no more rows
     if (statement->done())
         return false;
-
-    int error = sqlite3_step(reinterpret_cast<SqliteStatementImpl *>(statement)->handle());
+    sqlite3_stmt *stmt = reinterpret_cast<SqliteStatementImpl *>(statement)->handle();
+    int error = sqlite3_step(stmt);
     if (SQLITE_DONE == error)
     {
         statement->setDone();
@@ -98,7 +99,53 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
     }
     if (SQLITE_ROW == error)
     {
-        // TODO:
+        size_t columnCount = sqlite3_data_count(stmt);
+        for (size_t i = 0; i < columnCount; ++i)
+        {
+            String name = sqlite3_column_name(stmt, i);
+            auto field = storable->record()->metaObject()->fieldByName(name, false);
+            if (!field)
+            {
+                cwarning() << "Cannot bind sql result to an object field " << name;
+                continue;
+            }
+            int sqliteType = sqlite3_column_type(stmt, i);
+#define _ASSIGN_FIELD(type, expType, val) \
+    if (field->nullable() && sqliteType == SQLITE_NULL) {  \
+        field->access<Nullable<type> >(storable->record()).reset(); \
+    } else { \
+        if (sqliteType != expType) \
+            throw std::runtime_error(String(name + ": Integer expected").c_str()); \
+        field->nullable() ? *field->access<Nullable<type> >(storable->record()) : \
+                            field->access<type>(storable->record()) = \
+                val; \
+    }
+            switch (field->type())
+            {
+            case eFieldBool:
+                _ASSIGN_FIELD(bool, SQLITE_INTEGER, sqlite3_column_int(stmt, i) != 0)
+                break;
+            case eFieldInt:
+                _ASSIGN_FIELD(int32_t, SQLITE_INTEGER, sqlite3_column_int(stmt, i))
+                break;
+            case eFieldEnum:
+            case eFieldUint:
+                _ASSIGN_FIELD(uint32_t, SQLITE_INTEGER, sqlite3_column_int64(stmt, i))
+                break;
+            case eFieldFloat:
+                _ASSIGN_FIELD(float, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
+                break;
+            case eFieldString:
+                _ASSIGN_FIELD(String, SQLITE_TEXT, (const char *)sqlite3_column_text(stmt, i))
+                break;
+            case eFieldTime:
+                throw std::runtime_error("Datetime unimplemented");
+                break;
+            case eFieldObject:
+            case eFieldArray:
+                throw std::runtime_error("Cannot handle non-plain objects");
+            }
+        }
         return true;
     }
     else
