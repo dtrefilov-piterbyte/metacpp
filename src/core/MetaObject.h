@@ -105,6 +105,17 @@ public:
     inline float defaultValue() const { return m_descriptor->valueInfo.ext.m_float.defaultValue; }
 };
 
+class MetaFieldDouble : public MetaField
+{
+public:
+    MetaFieldDouble(const FieldInfoDescriptor *fieldDescriptor)
+        : MetaField(fieldDescriptor)
+    {
+    }
+
+    inline double defaultValue() const { return m_descriptor->valueInfo.ext.m_double.defaultValue; }
+};
+
 class MetaFieldString : public MetaField
 {
 public:

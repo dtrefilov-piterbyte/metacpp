@@ -54,6 +54,10 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
             ACCESS_NULLABLE(float)
             break;
         }
+        case eFieldDouble: {
+            ACCESS_NULLABLE(double)
+            break;
+        }
         case eFieldTime: {
             ACCESS_NULLABLE(std::time_t)
             break;
@@ -77,6 +81,9 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 	case eFieldFloat:
 		val = *reinterpret_cast<const float *>(pValue);
 		break;
+    case eFieldDouble:
+        val = *reinterpret_cast<const double *>(pValue);
+        break;
 	case eFieldString:
         val = reinterpret_cast<const metacpp::String *>(pValue)->data();
 		break;

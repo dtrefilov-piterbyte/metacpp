@@ -19,45 +19,29 @@ SqlStatementBase::~SqlStatementBase()
 
 String SqlStatementBase::fieldValue(const MetaField *field) const
 {
+#define _FIELD_VAL_ARITH(type) \
+    if (field->nullable()) \
+    { \
+        if (!field->access<Nullable<type> >(m_storable->record())) \
+            return "NULL"; \
+        else \
+            return String::fromValue(*field->access<Nullable<type> >(m_storable->record())); \
+    } \
+    return String::fromValue(field->access<type>(m_storable->record()));
+
     switch(field->type())
     {
     case eFieldBool:
-        if (field->nullable())
-        {
-            if (!field->access<Nullable<bool> >(m_storable->record()))
-                return "NULL";
-            else
-                return String::fromValue(*field->access<Nullable<bool> >(m_storable->record()));
-        }
-        return String::fromValue(field->access<bool>(m_storable->record()));
+        _FIELD_VAL_ARITH(bool)
     case eFieldInt:
-        if (field->nullable())
-        {
-            if (!field->access<Nullable<int32_t> >(m_storable->record()))
-                return "NULL";
-            else
-                return String::fromValue(*field->access<Nullable<int32_t> >(m_storable->record()));
-        }
-        return String::fromValue(field->access<int32_t>(m_storable->record()));
+        _FIELD_VAL_ARITH(int32_t)
     case eFieldUint:
     case eFieldEnum:
-        if (field->nullable())
-        {
-            if (!field->access<Nullable<uint32_t> >(m_storable->record()))
-            return "NULL";
-            else
-                return String::fromValue(*field->access<Nullable<uint32_t> >(m_storable->record()));
-        }
-        return String::fromValue(field->access<uint32_t>(m_storable->record()));
+        _FIELD_VAL_ARITH(uint32_t)
     case eFieldFloat:
-        if (field->nullable())
-        {
-            if (!field->access<Nullable<float> >(m_storable->record()))
-                return "NULL";
-            else
-                return String::fromValue(*field->access<Nullable<float> >(m_storable->record()));
-        }
-        return String::fromValue(field->access<float>(m_storable->record()));
+        _FIELD_VAL_ARITH(float)
+    case eFieldDouble:
+        _FIELD_VAL_ARITH(double)
     case eFieldString:
         if (field->nullable())
         {

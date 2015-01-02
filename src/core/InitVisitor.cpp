@@ -56,6 +56,11 @@ void pkInitVisitor::visitField(Object *obj, const MetaField *field)
                 field->access<Nullable<float> >(obj) =
                         reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue();
             break;
+        case eFieldDouble:
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<double> >(obj).reset();
+            else
+                field->access<Nullable<double> >(obj) = reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue();
         case eFieldTime:
             if (eOptional == field->mandatoriness())
                 field->access<Nullable<std::time_t> >(obj).reset();
@@ -83,6 +88,9 @@ void pkInitVisitor::visitField(Object *obj, const MetaField *field)
     case eFieldFloat:
         field->access<float>(obj) = reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue();
 		break;
+    case eFieldDouble:
+        field->access<double>(obj) = reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue();
+        break;
     case eFieldString:
         field->access<metacpp::String>(obj) = reinterpret_cast<const MetaFieldString *>(field)->defaultValue();
 		break;

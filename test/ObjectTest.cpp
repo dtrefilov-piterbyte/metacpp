@@ -37,7 +37,7 @@ struct TestStruct : public TestBaseStruct
 	bool boolValue;
 	int intValue;
 	uint32_t uintValue;
-	float floatValue;
+    double doubleValue;
     String strValue;
 	TestSubStruct substruct;
     Array<String> arrValue;
@@ -63,7 +63,7 @@ STRUCT_INFO_DERIVED_BEGIN(TestStruct, TestBaseStruct)
 	FIELD_INFO(TestStruct, boolValue, true)
 	FIELD_INFO(TestStruct, intValue, -1)
 	FIELD_INFO(TestStruct, uintValue, 123154)
-	FIELD_INFO(TestStruct, floatValue, 25.0f)
+    FIELD_INFO(TestStruct, doubleValue, 25.0)
 	FIELD_INFO(TestStruct, strValue, "testValue")
 	FIELD_INFO(TestStruct, substruct)
 	FIELD_INFO(TestStruct, arrValue)
@@ -110,8 +110,8 @@ void ObjectTest::testMetaInfo()
     ASSERT_EQ(t.metaObject()->field(3)->type(), eFieldInt);
     ASSERT_EQ(std::string(t.metaObject()->field(4)->name()), "uintValue");
     ASSERT_EQ(t.metaObject()->field(4)->type(), eFieldUint);
-    ASSERT_EQ(std::string(t.metaObject()->field(5)->name()), "floatValue");
-    ASSERT_EQ(t.metaObject()->field(5)->type(), eFieldFloat);
+    ASSERT_EQ(std::string(t.metaObject()->field(5)->name()), "doubleValue");
+    ASSERT_EQ(t.metaObject()->field(5)->type(), eFieldDouble);
     ASSERT_EQ(std::string(t.metaObject()->field(6)->name()), "strValue");
     ASSERT_EQ(t.metaObject()->field(6)->type(), eFieldString);
     ASSERT_EQ(std::string(t.metaObject()->field(7)->name()), "substruct");
@@ -129,7 +129,7 @@ void ObjectTest::testInitVisitor()
     EXPECT_EQ(t.boolValue, true);
     EXPECT_EQ(t.intValue, -1);
     EXPECT_EQ(t.uintValue, 123154);
-    EXPECT_EQ(t.floatValue, 25.0f);
+    EXPECT_EQ(t.doubleValue, 25.0);
     EXPECT_EQ(t.strValue, "testValue");
     EXPECT_EQ(t.substruct.name, "TestSubStruct");
     EXPECT_TRUE(t.arrValue.empty());
@@ -150,7 +150,7 @@ void ObjectTest::testSerialization()
 	t.boolValue = false;
 	t.intValue = 123414;
 	t.uintValue = -1239;
-	t.floatValue = 1231.123f;
+    t.doubleValue = 1231.123f;
 	t.strValue = "abdasdc";
 	t.substruct.name = "1231";
     t.arrValue.push_back("12");
@@ -164,7 +164,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(t.boolValue, t2.boolValue);
     EXPECT_EQ(t.intValue, t2.intValue);
     EXPECT_EQ(t.uintValue, t2.uintValue);
-    EXPECT_EQ(t.floatValue, t2.floatValue);
+    EXPECT_EQ(t.doubleValue, t2.doubleValue);
     EXPECT_EQ(t.strValue, t2.strValue);
     EXPECT_EQ(t.substruct.name, t2.substruct.name);
     EXPECT_EQ(t.arrValue.size(), t2.arrValue.size());

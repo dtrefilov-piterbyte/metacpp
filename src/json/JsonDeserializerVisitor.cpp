@@ -53,6 +53,10 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
             ACCESS_NULLABLE(float)
             break;
         }
+        case eFieldDouble: {
+            ACCESS_NULLABLE(double)
+            break;
+        }
         case eFieldString: {
             ACCESS_NULLABLE(metacpp::String)
             break;
@@ -84,6 +88,10 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 		if (!val.isDouble()) throw std::invalid_argument("Type mismatch");
 		*reinterpret_cast<float *>(pValue) = (float)val.asDouble();
 		break;
+    case eFieldDouble:
+        if (!val.isDouble()) throw std::invalid_argument("Type mismatch");
+        *reinterpret_cast<double *>(pValue) = val.asDouble();
+        break;
 	case eFieldString:
 		if (!val.isString()) throw std::invalid_argument("Type mismatch");
         *reinterpret_cast<metacpp::String *>(pValue) = val.asString();

@@ -135,6 +135,9 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             case eFieldFloat:
                 _ASSIGN_FIELD(float, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
                 break;
+            case eFieldDouble:
+                _ASSIGN_FIELD(double, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
+                break;
             case eFieldString:
                 _ASSIGN_FIELD(String, SQLITE_TEXT, (const char *)sqlite3_column_text(stmt, i))
                 break;

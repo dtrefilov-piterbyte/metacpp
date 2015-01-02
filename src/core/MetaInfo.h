@@ -26,6 +26,7 @@ enum EFieldType
 	eFieldInt		= 'i',
 	eFieldUint		= 'u',
     eFieldFloat		= 'f',
+    eFieldDouble    = 'd',
 	eFieldString	= 's',
 	eFieldEnum		= 'e',
 	eFieldObject	= 'o',
@@ -97,6 +98,10 @@ struct FieldInfoDescriptor
 				float		defaultValue;
             } m_float;
             struct
+            {
+                double defaultValue;
+            } m_double;
+            struct
 			{
 				EnumInfoDescriptor *enumInfo;
             } m_enum;
@@ -132,6 +137,12 @@ struct FieldInfoDescriptor
             ext.m_float.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        explicit Extension(double v)
+        {
+            ext.m_double.defaultValue = v;
+            mandatoriness = eDefaultable;
+        }
+
 		explicit Extension(const char *v)
 		{
             ext.m_string.defaultValue = v;
@@ -195,6 +206,13 @@ template<>
 struct PartialFieldInfoHelper<float> {
 	static constexpr EFieldType type() { return eFieldFloat; }
     static FieldInfoDescriptor::Extension extension(float v) { return FieldInfoDescriptor::Extension(v); }
+    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
+};
+
+template<>
+struct PartialFieldInfoHelper<double> {
+    static constexpr EFieldType type() { return eFieldDouble; }
+    static FieldInfoDescriptor::Extension extension(double v) { return FieldInfoDescriptor::Extension(v); }
     static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 

@@ -132,6 +132,9 @@ std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescr
     case eFieldFloat:
         result.reset(new MetaFieldFloat(arg));
         break;
+    case eFieldDouble:
+        result.reset(new MetaFieldDouble(arg));
+        break;
     case eFieldString:
         result.reset(new MetaFieldString(arg));
         break;
