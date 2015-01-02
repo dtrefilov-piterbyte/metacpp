@@ -6,6 +6,7 @@ FIND_PATH(
     JSONCPP_INCLUDE_DIR
     json/json.h
     /usr/include
+    /usr/include/jsoncpp
     /usr/local/include
     ${JSONCPP_PATH_INCLUDES}
 )
