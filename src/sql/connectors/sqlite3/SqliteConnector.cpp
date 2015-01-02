@@ -46,10 +46,10 @@ bool SqliteConnector::disconnect()
         cwarning() << "SqliteConnector::disconnect(): database connection was not previously successfully created";
         return true;
     }
-    int error = sqlite3_close_v2(m_dbHandle);
+    int error = sqlite3_close(m_dbHandle);
     if (SQLITE_OK != error)
     {
-        cerror() << "sqlite3_close_v2(): " << describeSqliteError(error);
+        cerror() << "sqlite3_close(): " << describeSqliteError(error);
         return false;
     }
 

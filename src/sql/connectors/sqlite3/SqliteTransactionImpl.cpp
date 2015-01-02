@@ -28,8 +28,8 @@ SqliteTransactionImpl::~SqliteTransactionImpl()
         }
     }
     int error;
-    if (SQLITE_OK != (error = sqlite3_close_v2(m_dbHandle)))
-        cerror() << "sqlite3_close_v2(): " << describeSqliteError(error);
+    if (SQLITE_OK != (error = sqlite3_close(m_dbHandle)))
+        cerror() << "sqlite3_close(): " << describeSqliteError(error);
 }
 
 SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, const String& queryText)
