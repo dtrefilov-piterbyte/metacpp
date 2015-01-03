@@ -62,7 +62,7 @@ bool SqliteConnector::disconnect()
     return true;
 }
 
-SqlTransactionImpl *SqliteConnector::beginTransaction()
+SqlTransactionImpl *SqliteConnector::createTransaction()
 {
     int error;
     sqlite3 *dbHandle;
@@ -73,13 +73,6 @@ SqlTransactionImpl *SqliteConnector::beginTransaction()
         cfatal() << "sqlite3_open_v2(): " << describeSqliteError(error);
         return nullptr;
     }
-    char *errorMessage;
-    error = sqlite3_exec(dbHandle, "BEGIN TRANSACTION", nullptr, nullptr, &errorMessage);
-    if (SQLITE_OK != error)
-    {
-        cfatal() << "Failed to start transaction with sqlite3_exec(): " << errorMessage;
-        return nullptr;
-    }
     SqliteTransactionImpl *result = new SqliteTransactionImpl(dbHandle);
     {
         std::lock_guard<std::mutex> _guard(m_transactionMutex);
@@ -88,44 +81,23 @@ SqlTransactionImpl *SqliteConnector::beginTransaction()
     return result;
 }
 
-bool SqliteConnector::commitTransaction(SqlTransactionImpl *transaction)
-{
-    return closeTransaction(transaction, "COMMIT TRANSACTION");
-}
-
-bool SqliteConnector::rollbackTransaction(SqlTransactionImpl *transaction)
-{
-    return closeTransaction(transaction, "ROLLBACK TRANSACTION");
-}
-
 SqlSyntax SqliteConnector::sqlSyntax() const
 {
     return SqlSyntaxSqlite;
 }
 
-bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction, const char *closeStmt)
+bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction)
 {
+    std::lock_guard<std::mutex> _guard(m_transactionMutex);
     SqliteTransactionImpl *sqliteTransaction = reinterpret_cast<SqliteTransactionImpl *>(transaction);
-    char *errorMessage;
-    int error;
-    error = sqlite3_exec(sqliteTransaction->dbHandle(), closeStmt, nullptr, nullptr, &errorMessage);
-    if (SQLITE_OK != error)
+    auto it = std::find(m_transactions.begin(), m_transactions.end(), sqliteTransaction);
+    if (it != m_transactions.end())
     {
-        cfatal() << "Failed to commit transaction: " << errorMessage;
-        return false;
+        m_transactions.erase(it);
+        delete transaction;
+        return true;
     }
-    {
-        std::lock_guard<std::mutex> _guard(m_transactionMutex);
-        auto it = std::find(m_transactions.begin(), m_transactions.end(), sqliteTransaction);
-        if (it != m_transactions.end())
-        {
-            m_transactions.erase(it);
-            delete transaction;
-            return true;
-        }
-        cerror() << "SqliteConnector::commitTransaction(): no such transaction";
-        return false;
-    }
+    return false;
 }
 
 const char *describeSqliteError(int errorCode)

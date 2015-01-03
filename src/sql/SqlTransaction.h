@@ -29,14 +29,15 @@ public:
 
     connectors::SqlConnectorBase *connector() const;
     connectors::SqlTransactionImpl *impl() const;
-    bool connected() const;
+    bool started() const;
+    void begin();
     void commit();
     void rollback();
 private:
     connectors::SqlConnectorBase *m_connector;
     connectors::SqlTransactionImpl *m_impl;
     SqlTransactionAutoCloseMode m_autoCloseMode;
-    bool m_transactionOpened;
+    bool m_transactionStarted;
 };
 
 // TODO: needed some kind of SqlTransactionGuard with AutoCommit and AutoRollback disposition behaviour (as wrapper over SqlTransaction?)

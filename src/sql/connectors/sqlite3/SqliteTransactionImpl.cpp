@@ -32,6 +32,39 @@ SqliteTransactionImpl::~SqliteTransactionImpl()
         cerror() << "sqlite3_close(): " << describeSqliteError(error);
 }
 
+bool SqliteTransactionImpl::begin()
+{
+    int error = sqlite3_exec(m_dbHandle, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
+    if (error != SQLITE_OK)
+    {
+        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        return false;
+    }
+    return true;
+}
+
+bool SqliteTransactionImpl::commit()
+{
+    int error = sqlite3_exec(m_dbHandle, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
+    if (error != SQLITE_OK)
+    {
+        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        return false;
+    }
+    return true;
+}
+
+bool SqliteTransactionImpl::rollback()
+{
+    int error = sqlite3_exec(m_dbHandle, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
+    if (error != SQLITE_OK)
+    {
+        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        return false;
+    }
+    return true;
+}
+
 SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, const String& queryText)
 {
     std::lock_guard<std::mutex> _guard(m_statementsMutex);
@@ -47,46 +80,34 @@ bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
     int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), query.size() + 1,
         &stmt, nullptr);
     if (SQLITE_OK != error)
-    {
-        cerror() << "sqlite3_prepare_v2(): " << sqlite3_errmsg(m_dbHandle);
-        return false;
-    }
+        throw std::runtime_error(std::string("sqlite3_prepare_v2(): ") + sqlite3_errmsg(m_dbHandle));
     reinterpret_cast<SqliteStatementImpl *>(statement)->setHandle(stmt);
     return true;
 }
 
-bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement)
+bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement, int *numRowsAffected)
 {
     if (!statement->prepared())
-    {
-        // TODO: should be an exception
-        cerror() << "SqliteTransactionImpl::execStatement(): should be prepared first";
-        return false;
-    }
+        throw std::runtime_error("SqliteTransactionImpl::execStatement(): should be prepared first");
     int error = sqlite3_step(reinterpret_cast<SqliteStatementImpl *>(statement)->handle());
     if (SQLITE_DONE == error)
     {
         statement->setDone();
+        if (numRowsAffected) *numRowsAffected = sqlite3_changes(m_dbHandle);
         return true;
     }
     else if (SQLITE_ROW == error)
     {
+        if (numRowsAffected) *numRowsAffected = sqlite3_changes(m_dbHandle);
         return true;
     }
-    else
-    {
-        cerror() << "sqlite3_stop(): " << describeSqliteError(error);
-        return false;
-    }
+    throw std::runtime_error(std::string("sqlite3_step(): ") + sqlite3_errmsg(m_dbHandle));
 }
 
 bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *storable)
 {
     if (!statement->prepared())
-    {
-        cerror() << "SqliteTransactionImpl::execStatement(): should be prepared first";
-        return false;
-    }
+        throw std::runtime_error("SqliteTransactionImpl::execStatement(): should be prepared first");
     // no more rows
     if (statement->done())
         return false;
@@ -156,11 +177,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
         }
         return true;
     }
-    else
-    {
-        cerror() << "sqlite3_step(): " << describeSqliteError(error);
-        return false;
-    }
+    throw std::runtime_error(std::string("sqlite3_step(): ") + sqlite3_errmsg(m_dbHandle));
 }
 
 bool SqliteTransactionImpl::closeStatement(SqlStatementImpl *statement)

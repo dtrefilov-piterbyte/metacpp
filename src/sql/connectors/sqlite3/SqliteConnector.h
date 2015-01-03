@@ -24,12 +24,9 @@ public:
     // test database connectivity, initialize connection pool
     bool connect() override;
     bool disconnect() override;
-    SqlTransactionImpl *beginTransaction() override;
-    bool commitTransaction(SqlTransactionImpl *transaction) override;
-    bool rollbackTransaction(SqlTransactionImpl *transaction) override;
+    SqlTransactionImpl *createTransaction() override;
+    bool closeTransaction(SqlTransactionImpl *transaction) override;
     SqlSyntax sqlSyntax() const override;
-private:
-    bool closeTransaction(SqlTransactionImpl *transaction, const char *closeStmt);
 private:
     String m_databaseName;
     sqlite3 *m_dbHandle; // main database handle

@@ -155,6 +155,8 @@ SqlStatementSelect &SqlStatementSelect::where(const WhereClauseBuilder &whereCla
 SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 {
     m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!m_impl)
+        throw std::runtime_error("Failed to create statement");
     SqlResultSet res(transaction, m_impl, m_storable);
     if (!transaction.impl()->prepare(m_impl))
         throw std::runtime_error("Failed to prepare statement");
@@ -195,6 +197,20 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
         }
     }
     return res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
+}
+
+int SqlStatementInsert::exec(SqlTransaction &transaction)
+{
+    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!m_impl)
+        throw std::runtime_error("Failed to create statement");
+    if (!transaction.impl()->prepare(m_impl))
+        throw std::runtime_error("Failed to prepare statement");
+    int numRows = 0;
+    if (!transaction.impl()->execStatement(m_impl, &numRows))
+        throw std::runtime_error("Failed to execute statement");
+    transaction.impl()->closeStatement(m_impl);
+    return numRows;
 }
 
 SqlStatementUpdate::SqlStatementUpdate(SqlStorable *storable)
@@ -261,6 +277,20 @@ SqlStatementUpdate &SqlStatementUpdate::where(const WhereClauseBuilder &whereCla
     return *this;
 }
 
+int SqlStatementUpdate::exec(SqlTransaction &transaction)
+{
+    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!m_impl)
+        throw std::runtime_error("Failed to create statement");
+    if (!transaction.impl()->prepare(m_impl))
+        throw std::runtime_error("Failed to prepare statement");
+    int numRows = 0;
+    if (!transaction.impl()->execStatement(m_impl, &numRows))
+        throw std::runtime_error("Failed to execute statement");
+    transaction.impl()->closeStatement(m_impl);
+    return numRows;
+}
+
 SqlStatementDelete::SqlStatementDelete(SqlStorable *storable)
     : SqlStatementBase(storable)
 {
@@ -307,6 +337,20 @@ SqlStatementDelete &SqlStatementDelete::where(const WhereClauseBuilder &whereCla
 {
     m_whereClause = whereClause.expression();
     return *this;
+}
+
+int SqlStatementDelete::exec(SqlTransaction &transaction)
+{
+    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!m_impl)
+        throw std::runtime_error("Failed to create statement");
+    if (!transaction.impl()->prepare(m_impl))
+        throw std::runtime_error("Failed to prepare statement");
+    int numRows = 0;
+    if (!transaction.impl()->execStatement(m_impl, &numRows))
+        throw std::runtime_error("Failed to execute statement");
+    transaction.impl()->closeStatement(m_impl);
+    return numRows;
 }
 
 } // namespace sql

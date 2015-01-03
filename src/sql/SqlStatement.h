@@ -128,7 +128,7 @@ public:
     SqlStatementType type() const override;
     String buildQuery(SqlSyntax syntax) const override;
 
-    void exec(SqlTransaction& transaction);
+    int exec(SqlTransaction& transaction);
 };
 
 class SqlStatementUpdate : public SqlStatementBase
@@ -180,7 +180,7 @@ public:
     }
 
     SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
-    void exec(SqlTransaction& transaction);
+    int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
     String m_whereClause;
@@ -211,7 +211,7 @@ public:
         return ref<TObj2, TOthers...>();
     }
     SqlStatementDelete &where(const WhereClauseBuilder& whereClause);
-    void exec(SqlTransaction& transaction);
+    int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
     String m_whereClause;

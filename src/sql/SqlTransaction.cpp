@@ -9,16 +9,18 @@ namespace sql
 
 SqlTransaction::SqlTransaction(SqlTransactionAutoCloseMode autoClose, connectors::SqlConnectorBase *connector)
     : m_connector(connector), m_impl(nullptr), m_autoCloseMode(autoClose),
-      m_transactionOpened(false)
+      m_transactionStarted(false)
 {
-    m_impl = connector->beginTransaction();
-    if (!(m_transactionOpened = m_impl != nullptr))
+    m_impl = connector->createTransaction();
+    if (!m_impl)
         throw std::runtime_error("Failed to create transaction");
+    if (!(m_transactionStarted = m_impl->begin()))
+        throw std::runtime_error("Failed to begin transaction");
 }
 
 SqlTransaction::~SqlTransaction()
 {
-    if (m_transactionOpened)
+    if (m_transactionStarted)
     {
         switch (m_autoCloseMode)
         {
@@ -32,6 +34,8 @@ SqlTransaction::~SqlTransaction()
             throw std::runtime_error("Unknown autoclose mode");
         }
     }
+    if (m_impl)
+        m_connector->closeTransaction(m_impl);
 }
 
 connectors::SqlConnectorBase *SqlTransaction::connector() const
@@ -44,19 +48,30 @@ connectors::SqlTransactionImpl *SqlTransaction::impl() const
     return m_impl;
 }
 
-bool SqlTransaction::connected() const
+bool SqlTransaction::started() const
 {
-    return m_transactionOpened;
+    return m_transactionStarted;
+}
+
+void SqlTransaction::begin()
+{
+    if (started())
+        throw std::runtime_error("Transaction already started");
+    if (m_impl->begin())
+    {
+        m_transactionStarted = true;
+    }
+    else
+        throw std::runtime_error("Begin transaction failed");
 }
 
 void SqlTransaction::commit()
 {
-    if (!connected())
-        throw std::runtime_error("Transaction already closed");
-    if (m_connector->commitTransaction(m_impl))
+    if (!started())
+        throw std::runtime_error("Transaction already finished");
+    if (m_impl->commit())
     {
-        m_impl = nullptr;
-        m_transactionOpened = false;
+        m_transactionStarted = false;
     }
     else
         throw std::runtime_error("Commit failed");
@@ -64,16 +79,14 @@ void SqlTransaction::commit()
 
 void SqlTransaction::rollback()
 {
-
-    if (!connected())
-        throw std::runtime_error("Transaction already closed");
-    if (m_connector->rollbackTransaction(m_impl))
+    if (!started())
+        throw std::runtime_error("Transaction already finished");
+    if (m_impl->rollback())
     {
-        m_impl = nullptr;
-        m_transactionOpened = false;
+        m_transactionStarted = false;
     }
     else
-        throw std::runtime_error("Commit failed");
+        throw std::runtime_error("Rollback failed");
 }
 
 } // namespace sql

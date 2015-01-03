@@ -25,9 +25,13 @@ public:
     SqliteTransactionImpl(sqlite3 *dbHandle);
     ~SqliteTransactionImpl();
 
+    bool begin() override;
+    bool commit() override;
+    bool rollback() override;
+
     SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) override;
     bool prepare(SqlStatementImpl *statement) override;
-    bool execStatement(SqlStatementImpl *statement) override;
+    bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) override;
     bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
     bool closeStatement(SqlStatementImpl *statement) override;
 

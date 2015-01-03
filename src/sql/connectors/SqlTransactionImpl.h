@@ -20,6 +20,15 @@ public:
 
     virtual ~SqlTransactionImpl();
 
+    /** \brief start a transaction */
+    virtual bool begin() = 0;
+
+    /** \brief execute all commands and make all changes made within given transaction persistent */
+    virtual bool commit() = 0;
+
+    /** \brief cancel all changes made within given transaction */
+    virtual bool rollback() = 0;
+
     /** \brief Create a statement */
     virtual SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) = 0;
 
@@ -27,7 +36,7 @@ public:
     virtual bool prepare(SqlStatementImpl *statement) = 0;
 
     /** \brief Execute statement */
-    virtual bool execStatement(SqlStatementImpl *statement) = 0;
+    virtual bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) = 0;
 
     /** \brief Write result of select operaation into storable and move cursor to the next row */
     virtual bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) = 0;

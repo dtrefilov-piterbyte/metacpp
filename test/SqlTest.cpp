@@ -117,9 +117,11 @@ void SqlTest::selectTest()
                                                  (COLUMN(Person, age) + 2.5  * COLUMN(Person, cat_weight)) > 250 ||
                                                  !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == String("Jack"))) &&
                                                 COLUMN(Person, cityId) == COLUMN(City, id)).limit(10).exec(transaction);
+
+        StringArray persons;
         for (auto it : resultSet)
         {
-            cdebug() << person.obj()->name;
+            persons.push_back(person.obj()->name);
         }
         transaction.commit();
     }
@@ -132,4 +134,25 @@ void SqlTest::selectTest()
 TEST_F(SqlTest, selectTest)
 {
     selectTest();
+}
+
+void SqlTest::updateTest()
+{
+    try
+    {
+        SqlTransaction transaction;
+        PersonStorable person;
+        int nRows = person.update().ref<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
+                .where(COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow")).exec(transaction);
+        transaction.commit();
+    }
+    catch (const std::exception& ex)
+    {
+        throw;
+    }
+}
+
+TEST_F(SqlTest, updateTest)
+{
+    updateTest();
 }

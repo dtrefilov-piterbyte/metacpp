@@ -44,13 +44,9 @@ public:
      * using either commitTransaction or or rollbackTransaction
      * NOTE: Level of isolation for transaction is implementation defined
     */
-    virtual SqlTransactionImpl *beginTransaction() = 0;
+    virtual SqlTransactionImpl *createTransaction() = 0;
 
-    /** \brief execute all commands and make all changes made within given transaction persistent */
-    virtual bool commitTransaction(SqlTransactionImpl *transaction) = 0;
-
-    /** \brief cancel all changes made within given transaction */
-    virtual bool rollbackTransaction(SqlTransactionImpl *transaction) = 0;
+    virtual bool closeTransaction(SqlTransactionImpl *transaction) = 0;
 
     virtual SqlSyntax sqlSyntax() const = 0;
 

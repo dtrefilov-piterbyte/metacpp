@@ -21,6 +21,9 @@ namespace sql
         virtual Object *record() = 0;
 
         SqlStatementSelect select();
+        SqlStatementInsert insert();
+        SqlStatementDelete remove();    // delete is reserved
+        SqlStatementUpdate update();
     };
 
     template<typename TObj, ptrdiff_t PKeyOff>
