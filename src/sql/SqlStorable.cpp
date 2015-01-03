@@ -14,5 +14,10 @@ SqlStorable::~SqlStorable()
 {
 }
 
+SqlStatementSelect SqlStorable::select()
+{
+    return SqlStatementSelect(this);
+}
+
 } // namespace sql
 } // namespace metacpp

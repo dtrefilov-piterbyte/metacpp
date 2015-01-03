@@ -1,5 +1,6 @@
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
+#include "SqlStorable.h"
 
 namespace metacpp
 {
@@ -154,9 +155,10 @@ SqlStatementSelect &SqlStatementSelect::where(const WhereClauseBuilder &whereCla
 SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 {
     m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    SqlResultSet res(transaction, m_impl, m_storable);
     if (!transaction.impl()->prepare(m_impl))
         throw std::runtime_error("Failed to prepare statement");
-    return SqlResultSet(transaction, m_impl, m_storable);
+    return res;
 }
 
 SqlStatementInsert::SqlStatementInsert(SqlStorable *storable)

@@ -1,6 +1,5 @@
 #ifndef SQLSTATEMENT_H
 #define SQLSTATEMENT_H
-#include "SqlStorable.h"
 #include "SqlWhereClause.h"
 #include "SqlResultSet.h"
 #include "SqlColumnAssignment.h"
@@ -23,14 +22,24 @@ enum SqlStatementType
 };
 
 class SqlTransaction;
+class SqlStorable;
+
+enum SqlSyntax
+{
+    SqlSyntaxUnknown,
+    SqlSyntaxSqlite,
+    SqlSyntaxPostgresql,
+    SqlSyntaxMysql,
+    SqlSyntaxMssql
+};
 
 /** \brief Base class for all common-types statement builders */
 class SqlStatementBase
 {
 protected:
     explicit SqlStatementBase(SqlStorable *storable);
-    SqlStatementBase(const SqlStatementBase&)=delete;
-    SqlStatementBase& operator=(const SqlStatementBase&)=delete;
+    SqlStatementBase(const SqlStatementBase&)=default;
+    SqlStatementBase& operator=(const SqlStatementBase&)=default;
 public:
     virtual ~SqlStatementBase();
     virtual SqlStatementType type() const = 0;

@@ -7,7 +7,9 @@ namespace metacpp
 namespace sql
 {
 
+class SqlStorable;
 class SqlResultSet;
+
 static const int ROW_ID_PAST_THE_END = -1;
 static const int ROW_ID_INVALID = -2;
 
@@ -22,6 +24,10 @@ public:
     SqlResultIterator& operator=(const SqlResultIterator& rhs);
     bool operator==(const SqlResultIterator& rhs);
     bool operator!=(const SqlResultIterator& rhs);
+
+    // return a record
+    const Object *operator*() const;
+    const Object *operator->() const;
 
     SqlResultIterator& operator++();
     inline int rowId() const { return m_rowId; }

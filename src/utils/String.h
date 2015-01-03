@@ -314,6 +314,11 @@ public:
     StringBase<T> join(const StringBase<T> delim = StringBase<T>())
     {
         StringBase<T> res;
+        size_t reserveSize = 0;
+        for (size_t i = 0; i < this->size(); ++i)
+            reserveSize += (*this)[i].size() + delim.size();
+        if (this->size()) reserveSize -= delim.size();
+        res.reserve(reserveSize);
         for (size_t i = 0; i < this->size(); ++i)
         {
             res += (*this)[i];

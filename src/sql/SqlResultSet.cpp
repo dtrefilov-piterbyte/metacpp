@@ -16,7 +16,8 @@ SqlResultSet::SqlResultSet(SqlTransaction &transaction,
 
 SqlResultSet::~SqlResultSet()
 {
-    m_transaction.impl()->closeStatement(m_stmt);
+    if (m_transaction.impl())
+        m_transaction.impl()->closeStatement(m_stmt);
 }
 
 SqlResultIterator SqlResultSet::begin()

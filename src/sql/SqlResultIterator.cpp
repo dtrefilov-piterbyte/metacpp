@@ -37,6 +37,16 @@ bool SqlResultIterator::operator !=(const SqlResultIterator& rhs)
     return !(*this == rhs);
 }
 
+const Object *SqlResultIterator::operator*() const
+{
+    return m_resultSet->m_storable->record();
+}
+
+const Object *SqlResultIterator::operator->() const
+{
+    return m_resultSet->m_storable->record();
+}
+
 SqlResultIterator& SqlResultIterator::operator ++()
 {
     if (fetchNext())

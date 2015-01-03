@@ -3,20 +3,12 @@
 #include <cstdint>
 #include <memory>
 #include "Object.h"
+#include "SqlStatement.h"
 
 namespace metacpp
 {
 namespace sql
 {
-    enum SqlSyntax
-    {
-        SqlSyntaxUnknown,
-        SqlSyntaxSqlite,
-        SqlSyntaxPostgresql,
-        SqlSyntaxMysql,
-        SqlSyntaxMssql
-    };
-
     /** Base interface for persistable objects */
     class SqlStorable
     {
@@ -27,6 +19,8 @@ namespace sql
 
         virtual const MetaField *primaryKey() const = 0;
         virtual Object *record() = 0;
+
+        SqlStatementSelect select();
     };
 
     template<typename TObj, ptrdiff_t PKeyOff>

@@ -48,7 +48,7 @@ bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
         &stmt, nullptr);
     if (SQLITE_OK != error)
     {
-        cerror() << "sqlite3_prepare_v2(): " << describeSqliteError(error);
+        cerror() << "sqlite3_prepare_v2(): " << sqlite3_errmsg(m_dbHandle);
         return false;
     }
     reinterpret_cast<SqliteStatementImpl *>(statement)->setHandle(stmt);
@@ -116,9 +116,10 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
     } else { \
         if (sqliteType != expType) \
             throw std::runtime_error(String(name + ": Integer expected").c_str()); \
-        field->nullable() ? *field->access<Nullable<type> >(storable->record()) : \
-                            field->access<type>(storable->record()) = \
-                val; \
+        if (field->nullable()) \
+            field->access<Nullable<type> >(storable->record()) = val; \
+        else \
+            field->access<type>(storable->record()) = val; \
     }
             switch (field->type())
             {

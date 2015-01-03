@@ -16,7 +16,7 @@ SqliteStatementImpl::SqliteStatementImpl(SqlStatementType type, const String &qu
 
 SqliteStatementImpl::~SqliteStatementImpl()
 {
-
+    if (m_stmt && prepared()) sqlite3_finalize(m_stmt);
 }
 
 sqlite3_stmt *SqliteStatementImpl::handle() const

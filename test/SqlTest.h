@@ -10,6 +10,7 @@ public:
     void TearDown() override;
 
     void transactionsTest();
+    void selectTest();
 private:
     metacpp::sql::connectors::sqlite::SqliteConnector *m_conn;
 };

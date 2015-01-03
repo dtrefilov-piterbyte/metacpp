@@ -130,7 +130,7 @@ bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction, const ch
 
 const char *describeSqliteError(int errorCode)
 {
-    //return sqlite3_errstr(errorCode);
+    return sqlite3_errstr(errorCode);
     switch (errorCode)
     {
     case SQLITE_OK:
