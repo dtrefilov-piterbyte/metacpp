@@ -51,32 +51,6 @@ META_INFO(City)
 
 typedef STORABLE(City, id) CityStorable;
 
-//TEST_F(SqlTest, test1)
-//{
-//    PersonStorable person;
-//    person.record()->init();
-//    person.obj()->age.reset();
-//
-//    SqlStatementSelect statementSelect(&person);
-//    cdebug() << statementSelect.innerJoin<City>().where((COLUMN(Person, age).isNull() ||
-//        (COLUMN(Person, age) + 2.5  * COLUMN(Person, cat_weight)) > 250 ||
-//        !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == String("Jack"))) &&
-//        COLUMN(Person, cityId) == COLUMN(City, id)).limit(10).buildQuery(SqlSyntaxSqlite);
-//
-//    SqlStatementInsert statementInsert(&person);
-//    cdebug() << statementInsert.buildQuery(SqlSyntaxSqlite);
-//
-//    SqlStatementUpdate statementUpdate(&person);
-//    cdebug() << statementUpdate.ref<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
-//                .where(COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow"))
-//                .buildQuery(SqlSyntaxSqlite);
-//
-//    SqlStatementDelete statementDelete(&person);
-//    cdebug() << statementDelete.ref<City>().where(
-//                    COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Bobruysk"))
-//                .buildQuery(SqlSyntaxSqlite);
-//}
-
 void SqlTest::SetUp()
 {
     m_conn = new connectors::sqlite::SqliteConnector("test.sqlite");
@@ -121,6 +95,7 @@ void SqlTest::selectTest()
         StringArray persons;
         for (auto it : resultSet)
         {
+            cdebug() << person.obj()->name;
             persons.push_back(person.obj()->name);
         }
         transaction.commit();
@@ -175,7 +150,10 @@ void SqlTest::insertTest()
             person.obj()->cat_weight.reset();
             person.obj()->cityId = city.obj()->id;
             person.obj()->name = "Pupkin";
-            person.insertOne(transaction);
+            ASSERT_EQ(1, person.insertOne(transaction));
+            person.obj()->name = "Pupkin new";
+            ASSERT_EQ(1, person.updateOne(transaction));
+            ASSERT_EQ(1, person.removeOne(transaction));
         }
 
         transaction.commit();

@@ -19,62 +19,6 @@ SqlStatementBase::~SqlStatementBase()
 
 }
 
-String SqlStatementBase::fieldValue(const MetaField *field) const
-{
-#define _FIELD_VAL_ARITH(type) \
-    if (field->nullable()) \
-    { \
-        if (!field->access<Nullable<type> >(m_storable->record())) \
-            return "NULL"; \
-        else \
-            return String::fromValue(*field->access<Nullable<type> >(m_storable->record())); \
-    } \
-    return String::fromValue(field->access<type>(m_storable->record()));
-
-    switch(field->type())
-    {
-    case eFieldBool:
-        _FIELD_VAL_ARITH(bool)
-    case eFieldInt:
-        _FIELD_VAL_ARITH(int32_t)
-    case eFieldUint:
-    case eFieldEnum:
-        _FIELD_VAL_ARITH(uint32_t)
-    case eFieldInt64:
-        _FIELD_VAL_ARITH(int64_t)
-    case eFieldUint64:
-        _FIELD_VAL_ARITH(uint64_t)
-    case eFieldFloat:
-        _FIELD_VAL_ARITH(float)
-    case eFieldDouble:
-        _FIELD_VAL_ARITH(double)
-    case eFieldString:
-        if (field->nullable())
-        {
-            if (!field->access<Nullable<String> >(m_storable->record()))
-                return "NULL";
-            else
-                return "\'" + *field->access<Nullable<String> >(m_storable->record()) + "\'";
-        }
-        return "\'" + field->access<String>(m_storable->record()) + "\'";
-    case eFieldObject:
-        throw std::runtime_error("Can store only plain objects");
-    case eFieldArray:
-        throw std::runtime_error("Can store only plain objects");
-    case eFieldDateTime:
-        if (field->nullable())
-        {
-            if (field->access<Nullable<DateTime> >(m_storable->record()))
-                return "NULL";
-            else
-                return "\'" + field->access<Nullable<DateTime> >(m_storable->record()).get().toISOString() + "\'";
-            return "\'" + field->access<DateTime>(m_storable->record()).toISOString() + "\'";
-        }
-    default:
-        throw std::runtime_error("Unknown field type");
-    }
-}
-
 std::shared_ptr<connectors::SqlStatementImpl> SqlStatementBase::createImpl(SqlTransaction& transaction)
 {
     auto transactionImpl = transaction.impl();
@@ -202,7 +146,7 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
         if (field != pkey)
         {
             columns.push_back(field->name());
-            values.push_back(fieldValue(field));
+            values.push_back(m_storable->fieldValue(field));
         }
     }
     res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
@@ -253,7 +197,7 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
         {
             auto field = m_storable->record()->metaObject()->field(i);
             if (field != pkey)
-                sets.push_back(String(field->name()) + " = " + fieldValue(field));
+                sets.push_back(String(field->name()) + " = " + m_storable->fieldValue(field));
         }
     }
     else

@@ -30,6 +30,8 @@ namespace sql
         bool updateOne(SqlTransaction& transaction);
         /** Delete the record */
         bool removeOne(SqlTransaction& transaction);
+
+        String fieldValue(const MetaField *field) const;
     private:
         String whereId();
     };
