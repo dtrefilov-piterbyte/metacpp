@@ -1,6 +1,7 @@
 #ifndef SQLRESULTSET_H
 #define SQLRESULTSET_H
 #include "SqlResultIterator.h"
+#include "SharedDataBase.h"
 
 namespace metacpp
 {
@@ -9,32 +10,40 @@ namespace sql
 
 class SqlTransaction;
 class SqlStorable;
+class SqlStatementBase;
 
-namespace connectors
+class SqlResultSetData : public SharedDataBase
 {
-    class SqlStatementImpl;
-}
+public:
+    SqlResultSetData(SqlTransaction& transaction,
+                 SqlStatementBase *statement,
+                 SqlStorable *storable);
+    virtual ~SqlResultSetData();
+    SqlResultIterator begin();
+    SqlResultIterator end();
+    SharedDataBase *clone() const override;
+private:
+    friend class SqlResultIterator;
 
-class SqlResultSet
+    SqlTransaction& m_transaction;
+    SqlStatementBase *m_statement;
+    SqlStorable *m_storable;
+    mutable SqlResultIterator m_endIterator;
+    mutable SqlResultIterator m_iterator;
+};
+
+class SqlResultSet : private SharedDataPointer<SqlResultSetData>
 {
 public:
     /** Construct result set from select statement
      * Passes ownership of stmt to the constructed SqlResultSet
     */
     SqlResultSet(SqlTransaction& transaction,
-                 connectors::SqlStatementImpl *stmt,
+                 SqlStatementBase *stmt,
                  SqlStorable *storable);
     virtual ~SqlResultSet();
     SqlResultIterator begin();
     SqlResultIterator end();
-private:
-    friend class SqlResultIterator;
-
-    SqlTransaction& m_transaction;
-    connectors::SqlStatementImpl *m_stmt;
-    SqlStorable *m_storable;
-    SqlResultIterator m_endIterator;
-    SqlResultIterator m_iterator;
 };
 
 } // namespace sql

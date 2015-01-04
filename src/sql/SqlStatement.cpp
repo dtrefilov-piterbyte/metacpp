@@ -157,7 +157,7 @@ SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
     m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
     if (!m_impl)
         throw std::runtime_error("Failed to create statement");
-    SqlResultSet res(transaction, m_impl, m_storable);
+    SqlResultSet res(transaction, this, m_storable);
     if (!transaction.impl()->prepare(m_impl))
         throw std::runtime_error("Failed to prepare statement");
     return res;
@@ -196,12 +196,16 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
             values.push_back(fieldValue(field));
         }
     }
-    return res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
+    res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
+    if (pkey && syntax == SqlSyntaxPostgresql)
+        res += " RETURNING " + tblName + "." + pkey->name();
+    return res;
 }
 
 int SqlStatementInsert::exec(SqlTransaction &transaction)
 {
-    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    m_impl = transaction.impl()->createStatement(type(),
+        buildQuery(transaction.connector()->sqlSyntax()));
     if (!m_impl)
         throw std::runtime_error("Failed to create statement");
     if (!transaction.impl()->prepare(m_impl))
@@ -209,6 +213,7 @@ int SqlStatementInsert::exec(SqlTransaction &transaction)
     int numRows = 0;
     if (!transaction.impl()->execStatement(m_impl, &numRows))
         throw std::runtime_error("Failed to execute statement");
+    transaction.impl()->getLastInsertId(m_impl, m_storable);
     transaction.impl()->closeStatement(m_impl);
     return numRows;
 }

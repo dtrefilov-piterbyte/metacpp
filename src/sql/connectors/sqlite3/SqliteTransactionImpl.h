@@ -33,6 +33,7 @@ public:
     bool prepare(SqlStatementImpl *statement) override;
     bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) override;
     bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
+    bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) override;
     bool closeStatement(SqlStatementImpl *statement) override;
 
     sqlite3 *dbHandle() const { return m_dbHandle; }

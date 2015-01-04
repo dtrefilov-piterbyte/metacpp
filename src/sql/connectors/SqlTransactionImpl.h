@@ -38,8 +38,11 @@ public:
     /** \brief Execute statement */
     virtual bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) = 0;
 
-    /** \brief Write result of select operaation into storable and move cursor to the next row */
+    /** \brief Write result of select operation into storable and move cursor to the next row */
     virtual bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) = 0;
+
+    /** \brief Retrieve an id of the previously inserted row */
+    virtual bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) = 0;
 
     /** \brief Destroy statement */
     virtual bool closeStatement(SqlStatementImpl *statement) = 0;

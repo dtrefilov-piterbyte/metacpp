@@ -8,7 +8,7 @@ namespace sql
 {
 
 class SqlStorable;
-class SqlResultSet;
+class SqlResultSetData;
 
 static const int ROW_ID_PAST_THE_END = -1;
 static const int ROW_ID_INVALID = -2;
@@ -17,7 +17,7 @@ static const int ROW_ID_INVALID = -2;
 class SqlResultIterator
 {
 public:
-    explicit SqlResultIterator(SqlResultSet *resultSet, int rowId);
+    explicit SqlResultIterator(SqlResultSetData *resultSet, int rowId);
     SqlResultIterator(const SqlResultIterator& other);
     virtual ~SqlResultIterator();
 
@@ -35,9 +35,8 @@ private:
     inline void setRowId(int rowId) { m_rowId = rowId; }
     bool fetchNext();
 private:
-    friend class SqlResultSet;
-
-    SqlResultSet *m_resultSet;
+    friend class SqlResultSetData;
+    SqlResultSetData *m_resultSet;
     int m_rowId;
 
 };

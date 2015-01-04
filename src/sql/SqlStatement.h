@@ -24,6 +24,11 @@ enum SqlStatementType
 class SqlTransaction;
 class SqlStorable;
 
+namespace connectors
+{
+    class SqlStatementImpl;
+}
+
 enum SqlSyntax
 {
     SqlSyntaxUnknown,
@@ -38,11 +43,13 @@ class SqlStatementBase
 {
 protected:
     explicit SqlStatementBase(SqlStorable *storable);
+    // TODO: count references
     SqlStatementBase(const SqlStatementBase&)=default;
     SqlStatementBase& operator=(const SqlStatementBase&)=default;
 public:
     virtual ~SqlStatementBase();
     virtual SqlStatementType type() const = 0;
+    inline connectors::SqlStatementImpl *impl() const { return m_impl; }
 protected:
     virtual String buildQuery(SqlSyntax syntax) const = 0;
     String fieldValue(const MetaField *field) const;

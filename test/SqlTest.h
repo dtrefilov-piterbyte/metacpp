@@ -12,6 +12,7 @@ public:
     void transactionsTest();
     void selectTest();
     void updateTest();
+    void insertTest();
 private:
     metacpp::sql::connectors::sqlite::SqliteConnector *m_conn;
 };

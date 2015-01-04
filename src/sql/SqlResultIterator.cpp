@@ -7,7 +7,7 @@ namespace metacpp
 namespace sql
 {
 
-SqlResultIterator::SqlResultIterator(SqlResultSet *resultSet, int rowId)
+SqlResultIterator::SqlResultIterator(SqlResultSetData *resultSet, int rowId)
     : m_resultSet(resultSet), m_rowId(rowId)
 {
 }
@@ -58,7 +58,8 @@ SqlResultIterator& SqlResultIterator::operator ++()
 
 bool SqlResultIterator::fetchNext()
 {
-    return m_resultSet->m_transaction.impl()->fetchNext(m_resultSet->m_stmt, m_resultSet->m_storable);
+    return m_resultSet->m_transaction.impl()->fetchNext(m_resultSet->m_statement->impl(),
+                                                        m_resultSet->m_storable);
 }
 
 } // namespace sql

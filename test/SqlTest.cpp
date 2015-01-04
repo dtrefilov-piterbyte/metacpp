@@ -156,3 +156,38 @@ TEST_F(SqlTest, updateTest)
 {
     updateTest();
 }
+
+void SqlTest::insertTest()
+{
+    try
+    {
+        SqlTransaction transaction;
+        CityStorable city;
+        auto resultSet = city.select().where(COLUMN(City, name) == String("Moscow"))
+                .exec(transaction);
+        auto it = resultSet.begin();
+        if (it != resultSet.end())
+        {
+            PersonStorable person;
+            person.obj()->init();
+            person.obj()->id = 0;
+            person.obj()->age.reset();
+            person.obj()->cat_weight.reset();
+            person.obj()->cityId = city.obj()->id;
+            person.obj()->name = "Pupkin";
+            person.insertOne(transaction);
+        }
+
+        transaction.commit();
+    }
+    catch (const std::exception& ex)
+    {
+        throw;
+    }
+}
+
+TEST_F(SqlTest, insertTest)
+{
+    insertTest();
+}
+

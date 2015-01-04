@@ -21,9 +21,17 @@ namespace sql
         virtual Object *record() = 0;
 
         SqlStatementSelect select();
-        SqlStatementInsert insert();
         SqlStatementDelete remove();    // delete is reserved
         SqlStatementUpdate update();
+
+        /** Insert record into the database */
+        bool insertOne(SqlTransaction& transaction);
+        /** Persist changes on the record */
+        bool updateOne(SqlTransaction& transaction);
+        /** Delete the record */
+        bool removeOne(SqlTransaction& transaction);
+    private:
+        String whereId();
     };
 
     template<typename TObj, ptrdiff_t PKeyOff>

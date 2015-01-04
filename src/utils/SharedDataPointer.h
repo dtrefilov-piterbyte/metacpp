@@ -67,6 +67,8 @@ namespace metacpp
 		{
 		}
 
+        T *data() const { return m_d; }
+
         SharedDataPointer& swap(const SharedDataPointer& o)
         {
             std::swap(m_d, o.m_d);

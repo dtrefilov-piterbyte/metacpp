@@ -27,6 +27,9 @@ public:
 
     virtual ~SqlTransaction();
 
+    SqlTransaction(const SqlTransaction&)=delete;
+    SqlTransaction operator=(const SqlTransaction&)=delete;
+
     connectors::SqlConnectorBase *connector() const;
     connectors::SqlTransactionImpl *impl() const;
     bool started() const;
