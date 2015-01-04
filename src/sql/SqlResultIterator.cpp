@@ -49,17 +49,11 @@ const Object *SqlResultIterator::operator->() const
 
 SqlResultIterator& SqlResultIterator::operator ++()
 {
-    if (fetchNext())
+    if (m_resultSet->moveIterator())
         m_rowId++;
     else
         m_rowId = ROW_ID_PAST_THE_END;
     return *this;
-}
-
-bool SqlResultIterator::fetchNext()
-{
-    return m_resultSet->m_transaction.impl()->fetchNext(m_resultSet->m_statement->impl(),
-                                                        m_resultSet->m_storable);
 }
 
 } // namespace sql

@@ -10,23 +10,28 @@ namespace sql
 
 class SqlTransaction;
 class SqlStorable;
-class SqlStatementBase;
+
+namespace connectors
+{
+    class SqlStatementImpl;
+}
 
 class SqlResultSetData : public SharedDataBase
 {
 public:
     SqlResultSetData(SqlTransaction& transaction,
-                 SqlStatementBase *statement,
+                 std::shared_ptr<connectors::SqlStatementImpl> statement,
                  SqlStorable *storable);
     virtual ~SqlResultSetData();
     SqlResultIterator begin();
     SqlResultIterator end();
     SharedDataBase *clone() const override;
+    bool moveIterator();
 private:
     friend class SqlResultIterator;
 
     SqlTransaction& m_transaction;
-    SqlStatementBase *m_statement;
+    std::shared_ptr<connectors::SqlStatementImpl> m_statement;
     SqlStorable *m_storable;
     mutable SqlResultIterator m_endIterator;
     mutable SqlResultIterator m_iterator;
@@ -39,7 +44,7 @@ public:
      * Passes ownership of stmt to the constructed SqlResultSet
     */
     SqlResultSet(SqlTransaction& transaction,
-                 SqlStatementBase *stmt,
+                 std::shared_ptr<connectors::SqlStatementImpl> statement,
                  SqlStorable *storable);
     virtual ~SqlResultSet();
     SqlResultIterator begin();

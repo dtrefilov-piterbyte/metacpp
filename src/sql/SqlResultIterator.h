@@ -33,7 +33,6 @@ public:
     inline int rowId() const { return m_rowId; }
 private:
     inline void setRowId(int rowId) { m_rowId = rowId; }
-    bool fetchNext();
 private:
     friend class SqlResultSetData;
     SqlResultSetData *m_resultSet;

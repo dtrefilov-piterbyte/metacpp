@@ -100,29 +100,5 @@ namespace metacpp
 		T *m_d;
 	};
 
-	template<typename T>
-    class SharedPointer : public SharedDataPointer<SharedData<T> >
-	{
-        typedef SharedDataPointer<SharedData<T> > Base;
-	public:
-        SharedPointer()
-		{
-		}
-
-        explicit SharedPointer(const T& data)
-            : Base(new SharedData<T>(data))
-		{
-		}
-
-        SharedPointer(const SharedPointer& other)
-			: Base(other)
-		{
-		}
-
-		inline T& operator*() { this->detach(); return this->m_d->m_data; }
-		inline const T& operator*() const { return this->m_d->m_data; }
-		inline T *operator->() { this->detach(); return &this->m_d->m_data; }
-		inline const T *operator->() const { return &this->m_d->m_data; }
-	};
 } // namespace metacpp
 #endif // SHAREDDATAPOINTER_H

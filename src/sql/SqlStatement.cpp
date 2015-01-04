@@ -1,3 +1,4 @@
+#include "SqlStatementImpl.h"
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
 #include "SqlStorable.h"
@@ -8,7 +9,7 @@ namespace sql
 {
 
 SqlStatementBase::SqlStatementBase(SqlStorable *storable)
-    : m_storable(storable), m_impl(nullptr)
+    : m_storable(storable)
 {
 
 }
@@ -72,6 +73,17 @@ String SqlStatementBase::fieldValue(const MetaField *field) const
     default:
         throw std::runtime_error("Unknown field type");
     }
+}
+
+std::shared_ptr<connectors::SqlStatementImpl> SqlStatementBase::createImpl(SqlTransaction& transaction)
+{
+    auto transactionImpl = transaction.impl();
+    connectors::SqlStatementImpl *stmt = transactionImpl->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
+    if (!stmt)
+        throw std::runtime_error("Failed to create statement");
+    std::shared_ptr<connectors::SqlStatementImpl> impl(stmt,
+        [transactionImpl](connectors::SqlStatementImpl *stmt){ transactionImpl->closeStatement(stmt); });
+    return m_impl = impl;
 }
 
 SqlStatementSelect::SqlStatementSelect(SqlStorable *storable)
@@ -154,11 +166,8 @@ SqlStatementSelect &SqlStatementSelect::where(const WhereClauseBuilder &whereCla
 
 SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 {
-    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
-    if (!m_impl)
-        throw std::runtime_error("Failed to create statement");
-    SqlResultSet res(transaction, this, m_storable);
-    if (!transaction.impl()->prepare(m_impl))
+    SqlResultSet res(transaction, createImpl(transaction), m_storable);
+    if (!transaction.impl()->prepare(m_impl.get()))
         throw std::runtime_error("Failed to prepare statement");
     return res;
 }
@@ -204,17 +213,13 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
 
 int SqlStatementInsert::exec(SqlTransaction &transaction)
 {
-    m_impl = transaction.impl()->createStatement(type(),
-        buildQuery(transaction.connector()->sqlSyntax()));
-    if (!m_impl)
-        throw std::runtime_error("Failed to create statement");
-    if (!transaction.impl()->prepare(m_impl))
+    createImpl(transaction);
+    if (!transaction.impl()->prepare(m_impl.get()))
         throw std::runtime_error("Failed to prepare statement");
     int numRows = 0;
-    if (!transaction.impl()->execStatement(m_impl, &numRows))
+    if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
-    transaction.impl()->getLastInsertId(m_impl, m_storable);
-    transaction.impl()->closeStatement(m_impl);
+    transaction.impl()->getLastInsertId(m_impl.get(), m_storable);
     return numRows;
 }
 
@@ -284,15 +289,12 @@ SqlStatementUpdate &SqlStatementUpdate::where(const WhereClauseBuilder &whereCla
 
 int SqlStatementUpdate::exec(SqlTransaction &transaction)
 {
-    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
-    if (!m_impl)
-        throw std::runtime_error("Failed to create statement");
-    if (!transaction.impl()->prepare(m_impl))
+    createImpl(transaction);
+    if (!transaction.impl()->prepare(m_impl.get()))
         throw std::runtime_error("Failed to prepare statement");
     int numRows = 0;
-    if (!transaction.impl()->execStatement(m_impl, &numRows))
+    if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
-    transaction.impl()->closeStatement(m_impl);
     return numRows;
 }
 
@@ -346,15 +348,12 @@ SqlStatementDelete &SqlStatementDelete::where(const WhereClauseBuilder &whereCla
 
 int SqlStatementDelete::exec(SqlTransaction &transaction)
 {
-    m_impl = transaction.impl()->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
-    if (!m_impl)
-        throw std::runtime_error("Failed to create statement");
-    if (!transaction.impl()->prepare(m_impl))
+    createImpl(transaction);
+    if (!transaction.impl()->prepare(m_impl.get()))
         throw std::runtime_error("Failed to prepare statement");
     int numRows = 0;
-    if (!transaction.impl()->execStatement(m_impl, &numRows))
+    if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
-    transaction.impl()->closeStatement(m_impl);
     return numRows;
 }
 

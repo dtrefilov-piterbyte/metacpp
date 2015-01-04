@@ -3,6 +3,8 @@
 #include "SqlWhereClause.h"
 #include "SqlResultSet.h"
 #include "SqlColumnAssignment.h"
+#include "SharedDataPointer.h"
+#include <memory>
 
 namespace metacpp
 {
@@ -43,19 +45,18 @@ class SqlStatementBase
 {
 protected:
     explicit SqlStatementBase(SqlStorable *storable);
-    // TODO: count references
     SqlStatementBase(const SqlStatementBase&)=default;
     SqlStatementBase& operator=(const SqlStatementBase&)=default;
 public:
     virtual ~SqlStatementBase();
     virtual SqlStatementType type() const = 0;
-    inline connectors::SqlStatementImpl *impl() const { return m_impl; }
 protected:
     virtual String buildQuery(SqlSyntax syntax) const = 0;
     String fieldValue(const MetaField *field) const;
+    std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
     SqlStorable *m_storable;
-    connectors::SqlStatementImpl *m_impl;
+    std::shared_ptr<connectors::SqlStatementImpl> m_impl;
 };
 
 class SqlStatementSelect : public SqlStatementBase

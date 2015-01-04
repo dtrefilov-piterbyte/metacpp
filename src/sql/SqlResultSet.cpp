@@ -7,7 +7,7 @@ namespace sql
 {
 
 SqlResultSetData::SqlResultSetData(SqlTransaction& transaction,
-                                   SqlStatementBase *statement,
+                                   std::shared_ptr<connectors::SqlStatementImpl> statement,
                                    SqlStorable *storable)
     : m_transaction(transaction), m_statement(statement), m_storable(storable),
       m_iterator(this, ROW_ID_INVALID), m_endIterator(this, ROW_ID_PAST_THE_END)
@@ -21,8 +21,15 @@ SharedDataBase *SqlResultSetData::clone() const
 
 SqlResultSetData::~SqlResultSetData()
 {
-    if (m_transaction.impl())
-        m_transaction.impl()->closeStatement(m_statement->impl());
+}
+
+bool SqlResultSetData::moveIterator()
+{
+    if (m_transaction.impl()->fetchNext(m_statement.get(), m_storable)) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 SqlResultIterator SqlResultSetData::begin()
@@ -30,7 +37,7 @@ SqlResultIterator SqlResultSetData::begin()
     if (m_iterator.rowId() != ROW_ID_INVALID)
         throw std::runtime_error("SqlResultSet::begin() already been called");
     // try fetch first row
-    if (m_transaction.impl()->fetchNext(m_statement->impl(), m_storable))
+    if (moveIterator())
         m_iterator.setRowId(0);
     else
         m_iterator.setRowId(ROW_ID_PAST_THE_END);
@@ -42,8 +49,8 @@ SqlResultIterator SqlResultSetData::end()
     return m_endIterator;
 }
 
-SqlResultSet::SqlResultSet(SqlTransaction &transaction, SqlStatementBase *stmt, SqlStorable *storable)
-    : SharedDataPointer<SqlResultSetData>(new SqlResultSetData(transaction, stmt, storable))
+SqlResultSet::SqlResultSet(SqlTransaction &transaction, std::shared_ptr<connectors::SqlStatementImpl> statement, SqlStorable *storable)
+    : SharedDataPointer<SqlResultSetData>(new SqlResultSetData(transaction, statement, storable))
 {
 
 }
