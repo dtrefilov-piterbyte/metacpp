@@ -56,7 +56,7 @@ NegationWhereClauseBuilder::NegationWhereClauseBuilder(const WhereClauseBuilder 
 
 String NegationWhereClauseBuilder::buildExpression(const WhereClauseBuilder &inner)
 {
-    return "NOT " + inner.complex() ? ("(" + inner.expression() + ")") : inner.expression();
+    return "NOT " + (inner.complex() ? ("(" + inner.expression() + ")") : inner.expression());
 }
 
 
