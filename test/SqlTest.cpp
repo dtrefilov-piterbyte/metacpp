@@ -9,6 +9,27 @@
 using namespace ::metacpp;
 using namespace ::metacpp::sql;
 
+class City : public Object
+{
+public:
+    int             id;
+    String          name;
+
+    META_INFO_DECLARE(City)
+};
+
+STRUCT_INFO_BEGIN(City)
+    FIELD_INFO(City, id)
+    FIELD_INFO(City, name, "Moscow")
+STRUCT_INFO_END(City)
+
+META_INFO(City)
+
+DECLARE_STORABLE(City,
+                 PRIMARY_KEY(COL(City, id)),
+                 UNIQUE_INDEX(COL(City, id))
+                 )
+
 class Person : public Object
 {
 public:
@@ -31,31 +52,27 @@ STRUCT_INFO_END(Person)
 
 META_INFO(Person)
 
-typedef STORABLE(Person, id) PersonStorable;
+DECLARE_STORABLE(Person,
+                 PRIMARY_KEY(COL(Person, id)),
+                 REFERENCES(COL(Person, cityId), COL(City, id)),
+                 UNIQUE_INDEX(COL(Person, id)),
+                 INDEX(COL(Person, cityId)),
+                 CHECK(COL(Person, age), COL(Person, age) < 120)    // people do not live so much
+                 )
 
-class City : public Object
+
+
+TEST(StorableTest, testConstraints)
 {
-public:
-    int             id;
-    String          name;
-
-    META_INFO_DECLARE(City)
-};
-
-STRUCT_INFO_BEGIN(City)
-    FIELD_INFO(City, id)
-    FIELD_INFO(City, name, "Moscow")
-STRUCT_INFO_END(City)
-
-META_INFO(City)
-
-typedef STORABLE(City, id) CityStorable;
+    ASSERT_EQ(Storable<Person>::numConstraints(), 5);
+}
 
 void SqlTest::SetUp()
 {
-    m_conn = new connectors::sqlite::SqliteConnector("test.sqlite");
+    m_conn = new connectors::sqlite::SqliteConnector(/*"test.sqlite"*/ "file:memdb1?mode=memory&cache=shared");
     connectors::SqlConnectorBase::setDefaultConnector(m_conn);
     ASSERT_TRUE(m_conn->connect());
+    //prepareSchema();
 }
 
 void SqlTest::TearDown()
@@ -64,39 +81,43 @@ void SqlTest::TearDown()
     delete m_conn;
 }
 
-void SqlTest::transactionsTest()
+TEST_F(SqlTest, transactionCommitTest)
 {
-    {
-        SqlTransaction transaction;
-        ASSERT_NO_THROW(transaction.commit());
-    }
-    {
-        SqlTransaction transaction;
-        ASSERT_NO_THROW(transaction.rollback());
-    }
+    SqlTransaction transaction;
+    ASSERT_NO_THROW(transaction.commit());
 }
 
-//TEST_F(SqlTest, transactionsTest)
-//{
-//    transactionsTest();
-//}
+TEST_F(SqlTest, transactionRollbackTest)
+{
+    SqlTransaction transaction;
+    ASSERT_NO_THROW(transaction.rollback());
+}
+
+TEST_F(SqlTest, transactionManualBegin)
+{
+    SqlTransaction transaction(SqlTransactionAutoCloseManual);
+    ASSERT_NO_THROW(transaction.begin());
+    ASSERT_ANY_THROW(transaction.begin());
+    ASSERT_NO_THROW(transaction.commit());
+    ASSERT_ANY_THROW(transaction.commit());
+}
 
 void SqlTest::selectTest()
 {
     try
     {
         SqlTransaction transaction;
-        PersonStorable person;
-        SqlResultSet resultSet = person.select().innerJoin<City>().where((COLUMN(Person, age).isNull() ||
-                                                 (COLUMN(Person, age) + 2.5  * COLUMN(Person, cat_weight)) > 250 ||
-                                                 !(COLUMN(Person, name).like("George%") || COLUMN(Person, name) == String("Jack"))) &&
-                                                COLUMN(Person, cityId) == COLUMN(City, id)).limit(10).exec(transaction);
+        Storable<Person> person;
+        SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person, age).isNull() ||
+                                                 (COL(Person, age) + 2.5  * COL(Person, cat_weight)) > 250 ||
+                                                 !(COL(Person, name).like("George%") || COL(Person, name) == String("Jack"))) &&
+                                                COL(Person, cityId) == COL(City, id)).limit(10).exec(transaction);
 
         StringArray persons;
         for (auto it : resultSet)
         {
-            cdebug() << person.obj()->name;
-            persons.push_back(person.obj()->name);
+            cdebug() << person.name;
+            persons.push_back(person.name);
         }
         transaction.commit();
     }
@@ -116,9 +137,9 @@ void SqlTest::updateTest()
     try
     {
         SqlTransaction transaction;
-        PersonStorable person;
-        int nRows = person.update().ref<City>().set(COLUMN(Person, age) = 20, COLUMN(Person, cat_weight) = nullptr)
-                .where(COLUMN(Person, cityId) == COLUMN(City, id) && COLUMN(City, name) == String("Moscow")).exec(transaction);
+        Storable<Person> person;
+        int nRows = person.update().ref<City>().set(COL(Person, age) = 20, COL(Person, cat_weight) = nullptr)
+                .where(COL(Person, cityId) == COL(City, id) && COL(City, name) == String("Moscow")).exec(transaction);
         transaction.commit();
     }
     catch (const std::exception& ex)
@@ -137,21 +158,21 @@ void SqlTest::insertTest()
     try
     {
         SqlTransaction transaction;
-        CityStorable city;
-        auto resultSet = city.select().where(COLUMN(City, name) == String("Moscow"))
+        Storable<City> city;
+        auto resultSet = city.select().where(COL(City, name) == String("Moscow"))
                 .exec(transaction);
         auto it = resultSet.begin();
         if (it != resultSet.end())
         {
-            PersonStorable person;
-            person.obj()->init();
-            person.obj()->id = 0;
-            person.obj()->age.reset();
-            person.obj()->cat_weight.reset();
-            person.obj()->cityId = city.obj()->id;
-            person.obj()->name = "Pupkin";
+            Storable<Person> person;
+            person.init();
+            person.id = 0;
+            person.age.reset();
+            person.cat_weight.reset();
+            person.cityId = city.id;
+            person.name = "Pupkin";
             ASSERT_EQ(1, person.insertOne(transaction));
-            person.obj()->name = "Pupkin new";
+            person.name = "Pupkin new";
             ASSERT_EQ(1, person.updateOne(transaction));
             ASSERT_EQ(1, person.removeOne(transaction));
         }
@@ -162,6 +183,14 @@ void SqlTest::insertTest()
     {
         throw;
     }
+}
+
+void SqlTest::prepareSchema()
+{
+    SqlTransaction transaction;
+    Storable<City>::createSchema(transaction);
+    Storable<Person>::createSchema(transaction);
+    transaction.commit();
 }
 
 TEST_F(SqlTest, insertTest)

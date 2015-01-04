@@ -32,9 +32,9 @@ enum EFieldType
     eFieldDouble    = 'd',
 	eFieldString	= 's',
 	eFieldEnum		= 'e',
+    eFieldDateTime  = 't',
 	eFieldObject	= 'o',
-	eFieldArray		= 'a',
-    eFieldDateTime      = 't',
+    eFieldArray		= 'a',
 };
 
 /** \brief Parameter determines assigning behaviour of the field */
@@ -121,6 +121,10 @@ struct FieldInfoDescriptor
                 EFieldType      elemType;
                 size_t          elemSize;
             } m_array;
+            struct
+            {
+                time_t defaultValue;
+            } m_datetime;
         } ext;
         EMandatoriness	mandatoriness;
 
@@ -169,6 +173,13 @@ struct FieldInfoDescriptor
             ext.m_string.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
+        explicit Extension(const metacpp::DateTime& v)
+        {
+            ext.m_datetime.defaultValue = v.toStdTime();
+            mandatoriness = eDefaultable;
+        }
+
         explicit Extension(EMandatoriness m)
         {
             mandatoriness = m;
@@ -261,6 +272,7 @@ struct PartialFieldInfoHelper<metacpp::String> {
 template<>
 struct PartialFieldInfoHelper<metacpp::DateTime> {
     static constexpr EFieldType type() { return eFieldDateTime; }
+    static FieldInfoDescriptor::Extension extension(const metacpp::DateTime& v) { return FieldInfoDescriptor::Extension(v); }
     static FieldInfoDescriptor::Extension extension(EMandatoriness m = eRequired) { return FieldInfoDescriptor::Extension(m); }
 };
 

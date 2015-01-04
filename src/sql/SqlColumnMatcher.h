@@ -32,6 +32,16 @@ private:
     }
 };
 
+template<>
+struct ValueEvaluator<DateTime>
+{
+public:
+    String operator()(const DateTime& val) const
+    {
+        return val.toISOString();
+    }
+};
+
 template<typename T>
 struct ValueEvaluator<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
 {
@@ -225,7 +235,7 @@ SqlColumnFullMatcher<TObj, TField> GetColumnMatcher(const TField TObj::*member)
     return SqlColumnFullMatcher<TObj, TField>(member);
 }
 
-#define COLUMN(Table, Column) GetColumnMatcher(&Table::Column)
+#define COL(Table, Column) GetColumnMatcher(&Table::Column)
 
 template<typename T, typename Enable = void>
 struct TypePromotionPriorityHelper;

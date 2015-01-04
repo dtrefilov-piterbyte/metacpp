@@ -37,14 +37,14 @@ bool SqlResultIterator::operator !=(const SqlResultIterator& rhs)
     return !(*this == rhs);
 }
 
-const Object *SqlResultIterator::operator*() const
+int SqlResultIterator::operator*() const
 {
-    return m_resultSet->m_storable->record();
+    return m_rowId;
 }
 
-const Object *SqlResultIterator::operator->() const
+int SqlResultIterator::operator->() const
 {
-    return m_resultSet->m_storable->record();
+    return m_rowId;
 }
 
 SqlResultIterator& SqlResultIterator::operator ++()

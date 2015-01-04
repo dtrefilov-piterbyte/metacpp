@@ -16,11 +16,11 @@ namespace sql
 
 enum SqlStatementType
 {
-    eSqlStatementTypeUnknown,
-    eSqlStatementTypeSelect,
-    eSqlStatementTypeInsert,
-    eSqlStatementTypeUpdate,
-    eSqlStatementTypeDelete,
+    SqlStatementTypeUnknown,
+    SqlStatementTypeSelect,
+    SqlStatementTypeInsert,
+    SqlStatementTypeUpdate,
+    SqlStatementTypeDelete,
 };
 
 class SqlTransaction;
@@ -44,7 +44,7 @@ enum SqlSyntax
 class SqlStatementBase
 {
 protected:
-    explicit SqlStatementBase(SqlStorable *storable);
+    SqlStatementBase();
     SqlStatementBase(const SqlStatementBase&)=default;
     SqlStatementBase& operator=(const SqlStatementBase&)=default;
 public:
@@ -55,7 +55,6 @@ protected:
     String fieldValue(const MetaField *field) const;
     std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
-    SqlStorable *m_storable;
     std::shared_ptr<connectors::SqlStatementImpl> m_impl;
 };
 
@@ -124,6 +123,7 @@ private:
     Nullable<size_t> m_limit;
     Nullable<size_t> m_offset;
     Array<const MetaObject *> m_joins;
+    SqlStorable *m_storable;
 };
 
 
@@ -137,6 +137,8 @@ public:
     String buildQuery(SqlSyntax syntax) const override;
 
     int exec(SqlTransaction& transaction);
+private:
+    SqlStorable *m_storable;
 };
 
 class SqlStatementUpdate : public SqlStatementBase
@@ -193,6 +195,7 @@ private:
     Array<const MetaObject *> m_joins;
     String m_whereClause;
     StringArray m_sets;
+    SqlStorable *m_storable;
 };
 
 class SqlStatementDelete : public SqlStatementBase
@@ -223,7 +226,21 @@ public:
 private:
     Array<const MetaObject *> m_joins;
     String m_whereClause;
+    SqlStorable *m_storable;
+};
 
+class SqlStatementCustom : public SqlStatementBase
+{
+public:
+    explicit SqlStatementCustom(const String& queryText);
+    ~SqlStatementCustom();
+
+    SqlStatementType type() const override;
+    String buildQuery(SqlSyntax syntax) const override;
+
+    void exec(SqlTransaction& transaction);
+private:
+    String m_queryText;
 };
 
 

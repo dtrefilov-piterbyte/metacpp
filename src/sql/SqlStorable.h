@@ -4,6 +4,7 @@
 #include <memory>
 #include "Object.h"
 #include "SqlStatement.h"
+#include "SqlColumnConstraint.h"
 
 namespace metacpp
 {
@@ -26,44 +27,60 @@ namespace sql
 
         /** Insert record into the database */
         bool insertOne(SqlTransaction& transaction);
-        /** Persist changes on the record */
+        /** Persist changes on the record by primary key */
         bool updateOne(SqlTransaction& transaction);
-        /** Delete the record */
+        /** Delete the record by primary key */
         bool removeOne(SqlTransaction& transaction);
 
         String fieldValue(const MetaField *field) const;
+    protected:
+        static void createSchema(SqlTransaction& transaction, const MetaObject *metaObject,
+                                 const Array<SqlConstraintBasePtr>& constraints);
     private:
         String whereId();
     };
 
-    template<typename TObj, ptrdiff_t PKeyOff>
-    class Storable : public SqlStorable
+    template<typename TObj>
+    class Storable : public SqlStorable, public TObj
     {
     public:
-        Storable()
-        {
+        Storable() : m_pkey(nullptr) {
         }
 
-        const MetaField *primaryKey() const override
-        {
-            return TObj::staticMetaObject()->fieldByOffset(PKeyOff);
+        const MetaField *primaryKey() const override {
+            //return getMetaField(&TObj::id);
+//            if (m_pkey) return m_pkey;
+            for (size_t i = 0; i < ms_constraints.size(); ++i)
+                if (ms_constraints[i]->type() == SqlConstraintTypePrimaryKey)
+                    return m_pkey = ms_constraints[i]->metaField();
+            return nullptr;
         }
 
-        Object *record() override
-        {
-            return &m_record;
+        static SqlConstraintBasePtr getConstraint(size_t i) {
+            return ms_constraints[i];
         }
 
-        TObj *obj()
+        static size_t numConstraints() {
+            return ms_constraints.size();
+        }
+
+        static void createSchema(SqlTransaction& transaction)
         {
-            return &m_record;
+            SqlStorable::createSchema(transaction, TObj::staticMetaObject(), ms_constraints);
         }
 
     private:
-        TObj m_record;
+
+        Object *record() override {
+            return this;
+        }
+    private:
+        mutable const MetaField *m_pkey;
+        static const Array<SqlConstraintBasePtr> ms_constraints;
     };
 
-#define STORABLE(TObj, PKey) Storable<TObj, getMemberOffset(&TObj::PKey)>
+#define DECLARE_STORABLE(TObj, ...) \
+template<> const Array<SqlConstraintBasePtr> Storable<TObj>::ms_constraints = { __VA_ARGS__ };
 
 } // namespace sql
 } // namespace metacpp

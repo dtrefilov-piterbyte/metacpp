@@ -205,6 +205,8 @@ public:
         : MetaField(fieldDescriptor)
     {
     }
+
+    inline DateTime defaultValue() const { return DateTime(m_descriptor->valueInfo.ext.m_datetime.defaultValue); }
 };
 
 class MetaFieldFactory : public FactoryBase<std::unique_ptr<MetaField>, const FieldInfoDescriptor *>

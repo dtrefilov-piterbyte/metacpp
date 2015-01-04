@@ -13,6 +13,12 @@ DateTime::DateTime(time_t stdTime)
     m_tm = *localtime(&stdTime);
 }
 
+DateTime::DateTime()
+    : DateTime(0)
+{
+
+}
+
 DateTime::DateTime(const DateTime &o)
 {
     *this = o;

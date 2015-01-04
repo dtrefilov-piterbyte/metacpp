@@ -1,5 +1,6 @@
 #include "SqlStorable.h"
 #include "Nullable.h"
+#include "SqlTransaction.h"
 
 namespace metacpp
 {
@@ -104,6 +105,174 @@ String SqlStorable::fieldValue(const MetaField *field) const
     default:
         throw std::runtime_error("Unknown field type");
     }
+}
+
+void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *metaObject,
+                               const Array<SqlConstraintBasePtr> &constraints)
+{
+    SqlSyntax syntax = transaction.connector()->sqlSyntax();
+    if (syntax != SqlSyntaxSqlite)
+        throw std::runtime_error("SqlStorable::createSchema(): syntax not implemented");
+    String tblName = metaObject->name();
+    // validate constraints
+    for (SqlConstraintBasePtr constraint : constraints)
+    {
+        if (constraint->metaObject() != metaObject)
+            throw std::runtime_error("Constraint does not belong to this table");
+    }
+
+    String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
+    StringArray columns;
+    auto findConstraint = [constraints](SqlConstraintType type, const MetaField *field)
+    {
+        for (SqlConstraintBasePtr constraint : constraints)
+        {
+            if (constraint->type() == type && field == constraint->metaField())
+                return constraint;
+        }
+        return SqlConstraintBasePtr();
+    };
+    bool havePkey = false;
+
+    for (size_t i = 0; i < metaObject->totalFields(); ++i)
+    {
+        const MetaField *field = metaObject->field(i);
+        String name = field->name();
+        String typeName;
+        StringArray constraints;
+        if (!field->nullable())
+            constraints.push_back("NOT NULL");
+        switch (field->type())
+        {
+        case eFieldBool:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<bool> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldInt:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<int32_t> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldEnum:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<uint32_t> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldUint:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<uint32_t> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldInt64:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<int64_t> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldUint64:
+            typeName = "INTEGER";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<uint64_t> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldFloat:
+            typeName = "REAL";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<float> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldDouble:
+            typeName = "REAL";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<double> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldString:
+            typeName = "TEXT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<String> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldString *>(field)->defaultValue()));
+            }
+            break;
+        case eFieldDateTime:
+            typeName = "DATETIME";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                ValueEvaluator<DateTime> eval;
+                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()));
+            }
+            break;
+        default:
+            throw std::runtime_error(std::string("Cannot handle field ") + field->name() + " as an sql column");
+        }
+
+        auto primaryKey = findConstraint(SqlConstraintTypePrimaryKey, field);
+        if (primaryKey)
+        {
+            constraints.push_back("PRIMARY KEY AUTOINCREMENT");
+            havePkey = true;
+        }
+
+        auto foreignKey = std::dynamic_pointer_cast<SqlConstraintForeignKey>(
+                    findConstraint(SqlConstraintTypeForeignKey, field));
+        if (foreignKey)
+        {
+            constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
+                                  "(" + foreignKey->referenceMetaField()->name() + ")");
+        }
+
+        auto check = findConstraint(SqlConstraintTypeCheck, field);
+        if (check)
+        {
+            constraints.push_back("CHECK (" +
+                                  std::dynamic_pointer_cast<SqlConstraintCheck>(check)->checkExpression()
+                                  + ")");
+        }
+
+        columns.push_back(name + " " + typeName + (constraints.size() ? " " : "") + constraints.join(" "));
+    }
+    queryStr += columns.join(", ") + ")";
+
+    // main statement CREATE TABLE
+    SqlStatementCustom statement(queryStr);
+    statement.exec(transaction);
+
+    for (auto constraint : constraints)
+    {
+        if (constraint->type() == SqlConstraintTypeIndex)
+        {
+            std::shared_ptr<SqlConstraintIndex> constrIdx = std::dynamic_pointer_cast<SqlConstraintIndex>(constraint);
+            String queryStr = constrIdx->unique() ?
+                        "CREATE UNIQUE INDEX IF NOT EXISTS" : "CREATE INDEX IF NOT EXISTS";
+            queryStr += " idx_" + tblName + "_" + constrIdx->metaField()->name() +
+                    " ON " + tblName + "(" + constrIdx->metaField()->name() + ")";
+            SqlStatementCustom statement(queryStr);
+            statement.exec(transaction);
+        }
+    }
+
 }
 
 String SqlStorable::whereId()

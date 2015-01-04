@@ -13,7 +13,6 @@ namespace sqlite
 SqliteConnector::SqliteConnector(const String &databaseName)
     : m_databaseName(databaseName), m_dbHandle(nullptr)
 {
-
 }
 
 SqliteConnector::~SqliteConnector()

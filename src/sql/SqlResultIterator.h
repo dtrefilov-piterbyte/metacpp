@@ -25,9 +25,8 @@ public:
     bool operator==(const SqlResultIterator& rhs);
     bool operator!=(const SqlResultIterator& rhs);
 
-    // return a record
-    const Object *operator*() const;
-    const Object *operator->() const;
+    int operator*() const;
+    int operator->() const;
 
     SqlResultIterator& operator++();
     inline int rowId() const { return m_rowId; }

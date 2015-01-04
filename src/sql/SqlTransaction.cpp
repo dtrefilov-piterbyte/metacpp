@@ -14,8 +14,8 @@ SqlTransaction::SqlTransaction(SqlTransactionAutoCloseMode autoClose, connectors
     m_impl = connector->createTransaction();
     if (!m_impl)
         throw std::runtime_error("Failed to create transaction");
-    if (!(m_transactionStarted = m_impl->begin()))
-        throw std::runtime_error("Failed to begin transaction");
+    if (autoClose != SqlTransactionAutoCloseManual)
+        begin();
 }
 
 SqlTransaction::~SqlTransaction()
@@ -31,7 +31,7 @@ SqlTransaction::~SqlTransaction()
             rollback();
             break;
         default:
-            throw std::runtime_error("Unknown autoclose mode");
+            throw std::runtime_error("Destroing transaction with non-closed transaction");
         }
     }
     if (m_impl)

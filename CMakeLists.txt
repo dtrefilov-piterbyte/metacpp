@@ -62,4 +62,6 @@ IF(GTEST_FOUND)
     TARGET_LINK_LIBRARIES(metacpp-test ${CMAKE_PROJECT_NAME} ${GTEST_LIBRARIES})
 
     ADD_TEST("StringTest" "${CMAKE_BINARY_DIR}/metacpp-test" "--gtest_filter=\"StringTest*\"")
+    ADD_TEST("ObjectTest" "${CMAKE_BINARY_DIR}/metacpp-test" "--gtest_filter=\"ObjectTest*\"")
+    ADD_TEST("SqlTest" "${CMAKE_BINARY_DIR}/metacpp-test" "--gtest_filter=\"SqlTest*\"")
 ENDIF(GTEST_FOUND)

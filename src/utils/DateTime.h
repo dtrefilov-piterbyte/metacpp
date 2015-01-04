@@ -9,7 +9,8 @@ namespace metacpp {
 class DateTime
 {
 public:
-    explicit DateTime(time_t stdTime = 0);
+    explicit DateTime(time_t stdTime);
+    DateTime();
     DateTime(const DateTime& o);
     ~DateTime();
 

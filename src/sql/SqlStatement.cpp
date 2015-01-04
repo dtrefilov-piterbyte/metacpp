@@ -8,8 +8,7 @@ namespace metacpp
 namespace sql
 {
 
-SqlStatementBase::SqlStatementBase(SqlStorable *storable)
-    : m_storable(storable)
+SqlStatementBase::SqlStatementBase()
 {
 
 }
@@ -31,7 +30,7 @@ std::shared_ptr<connectors::SqlStatementImpl> SqlStatementBase::createImpl(SqlTr
 }
 
 SqlStatementSelect::SqlStatementSelect(SqlStorable *storable)
-    : SqlStatementBase(storable), m_joinType(JoinTypeNone)
+    : m_joinType(JoinTypeNone), m_storable(storable)
 {
 
 }
@@ -43,7 +42,7 @@ SqlStatementSelect::~SqlStatementSelect()
 
 SqlStatementType SqlStatementSelect::type() const
 {
-    return eSqlStatementTypeSelect;
+    return SqlStatementTypeSelect;
 }
 
 String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
@@ -117,7 +116,7 @@ SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 }
 
 SqlStatementInsert::SqlStatementInsert(SqlStorable *storable)
-    : SqlStatementBase(storable)
+    : m_storable(storable)
 {
 }
 
@@ -127,7 +126,7 @@ SqlStatementInsert::~SqlStatementInsert()
 
 SqlStatementType SqlStatementInsert::type() const
 {
-    return eSqlStatementTypeInsert;
+    return SqlStatementTypeInsert;
 }
 
 String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
@@ -168,7 +167,7 @@ int SqlStatementInsert::exec(SqlTransaction &transaction)
 }
 
 SqlStatementUpdate::SqlStatementUpdate(SqlStorable *storable)
-    : SqlStatementBase(storable)
+    : m_storable(storable)
 {
 }
 
@@ -178,7 +177,7 @@ SqlStatementUpdate::~SqlStatementUpdate()
 
 SqlStatementType SqlStatementUpdate::type() const
 {
-    return eSqlStatementTypeUpdate;
+    return SqlStatementTypeUpdate;
 }
 
 String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
@@ -243,7 +242,7 @@ int SqlStatementUpdate::exec(SqlTransaction &transaction)
 }
 
 SqlStatementDelete::SqlStatementDelete(SqlStorable *storable)
-    : SqlStatementBase(storable)
+    : m_storable(storable)
 {
 }
 
@@ -253,7 +252,7 @@ SqlStatementDelete::~SqlStatementDelete()
 
 SqlStatementType SqlStatementDelete::type() const
 {
-    return eSqlStatementTypeDelete;
+    return SqlStatementTypeDelete;
 }
 
 String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
@@ -299,6 +298,36 @@ int SqlStatementDelete::exec(SqlTransaction &transaction)
     if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
     return numRows;
+}
+
+SqlStatementCustom::SqlStatementCustom(const String &queryText)
+    : m_queryText(queryText)
+{
+
+}
+
+SqlStatementCustom::~SqlStatementCustom()
+{
+}
+
+SqlStatementType SqlStatementCustom::type() const
+{
+    return SqlStatementTypeUnknown;
+}
+
+String SqlStatementCustom::buildQuery(SqlSyntax syntax) const
+{
+    (void)syntax;
+    return m_queryText;
+}
+
+void SqlStatementCustom::exec(SqlTransaction &transaction)
+{
+    createImpl(transaction);
+    if (!transaction.impl()->prepare(m_impl.get()))
+        throw std::runtime_error("Failed to prepare statement");
+    if (!transaction.impl()->execStatement(m_impl.get()))
+        throw std::runtime_error("Failed to execute statement");
 }
 
 } // namespace sql

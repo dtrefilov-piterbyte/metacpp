@@ -16,7 +16,8 @@ namespace connectors
 enum SqlTransactionAutoCloseMode
 {
     SqlTransactionAutoRollback,
-    SqlTransactionAutoCommit
+    SqlTransactionAutoCommit,
+    SqlTransactionAutoCloseManual
 };
 
 class SqlTransaction
