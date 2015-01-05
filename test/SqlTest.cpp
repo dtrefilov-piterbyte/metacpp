@@ -33,11 +33,12 @@ DECLARE_STORABLE(City,
 class Person : public Object
 {
 public:
-    int             id;
-    String          name;
-    Nullable<int>   age;
-    Nullable<double> cat_weight;
-    int             cityId;
+    int                 id;
+    String              name;
+    Nullable<int>       age;
+    Nullable<double>    cat_weight;
+    int                 cityId;
+    Nullable<DateTime>  birthday;
 
     META_INFO_DECLARE(Person)
 };
@@ -48,6 +49,7 @@ STRUCT_INFO_BEGIN(Person)
     FIELD_INFO(Person, age)
     FIELD_INFO(Person, cat_weight)
     FIELD_INFO(Person, cityId)
+    FIELD_INFO(Person, birthday)
 STRUCT_INFO_END(Person)
 
 META_INFO(Person)
@@ -69,7 +71,7 @@ TEST(StorableTest, testConstraints)
 
 void SqlTest::SetUp()
 {
-    m_conn = new connectors::sqlite::SqliteConnector(true ? "test.sqlite" : "file:sqltest?mode=memory&cache=shared");
+    m_conn = new connectors::sqlite::SqliteConnector("file:memdb?mode=memory&cache=shared");
     connectors::SqlConnectorBase::setDefaultConnector(m_conn);
     ASSERT_TRUE(m_conn->connect());
     prepareSchema();
@@ -111,7 +113,7 @@ TEST_F(SqlTest, multipleTransactionsTest)
         threads[i] = std::thread([]()
             {
                 SqlTransaction transaction;
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             });
     }
 
@@ -128,8 +130,10 @@ TEST_F(SqlTest, selectTest)
         SqlTransaction transaction;
         Storable<Person> person;
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
-                                                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
-                                                COL(Person::cityId) == COL(City::id) && !COL(Person::name).like("invalid_%"))
+                (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
+                COL(Person::cityId) == COL(City::id) &&
+                !lower(COL(Person::name)).like("invalid_%") &&
+                COL(Person::birthday) > DateTime::now())
                 .limit(10).orderAsc(COL(Person::name), COL(Person::age)).exec(transaction);
 
         StringArray persons;
@@ -176,9 +180,6 @@ TEST_F(SqlTest, insertTest)
         {
             Storable<Person> person;
             person.init();
-            person.id = 0;
-            person.age.reset();
-            person.cat_weight.reset();
             person.cityId = city.id;
             person.name = "Pupkin";
             ASSERT_TRUE(person.insertOne(transaction));

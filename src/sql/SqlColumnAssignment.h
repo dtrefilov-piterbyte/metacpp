@@ -20,7 +20,7 @@ template<typename TObj, typename TField1, typename TField2>
 class SqlColumnAssignment : public SqlColumnAssignmentBase<TObj>
 {
 public:
-    SqlColumnAssignment(const SqlColumnMatcherFieldBase<TObj, TField1>& lhs, const SqlColumnMatcherSubexpression<TField2>& rhs)
+    SqlColumnAssignment(const SqlColumnMatcherFieldBase<TObj, TField1>& lhs, const SqlColumnMatcherBase<TField2>& rhs)
     {
         m_expr = String(lhs.metaField()->name()) + " = " + rhs.expression();
     }

@@ -100,5 +100,10 @@ DateTime DateTime::fromISOString(const char *isoString)
     return res;
 }
 
+DateTime DateTime::now()
+{
+    return DateTime(time(NULL));
+}
+
 } // namespace metacpp
 

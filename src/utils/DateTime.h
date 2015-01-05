@@ -2,10 +2,11 @@
 #define METACPP_DATETIME_H
 #include <time.h>
 #include "String.h"
+#include "SharedDataPointer.h"
 
 namespace metacpp {
 
-// TODO: have to use third-party lib
+
 class DateTime
 {
 public:
@@ -28,6 +29,7 @@ public:
     time_t toStdTime() const;
     String toISOString() const;
     static DateTime fromISOString(const char *isoString);
+    static DateTime now();
 private:
     struct tm m_tm;
 };
