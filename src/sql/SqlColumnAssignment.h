@@ -16,7 +16,7 @@ public:
     virtual String expression() const = 0;
 };
 
-template<typename TObj, typename TField1, typename TField2>
+template<typename TObj, typename TField1, typename TField2, typename>
 class SqlColumnAssignment : public SqlColumnAssignmentBase<TObj>
 {
 public:

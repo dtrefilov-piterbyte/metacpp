@@ -18,7 +18,8 @@ static const null_t null;
 template<typename T, typename = void>
 struct ValueEvaluator;
 
-template<typename TObj1, typename TField1, typename TField2>
+template<typename TObj1, typename TField1, typename TField2,
+         typename = typename std::enable_if<std::is_convertible<TField2, TField1>::value>::type>
 class SqlColumnAssignment;
 
 template<>
@@ -193,15 +194,17 @@ public:
     {
     }
 
+    // assign other sql subexpression
     template<typename TField2>
-    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    SqlColumnAssignment<TObj, TField, TField2>
     operator=(const SqlColumnMatcherBase<TField2>& rhs)
     {
         return SqlColumnAssignment<TObj, TField, TField2>(*this, rhs);
     }
 
+    // assign a literal
     template<typename TField2>
-    typename std::enable_if<std::is_convertible<TField2, TField>::value, SqlColumnAssignment<TObj, TField, TField2>>::type
+    SqlColumnAssignment<TObj, TField, TField2>
     operator=(const TField2& rhs)
     {
         return SqlColumnAssignment<TObj, TField, TField2>(*this, SqlColumnMatcherValue<TField2>(rhs));
