@@ -8,6 +8,12 @@ namespace metacpp
 namespace sql
 {
 
+typedef struct
+{
+} null_t;
+
+static const null_t null;
+
 /** Performs conversion of C++ value to SQL literal */
 template<typename T, typename = void>
 struct ValueEvaluator;
@@ -223,9 +229,19 @@ public:
         return SqlColumnAssignment<TObj, TField, TField2>(*this, SqlColumnMatcherValue<TField2>(rhs));
     }
 
-    SqlColumnAssignment<TObj, TField, TField> operator=(std::nullptr_t)
+    SqlColumnAssignment<TObj, TField, TField> operator=(null_t)
     {
         return SqlColumnAssignment<TObj, TField, TField>(*this, SqlColumnMatcherExplicitExpression<TField>("NULL"));
+    }
+
+    inline ExplicitWhereClauseBuilder operator==(null_t) const
+    {
+        return isNull();
+    }
+
+    inline ExplicitWhereClauseBuilder operator!=(null_t) const
+    {
+        return isNotNull();
     }
 };
 
@@ -235,7 +251,7 @@ SqlColumnFullMatcher<TObj, TField> GetColumnMatcher(const TField TObj::*member)
     return SqlColumnFullMatcher<TObj, TField>(member);
 }
 
-#define COL(Table, Column) GetColumnMatcher(&Table::Column)
+#define COL(ColumnSpec) GetColumnMatcher(&ColumnSpec)
 
 template<typename T, typename Enable = void>
 struct TypePromotionPriorityHelper;

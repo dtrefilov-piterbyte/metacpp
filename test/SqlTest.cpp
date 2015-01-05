@@ -27,8 +27,8 @@ STRUCT_INFO_END(City)
 META_INFO(City)
 
 DECLARE_STORABLE(City,
-                 PRIMARY_KEY(COL(City, id)),
-                 UNIQUE_INDEX(COL(City, id))
+                 PRIMARY_KEY(COL(City::id)),
+                 UNIQUE_INDEX(COL(City::id))
                  )
 
 class Person : public Object
@@ -54,11 +54,11 @@ STRUCT_INFO_END(Person)
 META_INFO(Person)
 
 DECLARE_STORABLE(Person,
-                 PRIMARY_KEY(COL(Person, id)),
-                 REFERENCES(COL(Person, cityId), COL(City, id)),
-                 UNIQUE_INDEX(COL(Person, id)),
-                 INDEX(COL(Person, cityId)),
-                 CHECK(COL(Person, age), COL(Person, age) < 120)    // people do not live so much
+                 PRIMARY_KEY(COL(Person::id)),
+                 REFERENCES(COL(Person::cityId), COL(City::id)),
+                 UNIQUE_INDEX(COL(Person::id)),
+                 INDEX(COL(Person::cityId)),
+                 CHECK(COL(Person::age), COL(Person::age) < 120)    // people do not live so much
                  )
 
 
@@ -128,10 +128,10 @@ TEST_F(SqlTest, selectTest)
     {
         SqlTransaction transaction;
         Storable<Person> person;
-        SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person, age).isNull() ||
-                                                 (COL(Person, age) + 2.5  * COL(Person, cat_weight)) > 250 ||
-                                                 !(COL(Person, name).like("George%") || COL(Person, name) == String("Jack"))) &&
-                                                COL(Person, cityId) == COL(City, id)).limit(10).exec(transaction);
+        SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
+                                                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250 ||
+                                                 !(COL(Person::name).like("George%") || COL(Person::name) == String("Jack"))) &&
+                                                COL(Person::cityId) == COL(City::id)).limit(10).exec(transaction);
 
         StringArray persons;
         for (auto it : resultSet)
@@ -154,8 +154,9 @@ TEST_F(SqlTest, updateTest)
     {
         SqlTransaction transaction;
         Storable<Person> person;
-        person.update().ref<City>().set(COL(Person, age) = 20, COL(Person, cat_weight) = nullptr)
-                .where(COL(Person, cityId) == COL(City, id) && COL(City, name) == String("Moscow")).exec(transaction);
+        person.update().ref<City>().set(COL(Person::age) = null, COL(Person::cat_weight) = null)
+                .where(COL(Person::cityId) == COL(City::id) && COL(City::name) == String("Moscow") &&
+                       (COL(Person::age) == null || COL(Person::cat_weight) == null)).exec(transaction);
         transaction.commit();
     }
     catch (const std::exception& ex)
@@ -170,7 +171,7 @@ TEST_F(SqlTest, insertTest)
     {
         SqlTransaction transaction;
         Storable<City> city;
-        auto resultSet = city.select().where(COL(City, name) == String("Moscow"))
+        auto resultSet = city.select().where(COL(City::name) == String("Moscow"))
                 .exec(transaction);
         auto it = resultSet.begin();
         if (it != resultSet.end())
