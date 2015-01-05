@@ -7,96 +7,173 @@ namespace metacpp {
 static std::mutex g_stdTimeMutex;
 
 
-DateTime::DateTime(time_t stdTime)
+DateTimeData::DateTimeData(time_t stdTime)
 {
     std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
     m_tm = *localtime(&stdTime);
 }
 
-DateTime::DateTime()
-    : DateTime(0)
+DateTimeData::DateTimeData(const tm &tm)
+    : m_tm(tm)
 {
 
 }
 
-DateTime::DateTime(const DateTime &o)
-{
-    *this = o;
-}
-
-DateTime::~DateTime()
+DateTimeData::~DateTimeData()
 {
 
 }
 
-DateTime &DateTime::operator=(const DateTime &rhs)
-{
-    m_tm = rhs.m_tm;
-    return *this;
-}
-
-bool DateTime::operator ==(const DateTime& rhs) const
+bool DateTimeData::operator ==(const DateTimeData& rhs) const
 {
     return  m_tm.tm_year == rhs.m_tm.tm_year &&
             m_tm.tm_mon == rhs.m_tm.tm_mon &&
             m_tm.tm_mday == rhs.m_tm.tm_mday &&
             m_tm.tm_hour == rhs.m_tm.tm_hour &&
             m_tm.tm_min == rhs.m_tm.tm_min &&
-            m_tm.tm_sec == rhs.m_tm.tm_sec &&
-            m_tm.tm_gmtoff == rhs.m_tm.tm_gmtoff;
+            m_tm.tm_sec == rhs.m_tm.tm_sec;
 }
 
-bool DateTime::operator !=(const DateTime& rhs) const
+bool DateTimeData::operator !=(const DateTimeData& rhs) const
 {
     return !(*this == rhs);
 }
 
-int DateTime::year() const
+int DateTimeData::year() const
 {
     return m_tm.tm_year + 1900;
 }
 
-int DateTime::month() const
+int DateTimeData::month() const
 {
     return m_tm.tm_mon + 1;
 }
 
-int DateTime::day() const
+int DateTimeData::day() const
 {
     return m_tm.tm_mday;
 }
 
-int DateTime::hours() const
+int DateTimeData::hours() const
 {
     return m_tm.tm_hour;
 }
 
-int DateTime::minutes() const
+int DateTimeData::minutes() const
 {
     return m_tm.tm_min;
 }
 
-int DateTime::seconds() const
+int DateTimeData::seconds() const
 {
     return m_tm.tm_sec;
 }
 
-time_t DateTime::toStdTime() const
+time_t DateTimeData::toStdTime() const
 {
     return mktime(const_cast<struct tm *>(&m_tm));
 }
 
-String DateTime::toISOString() const
+String DateTimeData::toISOString() const
 {
     char buf[50];
     strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
     return buf;
 }
 
+void DateTimeData::fromISOString(const char *isoString)
+{
+    strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm);
+}
+
+SharedDataBase *DateTimeData::clone() const
+{
+    return new DateTimeData(m_tm);
+}
+
+DateTime::DateTime(time_t stdTime)
+    : SharedDataPointer<DateTimeData>(new DateTimeData(stdTime))
+{
+
+}
+
+DateTime::DateTime()
+{
+}
+
+DateTime::~DateTime()
+{
+}
+
+bool DateTime::valid() const
+{
+    return m_d;
+}
+
+bool DateTime::operator==(const DateTime& rhs) const
+{
+    if (!valid() || !rhs.valid())
+        return false;
+    return *m_d == *rhs.m_d;
+}
+
+bool DateTime::operator!=(const DateTime& rhs) const
+{
+    return !(*this == rhs);
+}
+
+int DateTime::year() const
+{
+    return getData()->year();
+}
+
+int DateTime::month() const
+{
+    return getData()->month();
+}
+
+int DateTime::day() const
+{
+    return getData()->day();
+}
+
+int DateTime::hours() const
+{
+    return getData()->hours();
+}
+
+int DateTime::minutes() const
+{
+    return getData()->minutes();
+}
+
+int DateTime::seconds() const
+{
+    return getData()->seconds();
+}
+
+DateTimeData *DateTime::getData() const
+{
+    if (!m_d)
+        throw std::runtime_error("DateTime is invalid");
+    return m_d;
+}
+
+time_t DateTime::toStdTime() const
+{
+    return getData()->toStdTime();
+}
+
+String DateTime::toISOString() const
+{
+    return getData()->toISOString();
+}
+
 DateTime DateTime::fromISOString(const char *isoString)
 {
-    DateTime res(0);
-    strptime(isoString, "%Y-%m-%d %H:%M:%S", &res.m_tm);
+    DateTime res;
+    res.m_d = new DateTimeData();
+    res.m_d->fromISOString(isoString);
     return res;
 }
 

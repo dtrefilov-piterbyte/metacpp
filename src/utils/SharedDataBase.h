@@ -30,7 +30,7 @@ protected:
     template<typename T>
     friend class SharedDataPointer;
     SharedDataBase();
-    SharedDataBase(const SharedDataBase&) /*=delete*/;
+    SharedDataBase(const SharedDataBase&)=delete;
 private:
     mutable std::atomic<int> m_count;
 };
