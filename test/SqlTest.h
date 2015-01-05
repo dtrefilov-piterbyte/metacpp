@@ -9,10 +9,6 @@ class SqlTest : public testing::Test
 public:
     void SetUp() override;
     void TearDown() override;
-
-    void selectTest();
-    void updateTest();
-    void insertTest();
 private:
     void prepareSchema();
 private:

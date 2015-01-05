@@ -31,6 +31,7 @@ struct TypeTraits<T, typename std::enable_if<std::is_pod<T>::value>::type>
 
     static T *Reallocate(T *data, size_t newSize, size_t oldSize)
     {
+        (void)oldSize;
         return (T *)realloc(data, newSize * sizeof(T));
     }
 };

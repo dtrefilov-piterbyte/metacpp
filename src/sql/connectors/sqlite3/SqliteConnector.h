@@ -5,6 +5,7 @@
 #include "Array.h"
 #include <sqlite3.h>
 #include <mutex>
+#include <condition_variable>
 
 namespace metacpp
 {
@@ -18,7 +19,7 @@ namespace sqlite
 class SqliteConnector : public SqlConnectorBase
 {
 public:
-    SqliteConnector(const String& databaseName = ":memory:");
+    SqliteConnector(const String& databaseName = ":memory:", int poolSize = 3);
     ~SqliteConnector();
 
     // test database connectivity, initialize connection pool
@@ -29,7 +30,11 @@ public:
     SqlSyntax sqlSyntax() const override;
 private:
     String m_databaseName;
-    sqlite3 *m_dbHandle; // main database handle
+    const int m_poolSize;
+    Array<sqlite3 *> m_freeDbHandles, m_usedDbHandles;
+    std::mutex m_poolMutex;
+    std::condition_variable m_dbHandleFreedEvent;
+    bool m_connected;
     Array<SqliteTransactionImpl *> m_transactions;
     std::mutex m_transactionMutex;
 };

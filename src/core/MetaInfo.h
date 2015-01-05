@@ -1,7 +1,5 @@
 #ifndef METAINFO_H
 #define METAINFO_H
-// A very trivial meta-system implementation for automation of module configuration parsing
-
 #include <string>
 #include <cstddef>
 #include <set>

@@ -27,9 +27,6 @@ SqliteTransactionImpl::~SqliteTransactionImpl()
                           " unclosed statements while destroing the sqlite transaction";
         }
     }
-    int error;
-    if (SQLITE_OK != (error = sqlite3_close(m_dbHandle)))
-        cerror() << "sqlite3_close(): " << describeSqliteError(error);
 }
 
 bool SqliteTransactionImpl::begin()
@@ -176,6 +173,8 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             case eFieldObject:
             case eFieldArray:
                 throw std::runtime_error("Cannot handle non-plain objects");
+            default:
+                throw std::runtime_error("Unknown field type");
             }
         }
         return true;
@@ -185,6 +184,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
 
 bool SqliteTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable)
 {
+    (void)statement;
     if (storable->primaryKey())
     {
         switch (storable->primaryKey()->type())

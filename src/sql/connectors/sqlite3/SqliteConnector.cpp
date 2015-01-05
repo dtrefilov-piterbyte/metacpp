@@ -10,68 +10,100 @@ namespace connectors
 namespace sqlite
 {
 
-SqliteConnector::SqliteConnector(const String &databaseName)
-    : m_databaseName(databaseName), m_dbHandle(nullptr)
+SqliteConnector::SqliteConnector(const String &databaseName, int poolSize)
+    : m_databaseName(databaseName), m_poolSize(poolSize), m_connected(false)
 {
+    if (m_poolSize <= 0)
+        throw std::invalid_argument("Negative pool size");
+    if (m_poolSize > 10)
+        throw std::invalid_argument("Pool size is too large");
 }
 
 SqliteConnector::~SqliteConnector()
 {
-    if (m_dbHandle)
+    if (m_connected)
         disconnect();
 }
 
 bool SqliteConnector::connect()
 {
-    if (m_dbHandle)
+
+    if (m_connected)
     {
         cwarning() << "SqliteConnector::connect(): database connection seems to be already opened";
         return true;
     }
-    int error = sqlite3_open_v2(m_databaseName.c_str(), &m_dbHandle,
-                             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
-    if (SQLITE_OK != error)
+    m_freeDbHandles.reserve(m_poolSize);
+    for (int i = 0; i < m_poolSize; ++i)
     {
-        cerror() << "sqlite3_open_v2(): " << describeSqliteError(error);
-        return false;
+        sqlite3 *dbHandle;
+        int error = sqlite3_open_v2(m_databaseName.c_str(), &dbHandle,
+                                    SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
+        if (SQLITE_OK != error)
+        {
+            cerror() << "sqlite3_open_v2(): " << describeSqliteError(error);
+            disconnect();
+            return false;
+        }
+        m_freeDbHandles.push_back(dbHandle);
     }
-    return true;
+    return m_connected = true;
 }
 
 bool SqliteConnector::disconnect()
 {
-    if (!m_dbHandle)
+    if (!m_connected)
     {
         cwarning() << "SqliteConnector::disconnect(): database connection was not previously successfully created";
         return true;
-    }
-    int error = sqlite3_close(m_dbHandle);
-    if (SQLITE_OK != error)
-    {
-        cerror() << "sqlite3_close(): " << describeSqliteError(error);
-        return false;
     }
 
     {
         std::lock_guard<std::mutex> _guard(m_transactionMutex);
         if (m_transactions.size())
+        {
             cwarning() << "SqliteConnector::disconnect(): there is still non-closed transaction connections left";
+            return false;
+        }
     }
 
+    {
+        std::lock_guard<std::mutex> _guard(m_poolMutex);
+        assert(m_usedDbHandles.empty());
+        for (size_t i = 0; i < m_freeDbHandles.size(); ++i)
+        {
+            int error = sqlite3_close(m_freeDbHandles[i]);
+            if (SQLITE_OK != error)
+                cerror() << "sqlite3_close(): " << describeSqliteError(error);
+        }
+        m_freeDbHandles.clear();
+
+    }
     return true;
 }
 
 SqlTransactionImpl *SqliteConnector::createTransaction()
 {
-    int error;
-    sqlite3 *dbHandle;
-    error = sqlite3_open_v2(m_databaseName.c_str(), &dbHandle,
-                             SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
-    if (SQLITE_OK != error)
+    sqlite3 *dbHandle = nullptr;
     {
-        cfatal() << "sqlite3_open_v2(): " << describeSqliteError(error);
-        return nullptr;
+        std::unique_lock<std::mutex> _guard(m_poolMutex);
+        // check if there's already any free
+        if (m_freeDbHandles.size())
+        {
+            dbHandle = m_freeDbHandles.back();
+            m_freeDbHandles.pop_back();
+        }
+        else
+        {
+            cdebug() << "ran out of db handles, waiting for any to free";
+            // predicate against spurious wakes
+            m_dbHandleFreedEvent.wait(_guard, [this](){ return !m_freeDbHandles.empty(); });
+            dbHandle = m_freeDbHandles.back();
+            m_freeDbHandles.pop_back();
+        }
+        m_usedDbHandles.push_back(dbHandle);
     }
+
     SqliteTransactionImpl *result = new SqliteTransactionImpl(dbHandle);
     {
         std::lock_guard<std::mutex> _guard(m_transactionMutex);
@@ -80,23 +112,35 @@ SqlTransactionImpl *SqliteConnector::createTransaction()
     return result;
 }
 
+bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction)
+{
+    sqlite3 *dbHandle = nullptr;
+    {
+        std::lock_guard<std::mutex> _guard(m_transactionMutex);
+        SqliteTransactionImpl *sqliteTransaction = reinterpret_cast<SqliteTransactionImpl *>(transaction);
+        dbHandle = sqliteTransaction->dbHandle();
+        auto it = std::find(m_transactions.begin(), m_transactions.end(), sqliteTransaction);
+        if (it == m_transactions.end())
+            return false;
+        m_transactions.erase(it);
+        delete transaction;
+    }
+
+    {
+        std::lock_guard<std::mutex> _guard(m_poolMutex);
+        auto it = std::find(m_usedDbHandles.begin(), m_usedDbHandles.end(), dbHandle);
+        if (it == m_usedDbHandles.end())
+            throw std::runtime_error("SqliteConnector: No such used dbHandle in connection pool");
+        m_usedDbHandles.erase(it);
+        m_freeDbHandles.push_back(dbHandle);
+        m_dbHandleFreedEvent.notify_all();
+    }
+    return true;
+}
+
 SqlSyntax SqliteConnector::sqlSyntax() const
 {
     return SqlSyntaxSqlite;
-}
-
-bool SqliteConnector::closeTransaction(SqlTransactionImpl *transaction)
-{
-    std::lock_guard<std::mutex> _guard(m_transactionMutex);
-    SqliteTransactionImpl *sqliteTransaction = reinterpret_cast<SqliteTransactionImpl *>(transaction);
-    auto it = std::find(m_transactions.begin(), m_transactions.end(), sqliteTransaction);
-    if (it != m_transactions.end())
-    {
-        m_transactions.erase(it);
-        delete transaction;
-        return true;
-    }
-    return false;
 }
 
 const char *describeSqliteError(int errorCode)

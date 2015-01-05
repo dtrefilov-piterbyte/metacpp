@@ -5,6 +5,7 @@
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
 #include "CDebug.h"
+#include <thread>
 
 using namespace ::metacpp;
 using namespace ::metacpp::sql;
@@ -69,10 +70,10 @@ TEST(StorableTest, testConstraints)
 
 void SqlTest::SetUp()
 {
-    m_conn = new connectors::sqlite::SqliteConnector(/*"test.sqlite"*/ "file:memdb1?mode=memory&cache=shared");
+    m_conn = new connectors::sqlite::SqliteConnector(true ? "test.sqlite" : "file:sqltest?mode=memory&cache=shared");
     connectors::SqlConnectorBase::setDefaultConnector(m_conn);
     ASSERT_TRUE(m_conn->connect());
-    //prepareSchema();
+    prepareSchema();
 }
 
 void SqlTest::TearDown()
@@ -102,7 +103,26 @@ TEST_F(SqlTest, transactionManualBegin)
     ASSERT_ANY_THROW(transaction.commit());
 }
 
-void SqlTest::selectTest()
+TEST_F(SqlTest, multipleTransactionsTest)
+{
+    const size_t numThreads = 10;
+    std::thread threads[numThreads];
+    for (size_t i = 0; i < numThreads; ++i)
+    {
+        threads[i] = std::thread([]()
+            {
+                SqlTransaction transaction;
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            });
+    }
+
+    for (size_t i = 0; i < numThreads; ++i)
+        if (threads[i].joinable())
+            threads[i].join();
+}
+
+
+TEST_F(SqlTest, selectTest)
 {
     try
     {
@@ -116,6 +136,7 @@ void SqlTest::selectTest()
         StringArray persons;
         for (auto it : resultSet)
         {
+            (void)it;
             cdebug() << person.name;
             persons.push_back(person.name);
         }
@@ -127,18 +148,13 @@ void SqlTest::selectTest()
     }
 }
 
-TEST_F(SqlTest, selectTest)
-{
-    selectTest();
-}
-
-void SqlTest::updateTest()
+TEST_F(SqlTest, updateTest)
 {
     try
     {
         SqlTransaction transaction;
         Storable<Person> person;
-        int nRows = person.update().ref<City>().set(COL(Person, age) = 20, COL(Person, cat_weight) = nullptr)
+        person.update().ref<City>().set(COL(Person, age) = 20, COL(Person, cat_weight) = nullptr)
                 .where(COL(Person, cityId) == COL(City, id) && COL(City, name) == String("Moscow")).exec(transaction);
         transaction.commit();
     }
@@ -148,12 +164,7 @@ void SqlTest::updateTest()
     }
 }
 
-TEST_F(SqlTest, updateTest)
-{
-    updateTest();
-}
-
-void SqlTest::insertTest()
+TEST_F(SqlTest, insertTest)
 {
     try
     {
@@ -192,9 +203,3 @@ void SqlTest::prepareSchema()
     Storable<Person>::createSchema(transaction);
     transaction.commit();
 }
-
-TEST_F(SqlTest, insertTest)
-{
-    insertTest();
-}
-

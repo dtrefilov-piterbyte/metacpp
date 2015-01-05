@@ -84,7 +84,7 @@ STRUCT_INFO_BEGIN(TestSubStruct)
 	FIELD_INFO(TestSubStruct, name, "TestSubStruct")
 STRUCT_INFO_END(TestSubStruct)
 
-META_INFO(TestSubStruct);
+META_INFO(TestSubStruct)
 
 
 STRUCT_INFO_BEGIN(TestBaseStruct)

@@ -25,6 +25,7 @@ SqlResultIterator &SqlResultIterator::operator=(const SqlResultIterator &rhs)
 {
     m_resultSet = rhs.m_resultSet;
     m_rowId = rhs.m_rowId;
+    return *this;
 }
 
 bool SqlResultIterator::operator ==(const SqlResultIterator& rhs)

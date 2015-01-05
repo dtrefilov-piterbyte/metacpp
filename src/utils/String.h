@@ -450,8 +450,8 @@ public:
 		return result;
 	}
 private:
-    const StringBuilderHelper<T1> m_a;
-    const StringBuilderHelper<T2> m_b;
+    StringBuilderHelper<T1> m_a;
+    StringBuilderHelper<T2> m_b;
 };
 
 template<typename T>

@@ -7,9 +7,9 @@ template<typename T/*, typename = typename std::enable_if<std::is_pod<T>::type>:
 class Nullable
 {
 public:
-    Nullable() : m_value(), m_isSet(false) {}
-    Nullable(const T& value) : m_value(value), m_isSet(true) {}
-    Nullable(const Nullable& other) : m_value(other.m_value), m_isSet(other.m_isSet) {}
+    Nullable() : m_isSet(false), m_value() {}
+    Nullable(const T& value) : m_isSet(true), m_value(value) {}
+    Nullable(const Nullable& other) : m_isSet(other.m_isSet), m_value(other.m_value) {}
 
     Nullable& operator=(const Nullable& other)
     {

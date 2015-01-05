@@ -13,14 +13,17 @@ VisitorBase::~VisitorBase(void)
 
 void VisitorBase::previsitStruct(Object *obj)
 {
+    (void)obj;
 }
 
 void VisitorBase::visitField(Object *obj, const MetaField *)
 {
+    (void)obj;
 }
 
 void VisitorBase::postvisitStruct(Object *obj)
 {
+    (void)obj;
 }
 
 void VisitorBase::visit(Object *obj)

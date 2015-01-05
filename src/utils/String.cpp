@@ -177,6 +177,7 @@ namespace metacpp
             if (!ca) return 0;
             ++a; ++b;
         }
+        return 0;
     }
 
     template<>
@@ -216,6 +217,7 @@ namespace metacpp
                 return haystack;
             ++haystack;
         }
+        return nullptr;
     }
 
 #endif

@@ -18,10 +18,6 @@ namespace sqlite
 class SqliteTransactionImpl : public SqlTransactionImpl
 {
 public:
-    /** Create a new transaction interface passing handle to the newly created sqlite3 connection using sqlite3_open_v2.
-     * SqluteTransactionImpl will take ownership over the given dbHandle and will close it automatically
-     * when the transaction is destroyed.
-    */
     SqliteTransactionImpl(sqlite3 *dbHandle);
     ~SqliteTransactionImpl();
 

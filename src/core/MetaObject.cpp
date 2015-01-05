@@ -156,6 +156,8 @@ std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescr
     case eFieldDateTime:
         result.reset(new MetaFieldDateTime(arg));
         break;
+    default:
+        break;
     }
     return result;
 }

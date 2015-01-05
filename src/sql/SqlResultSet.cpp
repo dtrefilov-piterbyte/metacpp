@@ -10,7 +10,7 @@ SqlResultSetData::SqlResultSetData(SqlTransaction& transaction,
                                    std::shared_ptr<connectors::SqlStatementImpl> statement,
                                    SqlStorable *storable)
     : m_transaction(transaction), m_statement(statement), m_storable(storable),
-      m_iterator(this, ROW_ID_INVALID), m_endIterator(this, ROW_ID_PAST_THE_END)
+      m_endIterator(this, ROW_ID_PAST_THE_END), m_iterator(this, ROW_ID_INVALID)
 {
 }
 

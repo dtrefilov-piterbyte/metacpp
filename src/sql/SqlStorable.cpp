@@ -132,7 +132,6 @@ void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *me
         }
         return SqlConstraintBasePtr();
     };
-    bool havePkey = false;
 
     for (size_t i = 0; i < metaObject->totalFields(); ++i)
     {
@@ -232,7 +231,6 @@ void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *me
         if (primaryKey)
         {
             constraints.push_back("PRIMARY KEY AUTOINCREMENT");
-            havePkey = true;
         }
 
         auto foreignKey = std::dynamic_pointer_cast<SqlConstraintForeignKey>(

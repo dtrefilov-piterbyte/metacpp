@@ -155,7 +155,7 @@ public:
 #endif
         // file
         {
-            const char *logFileName = getenv("CDEBUG_LOG_TO_FILE");
+            //const char *logFileName = getenv("CDEBUG_LOG_TO_FILE");
             // TODO: file log connector
         }
 
