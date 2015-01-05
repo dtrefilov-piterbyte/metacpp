@@ -110,6 +110,34 @@ public:
     SqlStatementSelect& where(const WhereClauseBuilder& whereClause);
 
     SqlResultSet exec(SqlTransaction& transaction);
+
+    template<typename TObj1, typename TField1, typename... TOthers>
+    SqlStatementSelect& orderAsc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    {
+        return orderByHelper(true, column, others...);
+    }
+
+    template<typename TObj1, typename TField1, typename... TOthers>
+    SqlStatementSelect& orderDesc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    {
+        return orderByHelper(false, column, others...);
+    }
+private:
+    SqlStatementSelect& orderByHelper(bool)
+    {
+        return *this;
+    }
+
+    template<typename TObj1, typename TField1, typename... TOthers>
+    SqlStatementSelect& orderByHelper(bool asc, const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    {
+        if (m_orderAsc && asc != *m_orderAsc)
+            throw std::runtime_error("Cannot mix order modes");
+        m_orderAsc = true;
+        m_order.reserve(m_order.size() + 1 + sizeof...(others));
+        m_order.push_back(column.expression());
+        return orderByHelper(asc, others...);
+    }
 private:
     enum JoinType
     {
@@ -124,6 +152,8 @@ private:
     Nullable<size_t> m_offset;
     Array<const MetaObject *> m_joins;
     SqlStorable *m_storable;
+    StringArray m_order;
+    Nullable<bool> m_orderAsc;
 };
 
 

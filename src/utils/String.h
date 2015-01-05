@@ -311,7 +311,7 @@ public:
     {
     }
 
-    StringBase<T> join(const StringBase<T> delim = StringBase<T>())
+    StringBase<T> join(const StringBase<T> delim = StringBase<T>()) const
     {
         StringBase<T> res;
         size_t reserveSize = 0;

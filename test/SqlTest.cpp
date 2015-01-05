@@ -131,7 +131,7 @@ TEST_F(SqlTest, selectTest)
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
                                                  (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
                                                 COL(Person::cityId) == COL(City::id) && !COL(Person::name).like("invalid_%"))
-                .limit(10).exec(transaction);
+                .limit(10).orderAsc(COL(Person::name), COL(Person::age)).exec(transaction);
 
         StringArray persons;
         for (auto it : resultSet)

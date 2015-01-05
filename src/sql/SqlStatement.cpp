@@ -84,6 +84,7 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
             res += " WHERE " + m_whereClause;
         }
     }
+    if (m_order.size()) res += " ORDER BY " + m_order.join(", ") + (m_orderAsc.take(true) ? " ASC" : " DESC");
     if (m_limit) res += " LIMIT " + String::fromValue(*m_limit);
     if (m_offset) res += " OFFSET " + String::fromValue(*m_offset);
     return res;
