@@ -129,9 +129,9 @@ TEST_F(SqlTest, selectTest)
         SqlTransaction transaction;
         Storable<Person> person;
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
-                                                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250 ||
-                                                 !(COL(Person::name).like("George%") || COL(Person::name) == String("Jack"))) &&
-                                                COL(Person::cityId) == COL(City::id)).limit(10).exec(transaction);
+                                                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
+                                                COL(Person::cityId) == COL(City::id) && !COL(Person::name).like("invalid_%"))
+                .limit(10).exec(transaction);
 
         StringArray persons;
         for (auto it : resultSet)
@@ -183,13 +183,29 @@ TEST_F(SqlTest, insertTest)
             person.cat_weight.reset();
             person.cityId = city.id;
             person.name = "Pupkin";
-            ASSERT_EQ(1, person.insertOne(transaction));
+            ASSERT_TRUE(person.insertOne(transaction));
             person.name = "Pupkin new";
-            ASSERT_EQ(1, person.updateOne(transaction));
-            ASSERT_EQ(1, person.removeOne(transaction));
+            ASSERT_TRUE(person.updateOne(transaction));
+            ASSERT_TRUE(person.removeOne(transaction));
         }
 
         transaction.commit();
+    }
+    catch (const std::exception& ex)
+    {
+        throw;
+    }
+}
+
+TEST_F(SqlTest, deleteTest)
+{
+    try
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        person.remove().ref<City>().where(COL(City::id) == COL(Person::cityId) &&
+                                          COL(City::name) == String("Moscow") &&
+                                          COL(Person::name).like("invalid_%")).exec(transaction);
     }
     catch (const std::exception& ex)
     {

@@ -19,7 +19,7 @@ namespace sqlite
 class SqliteConnector : public SqlConnectorBase
 {
 public:
-    SqliteConnector(const String& databaseName = ":memory:", int poolSize = 3);
+    SqliteConnector(const String& databaseName, int poolSize = 3);
     ~SqliteConnector();
 
     // test database connectivity, initialize connection pool
