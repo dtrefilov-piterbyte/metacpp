@@ -42,6 +42,20 @@ void pkInitVisitor::visitField(Object *obj, const MetaField *field)
                 field->access<Nullable<uint32_t> >(obj) =
                         reinterpret_cast<const MetaFieldUint *>(field)->defaultValue();
             break;
+        case eFieldInt64:
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<int64_t> >(obj).reset();
+            else
+                field->access<Nullable<int64_t> >(obj) =
+                        reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue();
+            break;
+        case eFieldUint64:
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<uint64_t> >(obj).reset();
+            else
+                field->access<Nullable<uint64_t> >(obj) =
+                        reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue();
+            break;
         case eFieldEnum:
             if (eOptional == field->mandatoriness())
                 field->access<Nullable<uint32_t> >(obj).reset();
@@ -67,6 +81,11 @@ void pkInitVisitor::visitField(Object *obj, const MetaField *field)
             else
                 field->access<Nullable<DateTime> >(obj) = DateTime(0);
             break;
+        case eFieldString:
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<String> >(obj).reset();
+            else
+                field->access<Nullable<String> >(obj) = reinterpret_cast<const MetaFieldString *>(field)->defaultValue();
         }
         return;
     }
@@ -85,6 +104,12 @@ void pkInitVisitor::visitField(Object *obj, const MetaField *field)
 	case eFieldUint:
         field->access<uint32_t>(obj) = reinterpret_cast<const MetaFieldUint *>(field)->defaultValue();
 		break;
+    case eFieldInt64:
+        field->access<int64_t>(obj) = reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue();
+        break;
+    case eFieldUint64:
+        field->access<uint64_t>(obj) = reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue();
+        break;
     case eFieldFloat:
         field->access<float>(obj) = reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue();
 		break;

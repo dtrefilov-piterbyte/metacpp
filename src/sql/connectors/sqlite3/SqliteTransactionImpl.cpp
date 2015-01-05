@@ -1,5 +1,4 @@
 #include "SqliteTransactionImpl.h"
-#include "CDebug.h"
 #include "SqliteConnector.h"
 
 namespace metacpp
@@ -23,8 +22,8 @@ SqliteTransactionImpl::~SqliteTransactionImpl()
         std::lock_guard<std::mutex> _guard(m_statementsMutex);
         if (m_statements.size())
         {
-            cwarning() << "There's still " << m_statements.size() <<
-                          " unclosed statements while destroing the sqlite transaction";
+            std::cerr << "There's still " << m_statements.size() <<
+                         " unclosed statements while destroing the sqlite transaction" << std::endl;
         }
     }
 }
@@ -34,7 +33,8 @@ bool SqliteTransactionImpl::begin()
     int error = sqlite3_exec(m_dbHandle, "BEGIN TRANSACTION", nullptr, nullptr, nullptr);
     if (error != SQLITE_OK)
     {
-        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        std::cerr << "SqliteTransactionImpl::begin(): sqlite3_exec(): "
+                  << sqlite3_errmsg(m_dbHandle) << std::endl;
         return false;
     }
     return true;
@@ -45,7 +45,8 @@ bool SqliteTransactionImpl::commit()
     int error = sqlite3_exec(m_dbHandle, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
     if (error != SQLITE_OK)
     {
-        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        std::cout << "SqliteTransactionImpl::begin(): sqlite3_exec(): "
+                  << sqlite3_errmsg(m_dbHandle) << std::endl;
         return false;
     }
     return true;
@@ -56,7 +57,8 @@ bool SqliteTransactionImpl::rollback()
     int error = sqlite3_exec(m_dbHandle, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
     if (error != SQLITE_OK)
     {
-        cerror() << "SqluteTransactionImpl::begin(): sqlite3_exec(): " << sqlite3_errmsg(m_dbHandle);
+        std::cerr << "SqliteTransactionImpl::begin(): sqlite3_exec(): "
+                  << sqlite3_errmsg(m_dbHandle) << std::endl;
         return false;
     }
     return true;
@@ -73,7 +75,6 @@ SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, 
 bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
 {
     const String& query = statement->queryText();
-    cdebug() << query;
     sqlite3_stmt *stmt;
     int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), query.size() + 1,
         &stmt, nullptr);
@@ -137,7 +138,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             auto field = storable->record()->metaObject()->fieldByName(name, false);
             if (!field)
             {
-                cwarning() << "Cannot bind sql result to an object field " << name;
+                std::cerr << "Cannot bind sql result to an object field " << name << std::endl;
                 continue;
             }
             int sqliteType = sqlite3_column_type(stmt, i);
@@ -219,7 +220,7 @@ bool SqliteTransactionImpl::closeStatement(SqlStatementImpl *statement)
     auto it = std::find(m_statements.begin(), m_statements.end(), sqliteStatement);
     if (it == m_statements.end())
     {
-        cerror() << "SqliteTransactionImpl::closeStatement(): there's no such statement";
+        std::cerr << "SqliteTransactionImpl::closeStatement(): there's no such statement" << std::endl;
         return false;
     }
     m_statements.erase(it);

@@ -1,5 +1,4 @@
 #include "SqliteConnector.h"
-#include <CDebug.h>
 
 namespace metacpp
 {
@@ -30,7 +29,8 @@ bool SqliteConnector::connect()
 
     if (m_connected)
     {
-        cwarning() << "SqliteConnector::connect(): database connection seems to be already opened";
+        std::cerr << "SqliteConnector::connect(): database connection seems to be already opened"
+                  << std::endl;
         return true;
     }
     m_freeDbHandles.reserve(m_poolSize);
@@ -41,7 +41,7 @@ bool SqliteConnector::connect()
                                     SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
         if (SQLITE_OK != error)
         {
-            cerror() << "sqlite3_open_v2(): " << describeSqliteError(error);
+            std::cerr << "sqlite3_open_v2(): " << describeSqliteError(error) << std::endl;
             disconnect();
             return false;
         }
@@ -54,7 +54,7 @@ bool SqliteConnector::disconnect()
 {
     if (!m_connected)
     {
-        cwarning() << "SqliteConnector::disconnect(): database connection was not previously successfully created";
+        std::cerr << "SqliteConnector::disconnect(): database connection was not previously successfully created" << std::endl;
         return true;
     }
 
@@ -62,7 +62,7 @@ bool SqliteConnector::disconnect()
         std::lock_guard<std::mutex> _guard(m_transactionMutex);
         if (m_transactions.size())
         {
-            cwarning() << "SqliteConnector::disconnect(): there is still non-closed transaction connections left";
+            std::cerr << "SqliteConnector::disconnect(): there is still non-closed transaction connections left" << std::endl;
             return false;
         }
     }
@@ -74,7 +74,7 @@ bool SqliteConnector::disconnect()
         {
             int error = sqlite3_close(m_freeDbHandles[i]);
             if (SQLITE_OK != error)
-                cerror() << "sqlite3_close(): " << describeSqliteError(error);
+                std::cerr << "sqlite3_close(): " << describeSqliteError(error) << std::endl;
         }
         m_freeDbHandles.clear();
 
@@ -95,7 +95,6 @@ SqlTransactionImpl *SqliteConnector::createTransaction()
         }
         else
         {
-            cdebug() << "ran out of db handles, waiting for any to free";
             // predicate against spurious wakes
             m_dbHandleFreedEvent.wait(_guard, [this](){ return !m_freeDbHandles.empty(); });
             dbHandle = m_freeDbHandles.back();

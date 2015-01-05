@@ -3,7 +3,6 @@
 #include <string>
 #include <memory>
 #include "JsonSerializerVisitor.h"
-#include "CDebug.h"
 
 using namespace metacpp;
 
@@ -41,7 +40,7 @@ struct TestStruct : public TestBaseStruct
     double doubleValue;
     String strValue;
 	TestSubStruct substruct;
-    Array<String> arrValue;
+    Array<TestSubStruct> arrValue;
     DateTime datetimeValue;
 
     Nullable<EEnumTest> optEnumValue;
@@ -152,9 +151,10 @@ void ObjectTest::testSerialization()
     t.doubleValue = 1231.123f;
 	t.strValue = "abdasdc";
 	t.substruct.name = "1231";
-    t.arrValue.push_back("12");
-    t.arrValue.push_back("asdj");
-    t.arrValue.push_back("");
+    TestSubStruct item;
+    item.name = "12"; t.arrValue.push_back(item);
+    item.name = "asdj"; t.arrValue.push_back(item);
+    item.name = ""; t.arrValue.push_back(item);
     t.optFloatValue = 2.5;
     t.datetimeValue = DateTime(time(NULL));
     t2.fromString(t.toString());
@@ -168,7 +168,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(t.substruct.name, t2.substruct.name);
     EXPECT_EQ(t.arrValue.size(), t2.arrValue.size());
 	for (size_t i = 0; i < t.arrValue.size(); ++i)
-        ASSERT_EQ(t.arrValue[i], t2.arrValue[i]);
+        ASSERT_EQ(t.arrValue[i].name, t2.arrValue[i].name);
 
     EXPECT_EQ(*t2.optEnumValue, eEnumValueUnk);
     EXPECT_EQ(*t2.optBoolValue, true);

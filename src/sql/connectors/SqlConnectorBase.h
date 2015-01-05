@@ -50,7 +50,7 @@ public:
 
     virtual SqlSyntax sqlSyntax() const = 0;
 
-    static bool setDefaultConnector(SqlConnectorBase *connector);
+    static void setDefaultConnector(SqlConnectorBase *connector);
     static SqlConnectorBase *getDefaultConnector();
 
     static bool setNamedConnector(SqlConnectorBase *connector, const String& connectionName);

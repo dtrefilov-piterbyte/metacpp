@@ -1,6 +1,5 @@
 #include "String.h"
 #include <climits>
-#include "CDebug.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -257,7 +256,7 @@ namespace metacpp
         iconv_t cd = iconv_open("UTF-16LE", "UTF-8");
         if ((iconv_t)-1 == cd)
         {
-            cerror() << "iconv_open() failed: " << strerror(errno);
+            perror("iconv_open(): ");
             return WString();
         }
 
@@ -285,7 +284,7 @@ namespace metacpp
         } while (true);
 
         if (-1 == iconv_close(cd)) {
-            cerror() << "iconv_close() failed: " << strerror(errno);
+            perror("iconv_close(): ");
             return WString();
         }
         return result;
@@ -305,7 +304,7 @@ namespace metacpp
         iconv_t cd = iconv_open("UTF-8", "UTF-16LE");
         if ((iconv_t)-1 == cd)
         {
-            cerror() << "iconv_open() failed: " << strerror(errno);
+            perror("iconv_open(): ");
             return String();
         }
 
@@ -333,7 +332,7 @@ namespace metacpp
         } while (true);
 
         if (-1 == iconv_close(cd)) {
-            cerror() << "iconv_close() failed: " << strerror(errno);
+            perror("iconv_close(): ");
             return String();
         }
         return result;

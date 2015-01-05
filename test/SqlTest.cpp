@@ -4,7 +4,6 @@
 #include "SqlStorable.h"
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
-#include "CDebug.h"
 #include <thread>
 
 using namespace ::metacpp;
@@ -137,7 +136,6 @@ TEST_F(SqlTest, selectTest)
         for (auto it : resultSet)
         {
             (void)it;
-            cdebug() << person.name;
             persons.push_back(person.name);
         }
         transaction.commit();

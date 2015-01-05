@@ -1,5 +1,4 @@
 #include "SqlConnectorBase.h"
-#include "CDebug.h"
 
 namespace metacpp
 {
@@ -16,10 +15,9 @@ namespace connectors
     {
     }
 
-    bool SqlConnectorBase::setDefaultConnector(SqlConnectorBase *connector)
+    void SqlConnectorBase::setDefaultConnector(SqlConnectorBase *connector)
     {
-        SqlConnectorBase *expected = nullptr;
-        return ms_defaultConnector.compare_exchange_strong(expected, connector);
+        ms_defaultConnector.store(connector);
     }
 
     SqlConnectorBase *SqlConnectorBase::getDefaultConnector()
@@ -32,8 +30,8 @@ namespace connectors
         std::lock_guard<std::mutex> _guard(ms_namedConnectorsMutex);
         if (ms_namedConnectors.end() != ms_namedConnectors.find(connectionName))
         {
-            cerror() << "SqlConnectorBase::setNamedConnector(): connector " << connectionName
-                     << " already set";
+            std::cerr << "SqlConnectorBase::setNamedConnector(): connector " << connectionName
+                     << " already set" << std::endl;
             return false;
         }
         ms_namedConnectors[connectionName] = connector;

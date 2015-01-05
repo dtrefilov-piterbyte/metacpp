@@ -211,6 +211,9 @@ struct StructInfoDescriptor
 template<typename T>
 struct PartialFieldInfoHelper;
 
+template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
+struct FullFieldInfoHelper;
+
 template<>
 struct PartialFieldInfoHelper<bool> {
 	static constexpr EFieldType type() { return eFieldBool; }
@@ -280,12 +283,9 @@ struct PartialFieldInfoHelper<metacpp::Array<T> >
     static constexpr EFieldType type() { return eFieldArray; }
 	static constexpr FieldInfoDescriptor::Extension extension()
 	{
-        return FieldInfoDescriptor::Extension(PartialFieldInfoHelper<T>::type(), sizeof(T));
+        return FieldInfoDescriptor::Extension(FullFieldInfoHelper<T>::type(), sizeof(T));
 	}
 };
-
-template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
-struct FullFieldInfoHelper;
 
 template<typename T>
 struct FullFieldInfoHelper<T, true, false>
