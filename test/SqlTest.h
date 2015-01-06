@@ -12,8 +12,9 @@ public:
 
     void prepareSchema();
     void prepareData();
+    void clearData();
 private:
-    metacpp::sql::connectors::sqlite::SqliteConnector *m_conn;
+    metacpp::sql::connectors::SqlConnectorBase *m_conn;
 };
 
 #endif // SQLTEST_H

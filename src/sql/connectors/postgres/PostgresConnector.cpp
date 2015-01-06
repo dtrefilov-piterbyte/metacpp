@@ -6,7 +6,7 @@ namespace connectors {
 namespace postgres {
 
 PostgresConnector::PostgresConnector(const char *connectionString, int poolSize)
-    : m_connectionString(connectionString), m_poolSize(poolSize)
+    : m_connectionString(connectionString), m_poolSize(poolSize), m_connected(false)
 {
     if (m_poolSize <= 0)
         throw std::invalid_argument("Negative pool size");
@@ -36,7 +36,7 @@ bool PostgresConnector::connect()
         ConnStatusType status = PQstatus(dbConn);
         if (status != CONNECTION_OK)
         {
-            std::cerr << "PQconnectdb(): failed to establish connection to database. " << strerror(errno);
+            std::cerr << "PQconnectdb(): failed to establish connection to database.";
             disconnect();
             return false;
         }

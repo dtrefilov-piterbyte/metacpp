@@ -232,7 +232,7 @@ protected:
 };
 
 template<typename T>
-class Array : public SharedDataPointer<ArrayData<T> >
+class Array : protected SharedDataPointer<ArrayData<T> >
 {
     typedef SharedDataPointer<ArrayData<T> > Base;
     friend class JsonSerializerVisitor;

@@ -21,20 +21,20 @@ TEST_F(StringTest, TestNull)
 	testNull();
 }
 
-void StringTest::testRefCount()
-{
-    String str("test");
-	ASSERT_EQ(str.refCount(), 1);
-    String str2 = str;
-	ASSERT_EQ(str.refCount(), 2);
-	ASSERT_EQ(str2.refCount(), 2);
-	ASSERT_EQ(str, str2);
-}
+//void StringTest::testRefCount()
+//{
+//    String str("test");
+//	ASSERT_EQ(str.refCount(), 1);
+//    String str2 = str;
+//	ASSERT_EQ(str.refCount(), 2);
+//	ASSERT_EQ(str2.refCount(), 2);
+//	ASSERT_EQ(str, str2);
+//}
 
-TEST_F(StringTest, TestRefCount)
-{
-	testRefCount();
-}
+//TEST_F(StringTest, TestRefCount)
+//{
+//	testRefCount();
+//}
 
 void StringTest::testDetach()
 {

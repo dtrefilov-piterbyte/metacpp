@@ -201,26 +201,41 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
     }
     else
         sets = m_sets;
-    res += " SET " + sets.join(", ");
 
     if (m_joins.size())
     {
+        String joins;
+        for (size_t i = 0; i < m_joins.size(); ++i)
+        {
+            joins += m_joins[i]->name();
+            if (i != m_joins.size() - 1)
+                joins += ", ";
+        }
+
         if (SqlSyntaxSqlite == syntax)
         {
-            res += " WHERE EXISTS (SELECT 1 FROM ";
-            for (size_t i = 0; i < m_joins.size(); ++i)
-            {
-                res += m_joins[i]->name();
-                if (i != m_joins.size() - 1)
-                    res += ", ";
-            }
-            res += " WHERE " + m_whereClause + ")";
+            res += " SET " + sets.join(", ") +
+                   " WHERE EXISTS (SELECT 1 FROM " + joins;
+
+            if (m_whereClause.size()) res += " WHERE " + m_whereClause + ")";
+        }
+        else if (SqlSyntaxPostgreSQL == syntax)
+        {
+            res += " SET " + sets.join(", ") +
+                   " FROM " + joins;
+            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
+        }
+        else if (SqlSyntaxMysql == syntax)
+        {
+            // TODO: untested
+            res += ", " + joins + " SET " + sets.join(", ");
+            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
         }
         else
-            throw std::invalid_argument("Syntax unimplemented");
+            throw std::runtime_error("Unimplemented syntax");
     }
     else
-        res += " WHERE " + m_whereClause;
+        res += " SET " + sets.join(", ") + " WHERE " + m_whereClause;
     return res;
 }
 
@@ -271,13 +286,18 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
                 refs += ", ";
         }
         if (SqlSyntaxSqlite == syntax)
-            res += " WHERE EXISTS (SELECT 1 FROM " + refs + " WHERE " + m_whereClause + ")";
+        {
+            res += " WHERE EXISTS (SELECT 1 FROM " + refs;
+            if (m_whereClause.size()) " WHERE " + m_whereClause;
+            res += ")";
+        }
         else
         {
-            res += "USING " + refs + " WHERE " + m_whereClause;
+            res += " USING " + refs;
+            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
         }
     }
-    else
+    else if (m_whereClause.size())
         res += " WHERE " + m_whereClause;
     return res;
 

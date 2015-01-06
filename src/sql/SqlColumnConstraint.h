@@ -80,6 +80,7 @@ private:
 
 #define REFERENCES(column, refColumn)  std::make_shared<SqlConstraintForeignKey>(column, refColumn)
 
+// TODO: Multi-column indices
 class SqlConstraintIndex : public SqlConstraintBase
 {
 public:

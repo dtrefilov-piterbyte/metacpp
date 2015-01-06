@@ -106,7 +106,7 @@ private:
 };
 
 template<typename T>
-class StringBase : public SharedDataPointer<StringData<T> >
+class StringBase : protected SharedDataPointer<StringData<T> >
 {
     typedef StringData<T> Data;
     typedef  SharedDataPointer<StringData<T> > Base;

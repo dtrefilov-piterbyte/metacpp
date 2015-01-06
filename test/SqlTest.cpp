@@ -4,6 +4,7 @@
 #include "SqlStorable.h"
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
+//#include "PostgresConnector.h"
 #include <thread>
 
 using namespace ::metacpp;
@@ -71,6 +72,7 @@ TEST(StorableTest, testConstraints)
 
 void SqlTest::SetUp()
 {
+    //m_conn = new connectors::postgres::PostgresConnector("dbname = postgres");
     m_conn = new connectors::sqlite::SqliteConnector("file:memdb?mode=memory&cache=shared");
     connectors::SqlConnectorBase::setDefaultConnector(m_conn);
     ASSERT_TRUE(m_conn->connect());
@@ -130,6 +132,7 @@ TEST_F(SqlTest, selectTest)
     {
         SqlTransaction transaction;
         Storable<Person> person;
+        Storable<City> city;
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
                 COL(Person::cityId) == COL(City::id) &&
@@ -143,18 +146,24 @@ TEST_F(SqlTest, selectTest)
             (void)it;
             persons.push_back(person.name);
         }
+
+        person.remove().exec(transaction);
+
         transaction.commit();
     }
     catch (const std::exception& ex)
     {
         throw;
     }
+    clearData();
 }
 
 TEST_F(SqlTest, updateTest)
 {
+    prepareData();
     try
     {
+        prepareData();
         SqlTransaction transaction;
         Storable<Person> person;
         person.update().ref<City>().set(COL(Person::age) = null, COL(Person::cat_weight) = null)
@@ -166,6 +175,7 @@ TEST_F(SqlTest, updateTest)
     {
         throw;
     }
+    clearData();
 }
 
 TEST_F(SqlTest, insertTest)
@@ -234,5 +244,15 @@ void SqlTest::prepareData()
     person.birthday = DateTime::fromISOString("2004-12-31 00:00:00");
     person.cityId = city.id;
     person.insertOne(transaction);
+    transaction.commit();
+}
+
+void SqlTest::clearData()
+{
+    SqlTransaction transaction;
+    Storable<City> city;
+    Storable<Person> person;
+    person.remove().exec(transaction);
+    city.remove().exec(transaction);
     transaction.commit();
 }

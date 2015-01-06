@@ -38,6 +38,10 @@ namespace sql
                                  const Array<SqlConstraintBasePtr>& constraints);
     private:
         String whereId();
+        static void createSchemaSqlite(SqlTransaction& transaction, const MetaObject *metaObject,
+                                       const Array<SqlConstraintBasePtr>& constraints);
+        static void createSchemaPostgreSQL(SqlTransaction &transaction, const MetaObject *metaObject,
+                                    const Array<SqlConstraintBasePtr> &constraints);
     };
 
     template<typename TObj>
