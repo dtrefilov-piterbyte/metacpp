@@ -125,6 +125,7 @@ TEST_F(SqlTest, multipleTransactionsTest)
 
 TEST_F(SqlTest, selectTest)
 {
+    prepareData();
     try
     {
         SqlTransaction transaction;
@@ -133,7 +134,7 @@ TEST_F(SqlTest, selectTest)
                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
                 COL(Person::cityId) == COL(City::id) &&
                 !lower(COL(Person::name)).like("invalid_%") &&
-                COL(Person::birthday) > DateTime::now())
+                COL(Person::birthday) > DateTime::fromISOString("2000-01-01 00:00:00"))
                 .limit(10).orderAsc(COL(Person::name), COL(Person::age)).exec(transaction);
 
         StringArray persons;
@@ -217,5 +218,21 @@ void SqlTest::prepareSchema()
     SqlTransaction transaction;
     Storable<City>::createSchema(transaction);
     Storable<Person>::createSchema(transaction);
+    transaction.commit();
+}
+
+void SqlTest::prepareData()
+{
+    SqlTransaction transaction;
+    Storable<City> city;
+    city.init();
+    city.name = "Moscow";
+    city.insertOne(transaction);
+    Storable<Person> person;
+    person.init();
+    person.name = "Pupkin";
+    person.birthday = DateTime::fromISOString("2004-12-31 00:00:00");
+    person.cityId = city.id;
+    person.insertOne(transaction);
     transaction.commit();
 }

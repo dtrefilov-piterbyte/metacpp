@@ -132,6 +132,7 @@ SqlStatementType SqlStatementInsert::type() const
 
 String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
 {
+    (void)syntax;
     // TODO: bind arguments
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
@@ -150,8 +151,6 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
         }
     }
     res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
-    if (pkey && syntax == SqlSyntaxPostgresql)
-        res += " RETURNING " + tblName + "." + pkey->name();
     return res;
 }
 

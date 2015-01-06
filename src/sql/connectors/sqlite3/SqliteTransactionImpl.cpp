@@ -18,13 +18,11 @@ SqliteTransactionImpl::SqliteTransactionImpl(sqlite3 *dbHandle)
 
 SqliteTransactionImpl::~SqliteTransactionImpl()
 {
+    std::lock_guard<std::mutex> _guard(m_statementsMutex);
+    if (m_statements.size())
     {
-        std::lock_guard<std::mutex> _guard(m_statementsMutex);
-        if (m_statements.size())
-        {
-            std::cerr << "There's still " << m_statements.size() <<
-                         " unclosed statements while destroing the sqlite transaction" << std::endl;
-        }
+        std::cerr << "There's still " << m_statements.size() <<
+                     " unclosed statements while destroing the sqlite transaction" << std::endl;
     }
 }
 
@@ -45,7 +43,7 @@ bool SqliteTransactionImpl::commit()
     int error = sqlite3_exec(m_dbHandle, "COMMIT TRANSACTION", nullptr, nullptr, nullptr);
     if (error != SQLITE_OK)
     {
-        std::cout << "SqliteTransactionImpl::begin(): sqlite3_exec(): "
+        std::cout << "SqliteTransactionImpl::commit(): sqlite3_exec(): "
                   << sqlite3_errmsg(m_dbHandle) << std::endl;
         return false;
     }
@@ -57,7 +55,7 @@ bool SqliteTransactionImpl::rollback()
     int error = sqlite3_exec(m_dbHandle, "ROLLBACK TRANSACTION", nullptr, nullptr, nullptr);
     if (error != SQLITE_OK)
     {
-        std::cerr << "SqliteTransactionImpl::begin(): sqlite3_exec(): "
+        std::cerr << "SqliteTransactionImpl::rollback(): sqlite3_exec(): "
                   << sqlite3_errmsg(m_dbHandle) << std::endl;
         return false;
     }
@@ -79,7 +77,7 @@ bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
     int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), query.size() + 1,
         &stmt, nullptr);
     if (SQLITE_OK != error)
-        throw std::runtime_error(std::string("sqlite3_prepare_v2(): ") + sqlite3_errmsg(m_dbHandle));
+        std::cerr << "sqlite3_prepare_v2(): " << sqlite3_errmsg(m_dbHandle) << std::endl;
     reinterpret_cast<SqliteStatementImpl *>(statement)->setHandle(stmt);
     return true;
 }
@@ -100,20 +98,24 @@ bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement, int *numR
         if (numRowsAffected) *numRowsAffected = sqlite3_changes(m_dbHandle);
         return true;
     }
-    throw std::runtime_error(std::string("sqlite3_step(): ") + sqlite3_errmsg(m_dbHandle));
+    std::cerr << "sqlite3_step(): " << sqlite3_errmsg(m_dbHandle);
+    return false;
 }
 
-#define _ASSIGN_FIELD(field, type, sqliteType, expType, val) \
-    if (field->nullable() && sqliteType == SQLITE_NULL) {  \
-        field->access<Nullable<type> >(storable->record()).reset(); \
-    } else { \
-        if (sqliteType != expType) \
-            throw std::runtime_error(String(String(field->name()) + ": Type mismatch").c_str()); \
-        if (field->nullable()) \
-            field->access<Nullable<type> >(storable->record()) = val; \
-        else \
-            field->access<type>(storable->record()) = val; \
+template<typename T>
+void assignField(const MetaField *field, int sqliteType, int expectedType, Object *obj, const T& val)
+{
+    if (field->nullable() && sqliteType == SQLITE_NULL)
+        field->access<Nullable<T> >(obj).reset();
+    else {
+        if (sqliteType != expectedType)
+            throw std::runtime_error(String(String(field->name()) + ": Type mismatch").c_str());
+        if (field->nullable())
+            field->access<Nullable<T> >(obj) = val;
+        else
+            field->access<T>(obj) = val;
     }
+}
 
 bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *storable)
 {
@@ -146,30 +148,33 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
             switch (field->type())
             {
             case eFieldBool:
-                _ASSIGN_FIELD(field, bool, sqliteType, SQLITE_INTEGER, sqlite3_column_int(stmt, i) != 0)
+                assignField<bool>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int(stmt, i) != 0);
                 break;
             case eFieldInt:
-                _ASSIGN_FIELD(field, int32_t, sqliteType, SQLITE_INTEGER, sqlite3_column_int(stmt, i))
+                assignField<int32_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int(stmt, i));
                 break;
             case eFieldEnum:
             case eFieldUint:
-                _ASSIGN_FIELD(field, uint32_t, sqliteType, SQLITE_INTEGER, sqlite3_column_int64(stmt, i))
+                assignField<uint32_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
                 break;
             case eFieldUint64:
+                assignField<uint64_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
+                break;
             case eFieldInt64:
-                _ASSIGN_FIELD(field, int64_t, sqliteType, SQLITE_INTEGER, sqlite3_column_int64(stmt, i))
+                assignField<int64_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
                 break;
             case eFieldFloat:
-                _ASSIGN_FIELD(field, float, sqliteType, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
+                assignField<float>(field, sqliteType, SQLITE_FLOAT, storable->record(), sqlite3_column_double(stmt, i));
                 break;
             case eFieldDouble:
-                _ASSIGN_FIELD(field, double, sqliteType, SQLITE_FLOAT, sqlite3_column_double(stmt, i))
+                assignField<double>(field, sqliteType, SQLITE_FLOAT, storable->record(), sqlite3_column_double(stmt, i));
                 break;
             case eFieldString:
-                _ASSIGN_FIELD(field, String, sqliteType, SQLITE_TEXT, (const char *)sqlite3_column_text(stmt, i))
+                assignField<String>(field, sqliteType, SQLITE_TEXT, storable->record(), (const char *)sqlite3_column_text(stmt, i));
                 break;
             case eFieldDateTime:
-                _ASSIGN_FIELD(field, DateTime, sqliteType, SQLITE_TEXT, DateTime::fromISOString((const char *)sqlite3_column_text(stmt, i)))
+                assignField<DateTime>(field, sqliteType, SQLITE_TEXT, storable->record(),
+                                      DateTime::fromISOString((const char *)sqlite3_column_text(stmt, i)));
                 break;
             case eFieldObject:
             case eFieldArray:
@@ -186,25 +191,26 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
 bool SqliteTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable)
 {
     (void)statement;
-    if (storable->primaryKey())
+    auto pkey = storable->primaryKey();
+    if (pkey)
     {
         switch (storable->primaryKey()->type())
         {
         case eFieldInt:
-            _ASSIGN_FIELD(storable->primaryKey(), int32_t, SQLITE_INTEGER, SQLITE_INTEGER,
-                          sqlite3_last_insert_rowid(m_dbHandle))
+            assignField<int32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
+                          sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         case eFieldUint:
-            _ASSIGN_FIELD(storable->primaryKey(), uint32_t, SQLITE_INTEGER, SQLITE_INTEGER,
-                          sqlite3_last_insert_rowid(m_dbHandle))
+            assignField<uint32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
+                          sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         case eFieldInt64:
-            _ASSIGN_FIELD(storable->primaryKey(), int64_t, SQLITE_INTEGER, SQLITE_INTEGER,
-                          sqlite3_last_insert_rowid(m_dbHandle))
+            assignField<int64_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
+                          sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         case eFieldUint64:
-            _ASSIGN_FIELD(storable->primaryKey(), uint64_t, SQLITE_INTEGER, SQLITE_INTEGER,
-                          sqlite3_last_insert_rowid(m_dbHandle))
+            assignField<uint64_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
+                          sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         default:
             return false;

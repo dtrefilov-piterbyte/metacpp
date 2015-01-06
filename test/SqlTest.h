@@ -9,8 +9,9 @@ class SqlTest : public testing::Test
 public:
     void SetUp() override;
     void TearDown() override;
-private:
+
     void prepareSchema();
+    void prepareData();
 private:
     metacpp::sql::connectors::sqlite::SqliteConnector *m_conn;
 };

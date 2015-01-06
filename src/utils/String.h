@@ -246,6 +246,16 @@ public:
         return string_cast<StringBase>(s.c_str(), s.length());
 	}
 
+    template<typename T1>
+    T toValue() const
+    {
+        T1 res;
+        std::istringstream ss(this->c_str());
+        ss.exceptions(std::ios::failbit | std::ios::badbit);
+        ss >> res;
+        return res;
+    }
+
     StringArrayBase<T> split(T separator, bool keepEmptyElements = false) const
 	{
         StringArrayBase<T> result;

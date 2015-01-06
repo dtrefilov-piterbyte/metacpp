@@ -1,4 +1,4 @@
-# JSONCPP_FOUND - system has a libudev
+# JSONCPP_FOUND - system has a sqlite3
 # JSONCPP_INCLUDE_DIR - where to find header files
 # JSONCPP_LIBRARIES - the libraries to link against
 

@@ -96,7 +96,7 @@ String SqlStorable::fieldValue(const MetaField *field) const
     case eFieldDateTime:
         if (field->nullable())
         {
-            if (field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()))
+            if (!field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()))
                 return "NULL";
             else
                 return "\'" + field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()).get().toISOString() + "\'";

@@ -35,7 +35,7 @@ enum SqlSyntax
 {
     SqlSyntaxUnknown,
     SqlSyntaxSqlite,
-    SqlSyntaxPostgresql,
+    SqlSyntaxPostgreSQL,
     SqlSyntaxMysql,
     SqlSyntaxMssql
 };

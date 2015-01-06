@@ -83,7 +83,8 @@ String DateTimeData::toISOString() const
 
 void DateTimeData::fromISOString(const char *isoString)
 {
-    strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm);
+    if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
+        throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
 }
 
 SharedDataBase *DateTimeData::clone() const

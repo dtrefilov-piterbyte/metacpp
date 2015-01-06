@@ -10,8 +10,7 @@ namespace metacpp {
 class DateTimeData : public SharedDataBase
 {
 public:
-    DateTimeData() { }
-    explicit DateTimeData(time_t stdTime);
+    explicit DateTimeData(time_t stdTime = 0);
     explicit DateTimeData(const struct tm& tm);
     ~DateTimeData();
 
