@@ -100,8 +100,8 @@ String SqlStorable::fieldValue(const MetaField *field) const
                 return "NULL";
             else
                 return "\'" + field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()).get().toISOString() + "\'";
-            return "\'" + field->access<DateTime>(const_cast<SqlStorable *>(this)->record()).toISOString() + "\'";
         }
+        return "\'" + field->access<DateTime>(const_cast<SqlStorable *>(this)->record()).toISOString() + "\'";
     default:
         throw std::runtime_error("Unknown field type");
     }
