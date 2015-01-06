@@ -1,5 +1,6 @@
 #include "DateTime.h"
 #include <mutex>
+#include <stdio.h>
 
 namespace metacpp {
 
@@ -77,13 +78,14 @@ time_t DateTimeData::toStdTime() const
 String DateTimeData::toISOString() const
 {
     char buf[50];
-    strftime(buf, sizeof(buf), "%G-%m-%d %H:%M:%S", &m_tm);
+    //strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year(), month(), day(), hours(), minutes(), seconds());
     return buf;
 }
 
 void DateTimeData::fromISOString(const char *isoString)
 {
-    if (NULL == strptime(isoString, "%G-%m-%d %H:%M:%S", &m_tm))
+    if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
         throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
 }
 

@@ -156,7 +156,7 @@ void ObjectTest::testSerialization()
     item.name = "asdj"; t.arrValue.push_back(item);
     item.name = ""; t.arrValue.push_back(item);
     t.optFloatValue = 2.5;
-    t.datetimeValue = DateTime(time(NULL));
+    t.datetimeValue = DateTime::fromISOString("0100-10-12 00:00:00");
     t2.fromString(t.toString());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
@@ -176,6 +176,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
+    std::cout << t.toString() << std::endl;
 }
 
 TEST_F(ObjectTest, MetaInfoTest)
