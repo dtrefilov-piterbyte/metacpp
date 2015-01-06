@@ -20,12 +20,12 @@ public:
 };
 
 /** \brief Builder with prepared conditional expression */
-class ExplicitWhereClauseBuilder : public WhereClauseBuilder
+class DirectWhereClauseBuilder : public WhereClauseBuilder
 {
 public:
-    ExplicitWhereClauseBuilder(const String& s);
+    DirectWhereClauseBuilder(const String& s);
 
-    ~ExplicitWhereClauseBuilder();
+    ~DirectWhereClauseBuilder();
 
     String expression() const override;
 
@@ -34,7 +34,7 @@ private:
 };
 
 /** Where clause compined from two others using 'and' or 'or' operators */
-class ComplexWhereClauseBuilder : public ExplicitWhereClauseBuilder
+class ComplexWhereClauseBuilder : public DirectWhereClauseBuilder
 {
 public:
     enum Operator
@@ -55,7 +55,7 @@ private:
                               const WhereClauseBuilder& right);
 };
 
-class NegationWhereClauseBuilder : public ExplicitWhereClauseBuilder
+class NegationWhereClauseBuilder : public DirectWhereClauseBuilder
 {
 public:
     NegationWhereClauseBuilder(const WhereClauseBuilder& inner);

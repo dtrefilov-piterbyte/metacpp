@@ -40,14 +40,14 @@ bool SqlStorable::insertOne(SqlTransaction& transaction)
 bool SqlStorable::updateOne(SqlTransaction &transaction)
 {
     SqlStatementUpdate statement(this);
-    int nRows = statement.where(ExplicitWhereClauseBuilder(whereId())).exec(transaction);
+    int nRows = statement.where(DirectWhereClauseBuilder(whereId())).exec(transaction);
     return nRows < 0 || nRows == 1;
 }
 
 bool SqlStorable::removeOne(SqlTransaction &transaction)
 {
     SqlStatementDelete statement(this);
-    int nRows = statement.where(ExplicitWhereClauseBuilder(whereId())).exec(transaction);
+    int nRows = statement.where(DirectWhereClauseBuilder(whereId())).exec(transaction);
     return nRows < 0 || nRows == 1;
 }
 

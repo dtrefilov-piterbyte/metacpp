@@ -71,9 +71,9 @@ class SqlColumnMatcherBase<String>
 public:
     virtual String expression() const = 0;
 
-    ExplicitWhereClauseBuilder like(const String& val) const
+    DirectWhereClauseBuilder like(const String& val) const
     {
-        return ExplicitWhereClauseBuilder(this->expression() + " LIKE \'" + val + "\'");
+        return DirectWhereClauseBuilder(this->expression() + " LIKE \'" + val + "\'");
     }
 };
 
@@ -126,16 +126,16 @@ private:
 };
 
 template<typename TField>
-class SqlColumnMatcherExplicitExpression : public SqlColumnMatcherBase<TField>
+class SqlColumnMatcherDirectExpression : public SqlColumnMatcherBase<TField>
 {
 public:
-    explicit SqlColumnMatcherExplicitExpression(const String& expr)
+    explicit SqlColumnMatcherDirectExpression(const String& expr)
         : m_expr(expr)
     {
 
     }
 
-    ~SqlColumnMatcherExplicitExpression()
+    ~SqlColumnMatcherDirectExpression()
     {
     }
 
@@ -222,15 +222,15 @@ public:
     {
     }
 
-    ExplicitWhereClauseBuilder isNull() const
+    DirectWhereClauseBuilder isNull() const
     {
-        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
+        return DirectWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
             this->metaField()->name() + " IS NULL");
     }
 
-    ExplicitWhereClauseBuilder isNotNull() const
+    DirectWhereClauseBuilder isNotNull() const
     {
-        return ExplicitWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
+        return DirectWhereClauseBuilder(String(TObj::staticMetaObject()->name()) + "." +
             this->metaField()->name() + " IS NOT NULL");
     }
 
@@ -250,15 +250,15 @@ public:
 
     SqlColumnAssignment<TObj, TField, TField> operator=(null_t)
     {
-        return SqlColumnAssignment<TObj, TField, TField>(*this, SqlColumnMatcherExplicitExpression<TField>("NULL"));
+        return SqlColumnAssignment<TObj, TField, TField>(*this, SqlColumnMatcherDirectExpression<TField>("NULL"));
     }
 
-    inline ExplicitWhereClauseBuilder operator==(null_t) const
+    inline DirectWhereClauseBuilder operator==(null_t) const
     {
         return isNull();
     }
 
-    inline ExplicitWhereClauseBuilder operator!=(null_t) const
+    inline DirectWhereClauseBuilder operator!=(null_t) const
     {
         return isNotNull();
     }
@@ -384,32 +384,32 @@ struct TypePromotion
     template<typename TField1, typename TField2> \
     typename std::enable_if<std::is_same<TField1, TField2>::value || \
     (std::is_arithmetic<TField1>::value && \
-    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    std::is_arithmetic<TField2>::value), DirectWhereClauseBuilder>::type \
     operator op(const SqlColumnMatcherBase<TField1>& lhs, \
                const SqlColumnMatcherBase<TField2>& rhs) \
     { \
-        return ExplicitWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + rhs.expression()); \
+        return DirectWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + rhs.expression()); \
     } \
     \
     template<typename TField1, typename TField2> \
     typename std::enable_if<std::is_same<TField1, TField2>::value || \
     (std::is_arithmetic<TField1>::value && \
-    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    std::is_arithmetic<TField2>::value), DirectWhereClauseBuilder>::type \
     operator op(const TField1& lhs, \
                const SqlColumnMatcherBase<TField2>& rhs) \
     { \
         ValueEvaluator<TField1> eval;\
-        return ExplicitWhereClauseBuilder(eval(lhs) + " " #sqlop " " + rhs.expression()); \
+        return DirectWhereClauseBuilder(eval(lhs) + " " #sqlop " " + rhs.expression()); \
     } \
     template<typename TField1, typename TField2> \
     typename std::enable_if<std::is_same<TField1, TField2>::value || \
     (std::is_arithmetic<TField1>::value && \
-    std::is_arithmetic<TField2>::value), ExplicitWhereClauseBuilder>::type \
+    std::is_arithmetic<TField2>::value), DirectWhereClauseBuilder>::type \
     operator op(const SqlColumnMatcherBase<TField1>& lhs, \
                const TField2& rhs) \
     { \
         ValueEvaluator<TField2> eval;\
-        return ExplicitWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + eval(rhs)); \
+        return DirectWhereClauseBuilder(lhs.expression() + " " + #sqlop + " " + eval(rhs)); \
     } \
 
 _INST_REL_OPERATOR(==, =)
@@ -423,44 +423,44 @@ _INST_REL_OPERATOR(<, <)
 
 /** unary - */
 template<typename TField>
-SqlColumnMatcherExplicitExpression<TField>
+SqlColumnMatcherDirectExpression<TField>
 operator-(const SqlColumnMatcherBase<TField>& inner)
 {
-    return SqlColumnMatcherExplicitExpression<TField>("(-" + inner.expression() + ")");
+    return SqlColumnMatcherDirectExpression<TField>("(-" + inner.expression() + ")");
 }
 
 /** unary + */
 template<typename TField>
-SqlColumnMatcherExplicitExpression<TField>
+SqlColumnMatcherDirectExpression<TField>
 operator+(const SqlColumnMatcherBase<TField>& inner)
 {
-    return SqlColumnMatcherExplicitExpression<TField>("(+" + inner.expression() + ")");
+    return SqlColumnMatcherDirectExpression<TField>("(+" + inner.expression() + ")");
 }
 
 #define _INST_BINARY_OPERATOR(op) \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
 operator op(const SqlColumnMatcherBase<TField1>& lhs, \
           const TField2& rhs) \
 { \
     ValueEvaluator<TField2> eval; \
-    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>( \
+    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>( \
         "(" + lhs.expression() + " " #op " " + eval(rhs) + ")"); \
 } \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
 operator op(const TField1& lhs, \
           const SqlColumnMatcherBase<TField2>& rhs) \
 { \
     ValueEvaluator<TField1> eval; \
-    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>("(" + eval(lhs) + " " #op " " + rhs.expression() + ")"); \
+    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>("(" + eval(lhs) + " " #op " " + rhs.expression() + ")"); \
 } \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
 operator op(const SqlColumnMatcherBase<TField1>& lhs, \
           const SqlColumnMatcherBase<TField2>& rhs) \
 { \
-    return SqlColumnMatcherExplicitExpression<typename TypePromotion<TField1, TField2>::Type>( \
+    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>( \
                 "(" + lhs.expression() + " " #op + " " + rhs.expression() + ")"); \
 }
 
@@ -475,52 +475,52 @@ _INST_BINARY_OPERATOR(%)
 
 /*** String functions ****/
 
-inline SqlColumnMatcherExplicitExpression<String> upper(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<String> upper(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<String>("upper(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<String>("upper(" + column.expression() + ")");
 }
 
-inline SqlColumnMatcherExplicitExpression<String> lower(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<String> lower(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<String>("lower(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<String>("lower(" + column.expression() + ")");
 }
 
-inline SqlColumnMatcherExplicitExpression<String> trim(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<String> trim(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<String>("trim(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<String>("trim(" + column.expression() + ")");
 }
 
-inline SqlColumnMatcherExplicitExpression<String> ltrim(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<String> ltrim(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<String>("ltrim(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<String>("ltrim(" + column.expression() + ")");
 }
 
-inline SqlColumnMatcherExplicitExpression<String> rtrim(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<String> rtrim(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<String>("rtrim(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<String>("rtrim(" + column.expression() + ")");
 }
 
-inline SqlColumnMatcherExplicitExpression<uint64_t> length(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<uint64_t> length(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<uint64_t>("length(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<uint64_t>("length(" + column.expression() + ")");
 }
 
 /*** Arihmetic functions  ***/
 
 template<typename TField, typename = typename std::enable_if<std::is_arithmetic<TField>::value>::type >
-inline SqlColumnMatcherExplicitExpression<TField> abs(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<TField> abs(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<TField>("abs(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<TField>("abs(" + column.expression() + ")");
 }
 
 template<typename TField, typename = typename std::enable_if<std::is_floating_point<TField>::value>::type >
-inline SqlColumnMatcherExplicitExpression<TField> round(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<TField> round(const SqlColumnMatcherBase<String>& column)
 {
-    return SqlColumnMatcherExplicitExpression<TField>("round(" + column.expression() + ")");
+    return SqlColumnMatcherDirectExpression<TField>("round(" + column.expression() + ")");
 }
-inline SqlColumnMatcherExplicitExpression<int64_t> random()
+inline SqlColumnMatcherDirectExpression<int64_t> random()
 {
-    return SqlColumnMatcherExplicitExpression<int64_t>("random()");
+    return SqlColumnMatcherDirectExpression<int64_t>("random()");
 }
 
 } // namespace sql

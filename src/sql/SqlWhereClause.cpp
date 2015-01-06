@@ -5,22 +5,22 @@ namespace metacpp
 namespace sql
 {
 
-ExplicitWhereClauseBuilder::ExplicitWhereClauseBuilder(const String &s)
+DirectWhereClauseBuilder::DirectWhereClauseBuilder(const String &s)
     : m_string(s)
 {
 }
 
-ExplicitWhereClauseBuilder::~ExplicitWhereClauseBuilder()
+DirectWhereClauseBuilder::~DirectWhereClauseBuilder()
 {
 }
 
-String ExplicitWhereClauseBuilder::expression() const
+String DirectWhereClauseBuilder::expression() const
 {
     return m_string;
 }
 
 ComplexWhereClauseBuilder::ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::Operator op, const WhereClauseBuilder &left, const WhereClauseBuilder &right)
-    : ExplicitWhereClauseBuilder(buildExpression(op, left, right))
+    : DirectWhereClauseBuilder(buildExpression(op, left, right))
 {
 }
 
@@ -50,7 +50,7 @@ String ComplexWhereClauseBuilder::buildExpression(ComplexWhereClauseBuilder::Ope
 }
 
 NegationWhereClauseBuilder::NegationWhereClauseBuilder(const WhereClauseBuilder &inner)
-    : ExplicitWhereClauseBuilder(buildExpression(inner))
+    : DirectWhereClauseBuilder(buildExpression(inner))
 {
 }
 
