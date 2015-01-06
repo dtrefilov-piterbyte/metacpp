@@ -9,10 +9,11 @@ before_install:
   - sudo apt-get install -y libjsoncpp-dev libsqlite3-dev libgtest-dev libpq-dev
   - if [ "$CXX" = "g++" ]; then sudo apt-get install -qq g++-4.8; fi
   - if [ "$CXX" = "g++" ]; then export CXX="g++-4.8" CC="gcc-4.8"; fi
-  - cd /usr/src/gtest
+  - pushd /usr/src/gtest
   - sudo cmake -DCMAKE_BUILD_TYPE=RELEASE .
   - sudo make
   - sudo mv libg* /usr/lib/
+  - popd
 
 before_script:
   - mkdir build
