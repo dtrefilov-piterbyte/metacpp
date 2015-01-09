@@ -4,6 +4,6 @@ metacpp
 
 A project providing ways of object introspection in C++.
 Base functionality:
-* [Object reflection and introspection](https://github.com/alien-9000/metacpp/wiki/introspection)
-* [Object serialization](https://github.com/alien-9000/metacpp/wiki/serialization)
+* Object reflection and introspection
+* Object serialization
 * [Type-safe C++ ORM](https://github.com/alien-9000/metacpp/wiki/orm-overlook)
