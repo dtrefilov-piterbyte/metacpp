@@ -57,4 +57,7 @@ void Object::fromString(const String& s)
 	vis.visit(this);
 }
 
+STRUCT_INFO_BEGIN(Object)
+STRUCT_INFO_END(Object)
+
 } // namespace metacpp

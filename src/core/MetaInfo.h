@@ -31,6 +31,7 @@
 namespace metacpp
 {
 class Object;
+class MetaObject;
 }
 
 enum EFieldType
@@ -138,6 +139,10 @@ struct FieldInfoDescriptor
             {
                 time_t defaultValue;
             } m_datetime;
+            struct
+            {
+                const metacpp::MetaObject *metaObject;
+            } m_obj;
         } ext;
         EMandatoriness	mandatoriness;
 
@@ -206,6 +211,11 @@ struct FieldInfoDescriptor
 		{
             ext.m_array.elemType = elemType;
             ext.m_array.elemSize = elemSize;
+            mandatoriness = eDefaultable;
+        }
+        explicit Extension(const metacpp::MetaObject *metaObject)
+        {
+            ext.m_obj.metaObject = metaObject;
             mandatoriness = eDefaultable;
         }
 	} valueInfo;
@@ -321,7 +331,7 @@ template<typename T>
 struct FullFieldInfoHelper<T, false, true>
 {
 	static constexpr EFieldType type() { return eFieldObject; }
-    static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(eDefaultable); }
+    static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(T::staticMetaObject()); }
     static constexpr bool nullable() { return false; }
 };
 

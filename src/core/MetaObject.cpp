@@ -21,8 +21,10 @@
 namespace metacpp
 {
 
-MetaObject::MetaObject(const StructInfoDescriptor *descriptor)
-	: m_descriptor(descriptor), m_initialized(false)
+MetaObject::MetaObject(const StructInfoDescriptor *descriptor,
+                       Object *(*constructor)(void *), void (*destructor)(void *))
+    : m_descriptor(descriptor), m_initialized(false),
+      m_constructor(constructor), m_destructor(destructor)
 {
 }
 
@@ -68,6 +70,31 @@ size_t MetaObject::totalFields() const
 {
     preparseFields();
     return m_fields.size();
+}
+
+const MetaObject *MetaObject::superMetaObject() const
+{
+    if (!m_descriptor->m_superDescriptor) return nullptr;
+    if (!m_super)
+        m_super.reset(new MetaObject(m_descriptor->m_superDescriptor));
+    return m_super.get();
+}
+
+size_t MetaObject::size() const
+{
+    return m_descriptor->m_dwSize;
+}
+
+Object *MetaObject::createInstance() const
+{
+    void *pMem = ::operator new(size());
+    return m_constructor(pMem);
+}
+
+void MetaObject::destroyInstance(Object *object) const
+{
+    m_destructor(object);
+    ::operator delete(object);
 }
 
 void MetaObject::preparseFields() const

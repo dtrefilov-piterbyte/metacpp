@@ -29,7 +29,9 @@ class MetaObject
 {
 	friend class pkVisitorBase;
 public:
-    explicit MetaObject(const StructInfoDescriptor *descriptor);
+    explicit MetaObject(const StructInfoDescriptor *descriptor,
+                        Object *(*constructor)(void *mem) = nullptr,
+                        void (*destructor)(void *mem) = nullptr);
     ~MetaObject(void);
 
     const char *name() const;
@@ -37,12 +39,19 @@ public:
     const MetaField *fieldByOffset(ptrdiff_t offset) const;
     const MetaField *fieldByName(const String& name, bool caseSensetive = false) const;
     size_t totalFields() const;
+    const MetaObject *superMetaObject() const;
+    size_t size() const;
+    Object *createInstance() const;
+    void destroyInstance(Object *object) const;
 private:
 	void preparseFields() const;
 
 	const StructInfoDescriptor *m_descriptor;
 	mutable bool m_initialized;
     mutable std::vector<std::unique_ptr<MetaField> > m_fields;
+    mutable std::unique_ptr<const MetaObject> m_super;
+    Object *(*m_constructor)(void *mem);
+    void (*m_destructor)(void *mem);
 };
 
 class MetaField
@@ -199,6 +208,8 @@ public:
         : MetaField(fieldDescriptor)
     {
     }
+
+    const MetaObject *metaObject() const { return m_descriptor->valueInfo.ext.m_obj.metaObject; }
 };
 
 class MetaFieldArray : public MetaField

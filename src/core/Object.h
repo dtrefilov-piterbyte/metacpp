@@ -49,14 +49,21 @@ public:
 	virtual const MetaObject *metaObject() const = 0;
 };
 
-#define META_INFO_DECLARE(structName) \
-        const MetaObject *metaObject() const override { return &ms_metaObject; } \
-        static const MetaObject *staticMetaObject() { return &ms_metaObject; } \
+#define META_INFO_DECLARE(ObjName) \
+        const MetaObject *metaObject() const override; \
+        static const MetaObject *staticMetaObject(); \
+        static Object *constructInstance(void *mem); \
+        static void destructInstance(void *mem); \
     private: \
         static MetaObject ms_metaObject;
 
-#define META_INFO(structName) \
-    MetaObject structName::ms_metaObject(&STRUCT_INFO(structName));
+#define META_INFO(ObjName) \
+    MetaObject ObjName::ms_metaObject(&STRUCT_INFO(ObjName), \
+        &ObjName::constructInstance, &ObjName::destructInstance); \
+    const MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
+    const MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
+    Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
+    void ObjName::destructInstance(void *mem) { reinterpret_cast<ObjName *>(mem)->~ObjName(); }
 
 STRUCT_INFO_DECLARE(Object)
 
