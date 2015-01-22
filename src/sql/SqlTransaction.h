@@ -59,7 +59,6 @@ private:
     bool m_transactionStarted;
 };
 
-// TODO: needed some kind of SqlTransactionGuard with AutoCommit and AutoRollback disposition behaviour (as wrapper over SqlTransaction?)
 
 } // namespace sql
 } // namespace metacpp

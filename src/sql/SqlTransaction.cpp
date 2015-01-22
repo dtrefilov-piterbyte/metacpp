@@ -45,8 +45,6 @@ SqlTransaction::~SqlTransaction()
         case SqlTransactionAutoRollback:
             rollback();
             break;
-        default:
-            throw std::runtime_error("Destroing transaction with non-closed transaction");
         }
     }
     if (m_impl)

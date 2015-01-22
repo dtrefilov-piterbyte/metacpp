@@ -34,7 +34,7 @@ public:
     }
 
     T& operator=(const T& value) { set(value); return m_value; }
-    bool operator==(T value) { return m_isSet && value == m_value; }
+    bool operator==(const T& value) { return m_isSet && value == m_value; }
     const T& operator *() const { return get(); }
     T& operator *() { return get(); }
     operator bool() const { return m_isSet; }

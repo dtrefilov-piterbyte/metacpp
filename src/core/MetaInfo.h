@@ -363,9 +363,9 @@ struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelp
     /* name */      #field, \
     /* size */      sizeof(decltype(struc::field)), \
     /* offset */    offsetof(struc, field), \
-    /* type */      FullFieldInfoHelper<decltype(struc::field)>::type(), \
-    /* nullable */  FullFieldInfoHelper<decltype(struc::field)>::nullable(), \
-    /* extension */ FullFieldInfoHelper<decltype(struc::field)>::extension(__VA_ARGS__) \
+    /* type */      FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::type(), \
+    /* nullable */  FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::nullable(), \
+    /* extension */ FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::extension(__VA_ARGS__) \
     },
 
 #define ENUM_INFO_BEGIN(_enum, type, def) \
