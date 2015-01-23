@@ -114,9 +114,9 @@ String SqlStorable::fieldValue(const MetaField *field) const
             if (!field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()))
                 return "NULL";
             else
-                return "\'" + field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()).get().toISOString() + "\'";
+                return "\'" + field->access<Nullable<DateTime> >(const_cast<SqlStorable *>(this)->record()).get().toString() + "\'";
         }
-        return "\'" + field->access<DateTime>(const_cast<SqlStorable *>(this)->record()).toISOString() + "\'";
+        return "\'" + field->access<DateTime>(const_cast<SqlStorable *>(this)->record()).toString() + "\'";
     default:
         throw std::runtime_error("Unknown field type");
     }

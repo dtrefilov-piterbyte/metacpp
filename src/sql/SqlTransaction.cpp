@@ -45,6 +45,9 @@ SqlTransaction::~SqlTransaction()
         case SqlTransactionAutoRollback:
             rollback();
             break;
+        default:
+            std::cerr << "Destroying unfinished SqlTransaction" << std::endl;
+            break;
         }
     }
     if (m_impl)

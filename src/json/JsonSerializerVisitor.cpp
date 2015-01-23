@@ -142,7 +142,7 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 		break;
 	}
     case eFieldDateTime: {
-        val = reinterpret_cast<const metacpp::DateTime *>(pValue)->toISOString().c_str();
+        val = reinterpret_cast<const metacpp::DateTime *>(pValue)->toString().c_str();
         break;
     }
 	}	// switch

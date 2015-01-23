@@ -172,7 +172,7 @@ bool PostgresTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable
             assignField<String>(field, !pVal, String(pVal, PQgetlength(postgresStatement->getResult(), currentRow, i)), storable->record());
             break;
         case eFieldDateTime:
-            assignField<DateTime>(field, !pVal, DateTime::fromISOString(pVal), storable->record());
+            assignField<DateTime>(field, !pVal, DateTime::fromString(pVal), storable->record());
             break;
         case eFieldObject:
         case eFieldArray:

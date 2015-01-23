@@ -28,7 +28,7 @@ class SqlResultSetData;
 static const int ROW_ID_PAST_THE_END = -1;
 static const int ROW_ID_INVALID = -2;
 
-/** Forward iterator for iterating over sql result rows */
+/** Forward iterator for iterating over sql result set */
 class SqlResultIterator
 {
 public:

@@ -160,7 +160,7 @@ void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType t
 	}
     case eFieldDateTime: {
         if (!val.isString()) throw std::invalid_argument("Type mismatch");
-        *reinterpret_cast<DateTime *>(pValue) = DateTime::fromISOString(val.asCString());
+        *reinterpret_cast<DateTime *>(pValue) = DateTime::fromString(val.asCString());
         break;
     }
 	}	// switch

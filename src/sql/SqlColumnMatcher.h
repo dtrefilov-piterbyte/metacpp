@@ -29,7 +29,7 @@ typedef struct
 
 static const null_t null;
 
-/** Performs conversion of C++ value to SQL literal */
+/** Performs conversion of C++ value to an SQL literal */
 template<typename T, typename = void>
 struct ValueEvaluator;
 
@@ -60,7 +60,7 @@ struct ValueEvaluator<DateTime>
 public:
     String operator()(const DateTime& val) const
     {
-        return "\'" + val.toISOString() + "\'";
+        return "\'" + val.toString() + "\'";
     }
 };
 

@@ -152,7 +152,7 @@ TEST_F(SqlTest, selectTest)
                 (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
                 COL(Person::cityId) == COL(City::id) &&
                 !lower(COL(Person::name)).like("invalid_%") &&
-                COL(Person::birthday) > DateTime::fromISOString("2000-01-01 00:00:00"))
+                COL(Person::birthday) > DateTime::fromString("2000-01-01 00:00:00"))
                 .limit(10).orderAsc(COL(Person::name), COL(Person::age)).exec(transaction);
 
         StringArray persons;
@@ -256,7 +256,7 @@ void SqlTest::prepareData()
     Storable<Person> person;
     person.init();
     person.name = "Pupkin";
-    person.birthday = DateTime::fromISOString("2004-12-31 00:00:00");
+    person.birthday = DateTime::fromString("2004-12-31 00:00:00");
     person.cityId = city.id;
     person.insertOne(transaction);
     transaction.commit();

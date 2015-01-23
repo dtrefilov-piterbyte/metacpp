@@ -90,7 +90,7 @@ time_t DateTimeData::toStdTime() const
     return mktime(const_cast<struct tm *>(&m_tm));
 }
 
-String DateTimeData::toISOString() const
+String DateTimeData::toString() const
 {
     char buf[50];
     //strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
@@ -98,7 +98,7 @@ String DateTimeData::toISOString() const
     return buf;
 }
 
-void DateTimeData::fromISOString(const char *isoString)
+void DateTimeData::fromString(const char *isoString)
 {
     if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
         throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
@@ -131,7 +131,7 @@ bool DateTime::valid() const
 bool DateTime::operator==(const DateTime& rhs) const
 {
     if (!valid() || !rhs.valid())
-        return false;
+        return valid() == rhs.valid();
     return *m_d == *rhs.m_d;
 }
 
@@ -182,22 +182,27 @@ time_t DateTime::toStdTime() const
     return getData()->toStdTime();
 }
 
-String DateTime::toISOString() const
+String DateTime::toString() const
 {
-    return getData()->toISOString();
+    return getData()->toString();
 }
 
-DateTime DateTime::fromISOString(const char *isoString)
+DateTime DateTime::fromString(const char *isoString)
 {
     DateTime res;
     res.m_d = new DateTimeData();
-    res.m_d->fromISOString(isoString);
+    res.m_d->fromString(isoString);
     return res;
 }
 
 DateTime DateTime::now()
 {
     return DateTime(time(NULL));
+}
+
+std::ostream &operator<<(std::ostream &stream, const DateTime &dt)
+{
+    return stream << (dt.valid() ? dt.toString() : "(null)");
 }
 
 } // namespace metacpp

@@ -40,11 +40,11 @@ public:
     int seconds() const;
 
     time_t toStdTime() const;
-    String toISOString() const;
+    String toString() const;
 
     SharedDataBase *clone() const override;
 
-    void fromISOString(const char *isoString);
+    void fromString(const char *isoString);
 
 private:
     struct tm m_tm;
@@ -70,13 +70,15 @@ public:
     int seconds() const;
 
     time_t toStdTime() const;
-    String toISOString() const;
+    String toString() const;
 
-    static DateTime fromISOString(const char *isoString);
+    static DateTime fromString(const char *isoString);
     static DateTime now();
 private:
     DateTimeData *getData() const;
 };
+
+std::ostream& operator<<(std::ostream& stream, const DateTime& dt);
 
 } // namespace metacpp
 

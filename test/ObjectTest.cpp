@@ -113,8 +113,7 @@ void ObjectTest::testMetaInfo()
 	TestStruct t;
     EXPECT_EQ(std::string(t.metaObject()->name()), "TestStruct");
     EXPECT_EQ(t.metaObject()->totalFields(), 15);
-    //auto sd = t.metaObject()->descriptor();
-    //ASSERT_EQ(sd->m_superDescriptor, &STRUCT_INFO(TestBaseStruct));
+    ASSERT_EQ(t.metaObject()->superMetaObject()->name(), String("TestBaseStruct"));
     ASSERT_EQ(std::string(t.metaObject()->field(1)->name()), "enumValue");
     ASSERT_EQ(t.metaObject()->field(1)->type(), eFieldEnum);
     ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);
@@ -171,7 +170,7 @@ void ObjectTest::testSerialization()
     item.name = "asdj"; t.arrValue.push_back(item);
     item.name = ""; t.arrValue.push_back(item);
     t.optFloatValue = 2.5;
-    t.datetimeValue = DateTime::fromISOString("0100-10-12 00:00:00");
+    t.datetimeValue = DateTime::fromString("0100-10-12 00:00:00");
     t2.fromString(t.toString());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
@@ -191,7 +190,6 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
-    std::cout << t.toString() << std::endl;
 }
 
 TEST_F(ObjectTest, MetaInfoTest)
@@ -207,4 +205,77 @@ TEST_F(ObjectTest, InitVisitorTest)
 TEST_F(ObjectTest, SerializationTest)
 {
 	testSerialization();
+}
+
+namespace metacpp
+{
+    class MyObject : public Object
+    {
+        META_INFO_DECLARE(MyObject)
+
+        int foo(int, float);
+    };
+
+    STRUCT_INFO_DERIVED_BEGIN(MyObject, Object)
+    STRUCT_INFO_END(MyObject)
+
+    META_INFO(MyObject)
+
+    // constness info? unsupported by most of script languages
+    enum PassType
+    {
+        PassTypeByValue,
+        PassTypeByReference,
+        PassTypeByPointer
+    };
+
+    struct ArgumentInfo
+    {
+        EFieldType m_type;
+        bool m_nullable;
+        PassType m_passType;
+    };
+
+    template<typename T>
+    struct ArgumentInfoHelper {
+        ArgumentInfo getArgumentInfo()
+        {
+            return ArgumentInfo {
+                FullFieldInfoHelper<std::remove_cv<T> >::type(),
+                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
+                PassTypeByValue
+            };
+        }
+    };
+
+    template<typename T>
+    struct ArgumentInfoHelper<T *>
+    {
+        ArgumentInfo getArgumentInfo()
+        {
+            return ArgumentInfo {
+                FullFieldInfoHelper<std::remove_cv<T> >::type(),
+                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
+                PassTypeByPointer
+            };
+        }
+    };
+
+    template<typename T>
+    struct ArgumentInfoHelper<T&>
+    {
+        ArgumentInfo getArgumentInfo()
+        {
+            return ArgumentInfo {
+                FullFieldInfoHelper<std::remove_cv<T> >::type(),
+                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
+                PassTypeByReference
+            };
+        }
+    };
+
+    void test()
+    {
+
+    }
 }
