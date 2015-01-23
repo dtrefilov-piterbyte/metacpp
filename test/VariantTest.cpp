@@ -41,15 +41,15 @@ INSTANTIATE_TYPED_TEST_CASE_P(TypedVariantTestInstance, TypedVariantTest, Varian
 
 
 #define INSTANTIATE_CONVERT_TEST(T1, T2, Params) \
-typedef ConvertVariantTest<T1, T2> T1##_##T2##_ConvertTest; \
+typedef ConvertVariantTest<T1, T2> T1##_##T2##_ConvertVariantTest; \
  \
-TEST_P(T1##_##T2##_ConvertTest, ConvertTest) \
+TEST_P(T1##_##T2##_ConvertVariantTest, ConvertTest) \
 { \
     Variant v(GetParam().first); \
     ASSERT_EQ(v.value<decltype(GetParam().second)>(), GetParam().second); \
 } \
  \
-INSTANTIATE_TEST_CASE_P(T1##_##T2##_ConvertTestInstance, T1##_##T2##_ConvertTest, \
+INSTANTIATE_TEST_CASE_P(T1##_##T2##_ConvertVariantTestInstance, T1##_##T2##_ConvertVariantTest, \
                         Params);
 
 INSTANTIATE_CONVERT_TEST(int32_t, bool, ::testing::Values(
