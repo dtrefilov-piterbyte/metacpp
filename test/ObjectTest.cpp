@@ -2,7 +2,7 @@
 #include "Object.h"
 #include <string>
 #include <memory>
-#include "JsonSerializerVisitor.h"
+#include "Variant.h"
 
 using namespace metacpp;
 
@@ -196,9 +196,38 @@ namespace metacpp
 {
     class MyObject : public Object
     {
+        int m_x;
+    public:
+
+        MyObject(int x = 0)
+            : m_x(x)
+        {
+
+        }
+
+        static int foo(int a, float b)
+        {
+            return a * b;
+        }
+
+        static void foo1()
+        {
+        }
+
+        float bar(int a, double b) const
+        {
+            return m_x * a * b;
+        }
+
+        void bar1(int newX)
+        {
+            m_x = newX;
+        }
+
+        int x() const { return m_x; }
+
         META_INFO_DECLARE(MyObject)
 
-        int foo(int, float);
     };
 
     STRUCT_INFO_DERIVED_BEGIN(MyObject, Object)
@@ -206,61 +235,284 @@ namespace metacpp
 
     META_INFO(MyObject)
 
-    // constness info? unsupported by most of script languages
-    enum PassType
+    class BindArgumentException : public std::invalid_argument
     {
-        PassTypeByValue,
-        PassTypeByReference,
-        PassTypeByPointer
-    };
-
-    struct ArgumentInfo
-    {
-        EFieldType m_type;
-        bool m_nullable;
-        PassType m_passType;
-    };
-
-    template<typename T>
-    struct ArgumentInfoHelper {
-        ArgumentInfo getArgumentInfo()
+    public:
+        BindArgumentException(const char *errorMsg = "Cannot bind argument")
+            : std::invalid_argument(errorMsg)
         {
-            return ArgumentInfo {
-                FullFieldInfoHelper<std::remove_cv<T> >::type(),
-                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
-                PassTypeByValue
-            };
         }
     };
 
-    template<typename T>
-    struct ArgumentInfoHelper<T *>
+    namespace detail
     {
-        ArgumentInfo getArgumentInfo()
+        template<typename Func, typename TRes, typename Tuple, bool Done, int Total, int... N>
+        struct fcall_impl
         {
-            return ArgumentInfo {
-                FullFieldInfoHelper<std::remove_cv<T> >::type(),
-                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
-                PassTypeByPointer
-            };
-        }
+            static TRes call(Func f, Tuple && t)
+            {
+                return fcall_impl<Func, TRes, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t));
+            }
+        };
+
+        template<typename Func, typename TRes, typename Tuple, int Total, int... N>
+        struct fcall_impl<Func, TRes, Tuple, true, Total, N...>
+        {
+            static TRes call(Func f, Tuple && t)
+            {
+                return f(std::get<N>(std::forward<Tuple>(t))...);
+            }
+        };
+
+        template<typename Func, typename TRes, typename TObj, typename Tuple, bool Done, int Total, int... N>
+        struct mcall_impl
+        {
+            static TRes call(Func f, TObj *obj, Tuple && t)
+            {
+                return mcall_impl<Func, TRes, TObj, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, obj, std::forward<Tuple>(t));
+            }
+        };
+
+        template<typename Func, typename TRes, typename TObj, typename Tuple, int Total, int... N>
+        struct mcall_impl<Func, TRes, TObj, Tuple, true, Total, N...>
+        {
+            static TRes call(Func f, TObj *obj, Tuple && t)
+            {
+                return (*obj.*f)(std::get<N>(std::forward<Tuple>(t))...);
+            }
+        };
+
+
+        template<size_t N, bool Done, typename... TArgs>
+        struct unpack_impl
+        {
+            static void unpack_arguments(std::tuple<TArgs...>& t, const VariantArray& argList)
+            {
+                typedef typename std::tuple_element<N, std::tuple<TArgs...>>::type ArgType;
+                try
+                {
+                    std::get<N>(t) = argList[N].value<ArgType>();
+                }
+                catch (const std::invalid_argument& e)
+                {
+                    throw BindArgumentException(e.what());
+                }
+                unpack_impl<N + 1, N + 1 == sizeof...(TArgs), TArgs...>::unpack_arguments(t, argList);
+            }
+        };
+
+        template<size_t N, typename... TArgs>
+        struct unpack_impl<N, true, TArgs...>
+        {
+            static void unpack_arguments(std::tuple<TArgs...>&, const VariantArray&)
+            {
+            }
+        };
+    }
+
+    class InvokeHelperBase
+    {
+    public:
+        virtual ~InvokeHelperBase() { }
+        virtual Variant invoke(const VariantArray& argList) const = 0;
     };
 
-    template<typename T>
-    struct ArgumentInfoHelper<T&>
+    template<typename TRes, typename... TArgs>
+    class FunctionInvokeHelper : public InvokeHelperBase
     {
-        ArgumentInfo getArgumentInfo()
+    private:
+
+        template<typename Q = TRes>
+        typename std::enable_if<std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
         {
-            return ArgumentInfo {
-                FullFieldInfoHelper<std::remove_cv<T> >::type(),
-                FullFieldInfoHelper<std::remove_cv<T> >::nullable(),
-                PassTypeByReference
-            };
+            doInvoke(argList);
+            return Variant();
         }
+
+        template<typename Q = TRes>
+        typename std::enable_if<!std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
+        {
+            return Variant(doInvoke(argList));
+        }
+
+    public:
+        typedef TRes (*TFunction)(TArgs...);
+
+        explicit FunctionInvokeHelper(TFunction func)
+            : m_function(func)
+        {
+        }
+
+        TRes doInvoke(const VariantArray& argList) const
+        {
+            typedef std::tuple<TArgs...> ttype;
+            ttype args;
+            if (sizeof...(TArgs) != argList.size())
+                throw BindArgumentException(String("Invalid number of arguments, " +
+                                                   String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+            detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+            return detail::fcall_impl<TFunction, TRes, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                    ::call(m_function, std::forward<ttype>(args));
+        }
+
+        Variant invoke(const VariantArray& argList) const override
+        {
+            return invokeHelper(argList);
+        }
+
+    private:
+        TFunction m_function;
     };
 
-    void test()
+    template<typename TRes, typename TObj, typename... TArgs>
+    class MethodInvokeHelper : public InvokeHelperBase
     {
+    private:
 
+        template<typename Q = TRes>
+        typename std::enable_if<std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
+        {
+            doInvoke(argList);
+            return Variant();
+        }
+
+        template<typename Q = TRes>
+        typename std::enable_if<!std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
+        {
+            return Variant(doInvoke(argList));
+        }
+
+    public:
+        typedef TRes (TObj::*TFunction)(TArgs...);
+
+        MethodInvokeHelper(TObj *obj, TFunction function)
+            : m_obj(obj), m_method(function)
+        {
+        }
+
+        TRes doInvoke(const VariantArray& argList) const
+        {
+            typedef std::tuple<TArgs...> ttype;
+            ttype args;
+            if (sizeof...(TArgs) != argList.size())
+                throw BindArgumentException(String("Invalid number of arguments, " +
+                                                   String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+            detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+            return detail::mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                    ::call(m_method, m_obj, std::forward<ttype>(args));
+        }
+
+        Variant invoke(const VariantArray& argList) const override
+        {
+            return invokeHelper(argList);
+        }
+
+    private:
+        TObj *m_obj;
+        TFunction m_method;
+    };
+
+    template<typename TRes, typename TObj, typename... TArgs>
+    class ConstMethodInvokeHelper : public InvokeHelperBase
+    {
+    private:
+
+        template<typename Q = TRes>
+        typename std::enable_if<std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
+        {
+            doInvoke(argList);
+            return Variant();
+        }
+
+        template<typename Q = TRes>
+        typename std::enable_if<!std::is_same<Q, void>::value, Variant>::type invokeHelper(const VariantArray &argList) const
+        {
+            return Variant(doInvoke(argList));
+        }
+
+    public:
+        typedef TRes (TObj::*TFunction)(TArgs...) const;
+
+        ConstMethodInvokeHelper(const TObj *obj, TFunction function)
+            : m_obj(obj), m_method(function)
+        {
+        }
+
+        TRes doInvoke(const VariantArray& argList) const
+        {
+            typedef std::tuple<TArgs...> ttype;
+            ttype args;
+            if (sizeof...(TArgs) != argList.size())
+                throw BindArgumentException(String("Invalid number of arguments, " +
+                                                   String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+            detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+            return detail::mcall_impl<TFunction, TRes, const TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                    ::call(m_method, m_obj, std::forward<ttype>(args));
+        }
+
+        Variant invoke(const VariantArray& argList) const override
+        {
+            return invokeHelper(argList);
+        }
+
+    private:
+        const TObj *m_obj;
+        TFunction m_method;
+    };
+
+    template<typename TRes, typename... TArgs>
+    std::unique_ptr<InvokeHelperBase> createInvokeHelper(TRes (*func)(TArgs...))
+    {
+        return std::move(std::unique_ptr<InvokeHelperBase>(new FunctionInvokeHelper<TRes, TArgs...>(func)));
+    }
+
+    template<typename TRes, typename TObj, typename... TArgs>
+    std::unique_ptr<InvokeHelperBase> createInvokeHelper(TObj *obj, TRes (TObj::*function)(TArgs...))
+    {
+        return std::move(std::unique_ptr<InvokeHelperBase>(new MethodInvokeHelper<TRes, TObj, TArgs...>(obj, function)));
+    }
+
+    template<typename TRes, typename TObj, typename... TArgs>
+    std::unique_ptr<InvokeHelperBase> createInvokeHelper(const TObj *obj, TRes (TObj::*function)(TArgs...) const)
+    {
+        return std::move(std::unique_ptr<InvokeHelperBase>(new ConstMethodInvokeHelper<TRes, TObj, TArgs...>(obj, function)));
+    }
+
+    TEST_F(ObjectTest, invokeStaticTest)
+    {
+        VariantArray argList = { Variant(12), Variant(2.5f) };
+        ASSERT_EQ(30, createInvokeHelper(MyObject::foo)->invoke(argList).value<int>());
+    }
+
+    TEST_F(ObjectTest, invalidInvokeTest)
+    {
+        VariantArray argList;
+        EXPECT_THROW(createInvokeHelper(MyObject::foo)->invoke(argList).value<int>(), BindArgumentException);
+    }
+
+    TEST_F(ObjectTest, invalidArgumentTest)
+    {
+        VariantArray argList = { Variant(12), Variant("2.5f") };
+        EXPECT_THROW(createInvokeHelper(MyObject::foo)->invoke(argList).value<int>(), BindArgumentException);
+    }
+
+    TEST_F(ObjectTest, invokeVoidStaticTest)
+    {
+        ASSERT_FALSE(createInvokeHelper(MyObject::foo1)->invoke(VariantArray()).valid());
+    }
+
+    TEST_F(ObjectTest, invokeConstMethod)
+    {
+        VariantArray argList = { Variant(12), Variant(2.5) };
+        MyObject obj(2);
+        ASSERT_EQ(60, createInvokeHelper(&obj, &MyObject::bar)->invoke(argList).value<int>());
+    }
+
+    TEST_F(ObjectTest, invokeMethod)
+    {
+        VariantArray argList = { Variant(12) };
+        MyObject obj;
+        createInvokeHelper(&obj, &MyObject::bar1)->invoke(argList);
+        ASSERT_EQ(12, obj.x());
     }
 }

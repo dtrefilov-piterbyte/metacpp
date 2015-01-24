@@ -281,7 +281,7 @@ VariantData *Variant::getData() const
     return data;
 }
 
-Variant::Variant()
+Variant::Variant(void)
 {
 }
 
@@ -331,12 +331,17 @@ Variant::Variant(const double &v)
 
 }
 
-Variant::Variant(const String &v)
-    : SharedDataPointer<VariantData>(new VariantData(v))
+Variant::Variant(const char *v)
+    : SharedDataPointer<VariantData>(new VariantData(String(v)))
 {
 
 }
 
+Variant::Variant(const String& v)
+    : SharedDataPointer<VariantData>(new VariantData(v))
+{
+
+}
 Variant::Variant(const DateTime &v)
     : SharedDataPointer<VariantData>(new VariantData(v))
 {

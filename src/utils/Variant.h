@@ -71,7 +71,7 @@ private:
 class Variant : SharedDataPointer<VariantData>
 {
 public:
-    Variant();
+    Variant(void);
     ~Variant();
 
     explicit Variant(bool v);
@@ -81,6 +81,7 @@ public:
     explicit Variant(const uint64_t& v);
     explicit Variant(const float& v);
     explicit Variant(const double& v);
+    explicit Variant(const char *v);
     explicit Variant(const String& v);
     explicit Variant(const DateTime& v);
 
