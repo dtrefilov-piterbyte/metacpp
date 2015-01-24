@@ -377,6 +377,30 @@ namespace metacpp
 		return strW;
 	}
 
+    template<>
+    String string_cast<String>(const std::string& str)
+    {
+        return str;
+    }
+
+    template<>
+    String string_cast<String>(const std::basic_string<char16_t>& strW)
+    {
+        return string_cast<String>(strW.data(), strW.length());
+    }
+
+    template<>
+    WString string_cast<WString>(const std::string& strA)
+    {
+        return string_cast<WString>(strA.data(), strA.length());
+    }
+
+    template<>
+    WString string_cast<WString>(const std::basic_string<char16_t>& str)
+    {
+        return str;
+    }
+
     std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const String& str)
     {
         os.rdbuf()->sputn(str.data(), str.size());
@@ -399,23 +423,35 @@ namespace metacpp
         return os << string_cast<WString>(wstr);
     }
 
-    std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const String& str)
+    std::basic_istream<char>& operator>>(std::basic_istream<char>& is, String& str)
     {
-        return os >> str.data();
+        std::string buf;
+        is >> buf;
+        str = buf;
+        return is;
     }
 
-    std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const WString& wstr)
+    std::basic_istream<char>& operator>>(std::basic_istream<char>& is, WString& wstr)
     {
-        return os >> string_cast<String>(wstr);
+        std::string buf;
+        is >> buf;
+        wstr = string_cast<WString>(buf);
+        return is;
     }
 
-    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const WString& str)
+    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, WString& wstr)
     {
-        return os >> str.data();
+        std::basic_string<char16_t> buf;
+        is >> buf;
+        wstr = buf;
+        return is;
     }
 
-    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const String& wstr)
+    std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, String& str)
     {
-        return os >> string_cast<WString>(wstr);
+        std::basic_string<char16_t> buf;
+        is >> buf;
+        str = string_cast<String>(buf);
+        return is;
     }
 }

@@ -66,6 +66,12 @@ template<typename T>
 T string_cast(const WString& strW);
 
 template<typename T>
+T string_cast(const std::string& strA);
+
+template<typename T>
+T string_cast(const std::basic_string<char16_t>& strW);
+
+template<typename T>
 class StringData : public ArrayData<T>
 {
 public:
@@ -556,10 +562,10 @@ std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const WString
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const WString& str);
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& os, const String& wstr);
 
-std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const String& str);
-std::basic_istream<char>& operator>>(std::basic_istream<char>& os, const WString& wstr);
-std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const WString& str);
-std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& os, const String& wstr);
+std::basic_istream<char>& operator>>(std::basic_istream<char>& is, String& str);
+std::basic_istream<char>& operator>>(std::basic_istream<char>& is, WString& wstr);
+std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, WString& wstr);
+std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, String& str);
 
 } // namespace metacpp
 #endif // STRING_H
