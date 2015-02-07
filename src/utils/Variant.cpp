@@ -214,9 +214,22 @@ DateTime VariantData::value<DateTime>() const
     case eFieldDateTime:
         return m_datetime;
     default:
-        throw std::invalid_argument("Variant is not convertible to String");
+        throw std::invalid_argument("Variant is not convertible to DateTime");
     }
 }
+
+template<>
+void VariantData::value<void>() const
+{
+    switch (m_type)
+    {
+    case eFieldVoid:
+        return;
+    default:
+        throw std::invalid_argument("Variant is not void typed");
+    }
+}
+
 bool Variant::valid() const
 {
     VariantData *data = this->data();

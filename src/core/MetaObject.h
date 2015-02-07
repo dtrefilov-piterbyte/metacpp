@@ -55,6 +55,12 @@ public:
     void destroyInstance(Object *object) const;
 
     Variant invoke(const String& methodName, const VariantArray& args) const;
+
+    template<typename TRet, typename... TArgs>
+    TRet invoke(const String &methodName, TArgs... args) const
+    {
+        return variant_cast<TRet>(invoke(methodName, { args... }));
+    }
 private:
     void prepare() const;
 

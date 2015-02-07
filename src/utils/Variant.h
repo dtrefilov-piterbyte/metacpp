@@ -88,13 +88,24 @@ public:
     Variant(const DateTime& v);
 
     inline EFieldType type() const { return getData()->type(); }
+
     template<typename T>
-    /** \brief Gets the stored value.
-    An automatic type conversion is performed as needed:
-     - any arithmetic (either integral or floating point) is converted to any other arithmetic type
-     - any type is converted to String using String::fromValue()
-    */
-    T value() const { return getData()->value<T>(); }
+    typename std::enable_if<!std::is_void<T>::value && !std::is_same<Variant, T>::value, T>::type value() const
+    {
+        return getData()->value<T>();
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_void<T>::value, void>::type value() const
+    {
+        if (valid()) throw std::runtime_error("Not a void variant");
+    }
+
+    template<typename T>
+    typename std::enable_if<std::is_same<T, Variant>::value, const Variant&>::type value() const
+    {
+        return *this;
+    }
 
     bool valid() const;
     bool isIntegral() const;
@@ -106,16 +117,15 @@ private:
     VariantData *getData() const;
 };
 
+/** \brief Gets the stored value.
+An automatic type conversion is performed as needed:
+ - any arithmetic (either integral or floating point) is converted to any other arithmetic type
+ - any type is converted to String using String::fromValue()
+*/
 template<typename T>
 T variant_cast(const Variant& v)
 {
     return v.value<T>();
-}
-
-template<>
-inline Variant variant_cast<Variant>(const Variant& v)
-{
-    return v;
 }
 
 typedef Array<Variant> VariantArray;

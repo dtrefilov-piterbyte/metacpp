@@ -367,7 +367,7 @@ namespace detail
             typedef typename std::tuple_element<N, std::tuple<TArgs...>>::type ArgType;
             try
             {
-                std::get<N>(t) = argList[N].value<ArgType>();
+                std::get<N>(t) = metacpp::variant_cast<ArgType>(argList[N]);
             }
             catch (const std::invalid_argument& e)
             {

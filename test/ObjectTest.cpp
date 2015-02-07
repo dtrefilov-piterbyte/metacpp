@@ -200,6 +200,9 @@ TEST_F(ObjectTest, SerializationTest)
 
 namespace
 {
+    template<typename... Args>
+    std::tuple<Args...> unpack(const VariantArray&);
+
     using namespace metacpp;
     class MyObject : public Object
     {
@@ -236,7 +239,7 @@ namespace
             return arg + String::fromValue(m_x);
         }
 
-        void test()
+        void test(Variant)
         {
         }
 
@@ -261,41 +264,41 @@ namespace
 
     TEST_F(ObjectTest, invokeStaticTest)
     {
-        ASSERT_EQ(30, MyObject::staticMetaObject()->invoke("foo", { 12, 2.5f }).value<int>());
+        ASSERT_EQ(30, MyObject::staticMetaObject()->invoke<int>("foo", 12, 2.5f));
     }
 
     TEST_F(ObjectTest, invokeVoidStaticTest)
     {
-        ASSERT_TRUE(!MyObject::staticMetaObject()->invoke("foo", { }).valid());
+        ASSERT_NO_THROW(MyObject::staticMetaObject()->invoke<void>("foo"));
     }
 
     TEST_F(ObjectTest, invalidArgumentTest)
     {
-        ASSERT_THROW(MyObject::staticMetaObject()->invoke("foo", { 12, "2.5f" }), MethodNotFoundException);
+        ASSERT_THROW(MyObject::staticMetaObject()->invoke<int>("foo", 12, "2.5f"), MethodNotFoundException);
     }
 
     TEST_F(ObjectTest, invokeConstMethod)
     {
         const MyObject obj(2);
-        ASSERT_EQ(60, obj.invoke("bar", { 12, 2.5 }).value<int>());
+        ASSERT_EQ(60, obj.invoke<int>("bar", 12, 2.5));
     }
 
     TEST_F(ObjectTest, invokeMethod)
     {
         MyObject obj(2);
-        ASSERT_TRUE(!obj.invoke("bar", { 12 }).valid());
+        ASSERT_NO_THROW(obj.invoke<void>("bar", 12));
         ASSERT_EQ(obj.x(), 12);
     }
 
     TEST_F(ObjectTest, invokeOverloadedMethod)
     {
         MyObject obj(2);
-        ASSERT_EQ(obj.invoke("bar", { "prefix_" }).value<String>(), "prefix_2");
+        ASSERT_EQ(obj.invoke<String>("bar", "prefix_"), "prefix_2");
     }
 
     TEST_F(ObjectTest, invokeFailureByConstness)
     {
         const MyObject obj(2);
-        ASSERT_THROW(obj.invoke("test", { }), MethodNotFoundException);
+        ASSERT_THROW(obj.invoke<void>("test", Variant()), MethodNotFoundException);
     }
 }

@@ -59,6 +59,18 @@ public:
     */
     Variant invoke(const String& methodName, const VariantArray& args) const;
 
+    template<typename TRet, typename... TArgs>
+    TRet invoke(const String& methodName, TArgs... args)
+    {
+        return variant_cast<TRet>(invoke(methodName, { args... }));
+    }
+
+    template<typename TRet, typename... TArgs>
+    TRet invoke(const String& methodName, TArgs... args) const
+    {
+        return variant_cast<TRet>(invoke(methodName, { args... }));
+    }
+
 	virtual const MetaObject *metaObject() const = 0;
 private:
     Variant doInvoke(const String& methodName, const VariantArray& args, bool constness) const;
