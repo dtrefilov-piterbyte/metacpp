@@ -16,6 +16,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 #include "MetaObject.h"
+#include <map>
 
 namespace metacpp
 {
@@ -71,9 +72,16 @@ public:
         return variant_cast<TRet>(invoke(methodName, { args... }));
     }
 
+    /** Sets a static or dynamic field of the object */
+    void setProperty(const String& propName, const Variant& val);
+    /** Gets object's static or dynamic field */
+    Variant getProperty(const String& propName) const;
+
 	virtual const MetaObject *metaObject() const = 0;
 private:
     Variant doInvoke(const String& methodName, const VariantArray& args, bool constness) const;
+private:
+    std::map<String, Variant> m_dynamicProperties;
 };
 
 #define META_INFO_DECLARE(ObjName) \
@@ -101,7 +109,7 @@ static constexpr ptrdiff_t getMemberOffset(const TField TObj::*member)
 
 /** \brief Usage: getMetaField(&Object::field); */
 template<typename TObj, typename TField>
-static constexpr const MetaField *getMetaField(const TField TObj::*member)
+static constexpr const MetaFieldBase *getMetaField(const TField TObj::*member)
 {
     return TObj::staticMetaObject()->fieldByOffset(getMemberOffset(member));
 }

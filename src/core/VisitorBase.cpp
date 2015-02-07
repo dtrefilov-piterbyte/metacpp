@@ -31,7 +31,7 @@ void VisitorBase::previsitStruct(Object *obj)
     (void)obj;
 }
 
-void VisitorBase::visitField(Object *obj, const MetaField *)
+void VisitorBase::visitField(Object *obj, const MetaFieldBase *)
 {
     (void)obj;
 }

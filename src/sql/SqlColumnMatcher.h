@@ -123,12 +123,12 @@ template<typename TObj, typename TField>
 class SqlColumnMatcherFieldBase : public SqlColumnMatcherBase<TField>
 {
 public:
-    explicit SqlColumnMatcherFieldBase(const MetaField *metaField)
+    explicit SqlColumnMatcherFieldBase(const MetaFieldBase *metaField)
         : m_metaField(metaField)
     {
     }
 
-    const MetaField *metaField() const { return m_metaField; }
+    const MetaFieldBase *metaField() const { return m_metaField; }
 
     String expression() const override
     {
@@ -137,7 +137,7 @@ public:
 
 
 private:
-    const MetaField *m_metaField;
+    const MetaFieldBase *m_metaField;
 };
 
 template<typename TField>
@@ -170,7 +170,7 @@ class SqlColumnPartialMatcher<TObj, String> :
         public SqlColumnMatcherFieldBase<TObj, String>
 {
 public:
-    explicit SqlColumnPartialMatcher(const MetaField *metaField)
+    explicit SqlColumnPartialMatcher(const MetaFieldBase *metaField)
         : SqlColumnMatcherFieldBase<TObj, String>(metaField)
     {
     }
@@ -181,7 +181,7 @@ class SqlColumnPartialMatcher<TObj, DateTime> :
         public SqlColumnMatcherFieldBase<TObj, DateTime>
 {
 public:
-    explicit SqlColumnPartialMatcher(const MetaField *metaField)
+    explicit SqlColumnPartialMatcher(const MetaFieldBase *metaField)
         : SqlColumnMatcherFieldBase<TObj, DateTime>(metaField)
     {
     }
@@ -193,7 +193,7 @@ class SqlColumnPartialMatcher<TObj, TField, typename std::enable_if<std::is_arit
         public SqlColumnMatcherFieldBase<TObj, TField>
 {
 public:
-    explicit SqlColumnPartialMatcher(const MetaField *metaField)
+    explicit SqlColumnPartialMatcher(const MetaFieldBase *metaField)
         : SqlColumnMatcherFieldBase<TObj, TField>(metaField)
     {
     }

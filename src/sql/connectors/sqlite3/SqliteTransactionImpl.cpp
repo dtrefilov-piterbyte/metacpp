@@ -118,7 +118,7 @@ bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement, int *numR
 }
 
 template<typename T>
-void assignField(const MetaField *field, int sqliteType, int expectedType, Object *obj, const T& val)
+void assignField(const MetaFieldBase *field, int sqliteType, int expectedType, Object *obj, const T& val)
 {
     if (field->nullable() && sqliteType == SQLITE_NULL)
         field->access<Nullable<T> >(obj).reset();

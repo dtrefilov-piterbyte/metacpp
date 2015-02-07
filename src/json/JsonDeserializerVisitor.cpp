@@ -30,12 +30,12 @@ JsonDeserializerVisitor::~JsonDeserializerVisitor(void)
 {
 }
 
-void JsonDeserializerVisitor::visitField(Object *obj, const MetaField *field)
+void JsonDeserializerVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
     ParseValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
 }
 
-void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaField *field, Json::ArrayIndex i)
+void JsonDeserializerVisitor::ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *field, Json::ArrayIndex i)
 {
     Json::Value val = field ? parent.get(field->name(), Json::nullValue) : parent.get(i, Json::nullValue);
 #define ACCESS_NULLABLE(type) \

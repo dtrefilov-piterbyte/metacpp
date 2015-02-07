@@ -28,7 +28,7 @@ public:
     pkInitVisitor();
 	~pkInitVisitor(void);
 
-    void visitField(Object *obj, const MetaField *field) override;
+    void visitField(Object *obj, const MetaFieldBase *field) override;
 };
 
 } // namespace metacpp

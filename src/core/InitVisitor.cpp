@@ -27,7 +27,7 @@ pkInitVisitor::~pkInitVisitor(void)
 {
 }
 
-void pkInitVisitor::visitField(Object *obj, const MetaField *field)
+void pkInitVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
     if (field->nullable())
     {

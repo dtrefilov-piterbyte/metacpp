@@ -37,17 +37,17 @@ const char *MetaObject::name() const
     return m_descriptor->m_strucName;
 }
 
-const MetaField *MetaObject::field(size_t i) const
+const MetaFieldBase *MetaObject::field(size_t i) const
 {
     prepare();
     return m_fields[i].get();
 }
 
-const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
+const MetaFieldBase *MetaObject::fieldByOffset(ptrdiff_t offset) const
 {
     prepare();
     auto it = std::lower_bound(m_fields.begin(), m_fields.end(), offset,
-        [](const std::unique_ptr<MetaField>& field, ptrdiff_t off) -> bool
+        [](const std::unique_ptr<MetaFieldBase>& field, ptrdiff_t off) -> bool
         {
             return field->offset() < off;
         }
@@ -55,11 +55,11 @@ const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
     return it ==  m_fields.end() ? nullptr : it->get();
 }
 
-const MetaField *MetaObject::fieldByName(const String &name, bool caseSensetive) const
+const MetaFieldBase *MetaObject::fieldByName(const String &name, bool caseSensetive) const
 {
     prepare();
     auto it = std::find_if(m_fields.begin(), m_fields.end(),
-        [=](const std::unique_ptr<MetaField>& field)
+        [=](const std::unique_ptr<MetaFieldBase>& field)
         {
             return name.equals(field->name(), caseSensetive);
         });
@@ -170,56 +170,56 @@ void MetaObject::prepare() const
                 }
             }
         }
-        std::sort(m_fields.begin(), m_fields.end(), [](const std::unique_ptr<MetaField>& a, const std::unique_ptr<MetaField>& b)
+        std::sort(m_fields.begin(), m_fields.end(), [](const std::unique_ptr<MetaFieldBase>& a, const std::unique_ptr<MetaFieldBase>& b)
             {return a->offset() < b->offset(); });
         m_initialized.store(true);
     }
 }
 
 
-MetaField::MetaField(const FieldInfoDescriptor *fieldDescriptor)
+MetaFieldBase::MetaFieldBase(const FieldInfoDescriptor *fieldDescriptor)
     : m_descriptor(fieldDescriptor)
 {
 
 }
 
-MetaField::~MetaField()
+MetaFieldBase::~MetaFieldBase()
 {
 }
 
-const char *MetaField::name() const
+const char *MetaFieldBase::name() const
 {
     return m_descriptor->m_pszName;
 }
 
-size_t MetaField::size() const
+size_t MetaFieldBase::size() const
 {
     return m_descriptor->m_dwSize;
 }
 
-ptrdiff_t MetaField::offset() const
+ptrdiff_t MetaFieldBase::offset() const
 {
     return m_descriptor->m_dwOffset;
 }
 
-EFieldType MetaField::type() const
+EFieldType MetaFieldBase::type() const
 {
     return m_descriptor->m_eType;
 }
 
-bool MetaField::nullable() const
+bool MetaFieldBase::nullable() const
 {
     return m_descriptor->m_nullable;
 }
 
-EMandatoriness MetaField::mandatoriness() const
+EMandatoriness MetaFieldBase::mandatoriness() const
 {
     return m_descriptor->valueInfo.mandatoriness;
 }
 
-std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescriptor *arg)
+std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *arg)
 {
-    std::unique_ptr<MetaField> result;
+    std::unique_ptr<MetaFieldBase> result;
     switch (arg->m_eType)
     {
     case eFieldBool:

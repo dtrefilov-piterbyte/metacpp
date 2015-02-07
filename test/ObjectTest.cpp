@@ -198,11 +198,30 @@ TEST_F(ObjectTest, SerializationTest)
 	testSerialization();
 }
 
+TEST_F(ObjectTest, TestGetFieldProperty)
+{
+    TestStruct s;
+    s.init();
+    ASSERT_EQ(s.getProperty("uintValue").value<uint32_t>(), 123154);
+}
+
+TEST_F(ObjectTest, TestGetInvalidProperty)
+{
+    TestStruct s;
+    s.init();
+    ASSERT_FALSE(s.getProperty("asld;kasldk").valid());
+}
+
+TEST_F(ObjectTest, TestDynamicProperty)
+{
+    TestStruct s;
+    s.init();
+    s.setProperty("newProp", "value");
+    ASSERT_EQ(s.getProperty("newProp").value<String>(), "value");
+}
+
 namespace
 {
-    template<typename... Args>
-    std::tuple<Args...> unpack(const VariantArray&);
-
     using namespace metacpp;
     class MyObject : public Object
     {

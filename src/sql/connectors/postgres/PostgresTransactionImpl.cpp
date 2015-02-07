@@ -104,7 +104,7 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
     }
 
 template<typename T>
-void assignField(const MetaField *field, bool isNull, const T& val, Object *obj)
+void assignField(const MetaFieldBase *field, bool isNull, const T& val, Object *obj)
 {
     if (field->nullable() && !isNull) {
         field->access<Nullable<T> >(obj).reset();

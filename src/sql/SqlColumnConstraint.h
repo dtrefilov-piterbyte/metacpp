@@ -44,10 +44,10 @@ public:
     virtual ~SqlConstraintBase();
     virtual SqlConstraintType type() = 0;
 
-    const MetaField *metaField() const;
+    const MetaFieldBase *metaField() const;
     const MetaObject *metaObject() const;
 private:
-    const MetaField *m_metaField;
+    const MetaFieldBase *m_metaField;
     const MetaObject *m_metaObject;
 };
 
@@ -86,10 +86,10 @@ public:
 
     SqlConstraintType type() override;
 
-    const MetaField *referenceMetaField() const;
+    const MetaFieldBase *referenceMetaField() const;
     const MetaObject *referenceMetaObject() const;
 private:
-    const MetaField *m_refMetaField;
+    const MetaFieldBase *m_refMetaField;
     const MetaObject *m_refMetaObject;
 };
 

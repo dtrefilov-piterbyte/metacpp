@@ -25,7 +25,7 @@ SqlConstraintBase::~SqlConstraintBase()
 
 }
 
-const MetaField *SqlConstraintBase::metaField() const
+const MetaFieldBase *SqlConstraintBase::metaField() const
 {
     return m_metaField;
 }
@@ -53,7 +53,7 @@ SqlConstraintType SqlConstraintForeignKey::type()
     return SqlConstraintTypeForeignKey;
 }
 
-const MetaField *SqlConstraintForeignKey::referenceMetaField() const
+const MetaFieldBase *SqlConstraintForeignKey::referenceMetaField() const
 {
     return m_refMetaField;
 }

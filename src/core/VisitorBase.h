@@ -28,7 +28,7 @@ public:
 	void visit(Object *obj);
 protected:
     virtual void previsitStruct(Object *obj);
-    virtual void visitField(Object *obj, const MetaField *);
+    virtual void visitField(Object *obj, const MetaFieldBase *);
     virtual void postvisitStruct(Object *obj);
 };
 

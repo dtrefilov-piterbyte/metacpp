@@ -66,7 +66,7 @@ bool SqlStorable::removeOne(SqlTransaction &transaction)
     return nRows < 0 || nRows == 1;
 }
 
-String SqlStorable::fieldValue(const MetaField *field) const
+String SqlStorable::fieldValue(const MetaFieldBase *field) const
 {
 #define _FIELD_VAL_ARITH(type) \
     if (field->nullable()) \
@@ -156,7 +156,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
 
     String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
     StringArray columns;
-    auto findConstraint = [constraints](SqlConstraintType type, const MetaField *field)
+    auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
     {
         for (SqlConstraintBasePtr constraint : constraints)
         {
@@ -168,7 +168,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
 
     for (size_t i = 0; i < metaObject->totalFields(); ++i)
     {
-        const MetaField *field = metaObject->field(i);
+        const MetaFieldBase *field = metaObject->field(i);
         String name = field->name();
         String typeName;
         StringArray constraints;
@@ -319,7 +319,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
 
     String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
     StringArray columns;
-    auto findConstraint = [constraints](SqlConstraintType type, const MetaField *field)
+    auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
     {
         for (SqlConstraintBasePtr constraint : constraints)
         {
@@ -331,7 +331,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
 
     for (size_t i = 0; i < metaObject->totalFields(); ++i)
     {
-        const MetaField *field = metaObject->field(i);
+        const MetaFieldBase *field = metaObject->field(i);
         String name = field->name();
         String typeName;
         StringArray constraints;

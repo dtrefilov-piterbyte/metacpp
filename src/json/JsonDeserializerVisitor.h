@@ -28,9 +28,9 @@ public:
     JsonDeserializerVisitor(const Json::Value& val);
     ~JsonDeserializerVisitor(void);
 protected:
-    void visitField(Object *obj, const MetaField *desc) override;
+    void visitField(Object *obj, const MetaFieldBase *desc) override;
 private:
-    void ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaField *desc = nullptr, Json::ArrayIndex i = 0);
+    void ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr, Json::ArrayIndex i = 0);
 private:
 	const Json::Value& m_value;
 };

@@ -67,7 +67,7 @@ public:
     virtual SqlStatementType type() const = 0;
 protected:
     virtual String buildQuery(SqlSyntax syntax) const = 0;
-    String fieldValue(const MetaField *field) const;
+    String fieldValue(const MetaFieldBase *field) const;
     std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
     std::shared_ptr<connectors::SqlStatementImpl> m_impl;

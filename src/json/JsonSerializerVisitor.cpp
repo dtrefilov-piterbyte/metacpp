@@ -31,13 +31,13 @@ JsonSerializerVisitor::~JsonSerializerVisitor(void)
 {
 }
 
-void JsonSerializerVisitor::visitField(Object *obj, const MetaField *field)
+void JsonSerializerVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
     appendSubValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
 }
 
 void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
-                                           const MetaField *field, Json::ArrayIndex i)
+                                           const MetaFieldBase *field, Json::ArrayIndex i)
 {
     Json::Value& val = field ? parent[field->name()] : parent[i];
 #define ACCESS_NULLABLE(type) \

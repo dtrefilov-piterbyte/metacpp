@@ -67,6 +67,26 @@ Variant Object::invoke(const String &methodName, const VariantArray &args) const
     return doInvoke(methodName, args, true);
 }
 
+void Object::setProperty(const String &propName, const Variant &val)
+{
+    auto field = metaObject()->fieldByName(propName);
+    if (field)
+        field->setValue(val, this);
+    else
+        m_dynamicProperties[propName] = val;
+}
+
+Variant Object::getProperty(const String &propName) const
+{
+    auto field = metaObject()->fieldByName(propName);
+    if (field)
+        return field->getValue(this);
+    auto it = m_dynamicProperties.find(propName);
+    if (it != m_dynamicProperties.end())
+        return it->second;
+    return Variant();
+}
+
 Variant Object::doInvoke(const String &methodName, const VariantArray &args, bool constness) const
 {
     for (size_t i = 0; i < metaObject()->totalMethods(); ++i)

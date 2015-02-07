@@ -30,10 +30,10 @@ public:
     ~JsonSerializerVisitor(void);
 
 protected:
-    void visitField(Object *obj, const MetaField *field) override;
+    void visitField(Object *obj, const MetaFieldBase *field) override;
 private:
     void appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
-                        const MetaField *desc = nullptr, Json::ArrayIndex = 0);
+                        const MetaFieldBase *desc = nullptr, Json::ArrayIndex = 0);
 	const Json::Value& rootValue() const;
 private:
 	Json::Value m_value;

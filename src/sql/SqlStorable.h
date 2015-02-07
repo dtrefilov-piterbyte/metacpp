@@ -33,7 +33,7 @@ namespace sql
     public:
         virtual ~SqlStorable();
 
-        virtual const MetaField *primaryKey() const = 0;
+        virtual const MetaFieldBase *primaryKey() const = 0;
         virtual Object *record() = 0;
 
         SqlStatementSelect select();
@@ -47,7 +47,7 @@ namespace sql
         /** Delete the record by primary key */
         bool removeOne(SqlTransaction& transaction);
 
-        String fieldValue(const MetaField *field) const;
+        String fieldValue(const MetaFieldBase *field) const;
     protected:
         static void createSchema(SqlTransaction& transaction, const MetaObject *metaObject,
                                  const Array<SqlConstraintBasePtr>& constraints);
@@ -66,8 +66,7 @@ namespace sql
         Storable() : m_pkey(nullptr) {
         }
 
-        const MetaField *primaryKey() const override {
-            //return getMetaField(&TObj::id);
+        const MetaFieldBase *primaryKey() const override {
 //            if (m_pkey) return m_pkey;
             for (size_t i = 0; i < ms_constraints.size(); ++i)
                 if (ms_constraints[i]->type() == SqlConstraintTypePrimaryKey)
@@ -94,7 +93,7 @@ namespace sql
             return this;
         }
     private:
-        mutable const MetaField *m_pkey;
+        mutable const MetaFieldBase *m_pkey;
         static const Array<SqlConstraintBasePtr> ms_constraints;
     };
 
