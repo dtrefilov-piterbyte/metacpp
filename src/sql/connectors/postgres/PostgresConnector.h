@@ -31,7 +31,7 @@ namespace postgres {
 class PostgresConnector : public SqlConnectorBase
 {
 public:
-    PostgresConnector(const char *connectionString, int poolSize = 3);
+    PostgresConnector(const String& connectionString, int poolSize = 3);
     ~PostgresConnector();
 
     bool connect() override;
@@ -39,6 +39,7 @@ public:
     SqlTransactionImpl *createTransaction() override;
     bool closeTransaction(SqlTransactionImpl *transaction) override;
     SqlSyntax sqlSyntax() const override;
+    EConnectorType connectorType() const override;
 private:
     String m_connectionString;
     const int m_poolSize;

@@ -43,6 +43,7 @@ public:
     SqlTransactionImpl *createTransaction() override;
     bool closeTransaction(SqlTransactionImpl *transaction) override;
     SqlSyntax sqlSyntax() const override;
+    EConnectorType connectorType() const override;
 private:
     String m_databaseName;
     const int m_poolSize;

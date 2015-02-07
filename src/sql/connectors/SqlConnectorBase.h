@@ -38,6 +38,12 @@ enum FetchResult
     eFetchEnd       /** end of query result reached, no more rows */
 };
 
+enum EConnectorType
+{
+    EConnectorTypeSqlite,
+    EConnectorTypePostgresql
+};
+
 class SqlConnectorBase
 {
 protected:
@@ -65,6 +71,8 @@ public:
 
     virtual SqlSyntax sqlSyntax() const = 0;
 
+    virtual EConnectorType connectorType() const = 0;
+
     static void setDefaultConnector(SqlConnectorBase *connector);
     static SqlConnectorBase *getDefaultConnector();
 
@@ -74,6 +82,12 @@ private:
     static std::atomic<SqlConnectorBase *> ms_defaultConnector;
     static std::mutex ms_namedConnectorsMutex;
     static std::map<String, SqlConnectorBase *> ms_namedConnectors;
+};
+
+class SqlConnectorFactory : public FactoryBase<std::unique_ptr<SqlConnectorBase>, EConnectorType, const String&, size_t>
+{
+public:
+    std::unique_ptr<SqlConnectorBase> createInstance(EConnectorType type, const String& connectionString, size_t poolSize = 3);
 };
 
 } // namespace connectors

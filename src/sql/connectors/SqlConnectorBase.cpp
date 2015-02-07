@@ -14,6 +14,8 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "SqlConnectorBase.h"
+#include "SqliteConnector.h"
+#include "PostgresConnector.h"
 
 namespace metacpp
 {
@@ -65,6 +67,22 @@ namespace connectors
     std::atomic<SqlConnectorBase *> SqlConnectorBase::ms_defaultConnector;
     std::mutex SqlConnectorBase::ms_namedConnectorsMutex;
     std::map<String, SqlConnectorBase *> SqlConnectorBase::ms_namedConnectors;
+
+    std::unique_ptr<SqlConnectorBase> SqlConnectorFactory::createInstance(EConnectorType type, const String &connectionString, size_t poolSize)
+    {
+        std::unique_ptr<SqlConnectorBase> result;
+        switch(type)
+        {
+        case EConnectorTypeSqlite:
+            result.reset(new sqlite::SqliteConnector(connectionString, poolSize));
+            break;
+        case EConnectorTypePostgresql:
+            result.reset(new postgres::PostgresConnector(connectionString, poolSize));
+            break;
+        }
+        return result;
+    }
+
 } // namespace connectors
 } // namespace sql
 } // namespace metacpp

@@ -20,7 +20,7 @@ namespace sql {
 namespace connectors {
 namespace postgres {
 
-PostgresConnector::PostgresConnector(const char *connectionString, int poolSize)
+PostgresConnector::PostgresConnector(const String &connectionString, int poolSize)
     : m_connectionString(connectionString), m_poolSize(poolSize), m_connected(false)
 {
     if (m_poolSize <= 0)
@@ -146,6 +146,11 @@ bool PostgresConnector::closeTransaction(SqlTransactionImpl *transaction)
 SqlSyntax PostgresConnector::sqlSyntax() const
 {
     return SqlSyntaxPostgreSQL;
+}
+
+EConnectorType PostgresConnector::connectorType() const
+{
+    return EConnectorTypePostgresql;
 }
 
 } // namespace postgres

@@ -14,7 +14,7 @@ public:
     void prepareData();
     void clearData();
 private:
-    metacpp::sql::connectors::SqlConnectorBase *m_conn;
+    std::unique_ptr<metacpp::sql::connectors::SqlConnectorBase> m_conn;
 };
 
 #endif // SQLTEST_H

@@ -76,9 +76,10 @@ TEST(StorableTest, testConstraints)
 
 void SqlTest::SetUp()
 {
-    //m_conn = new connectors::postgres::PostgresConnector("dbname = postgres");
-    m_conn = new connectors::sqlite::SqliteConnector("file:memdb?mode=memory&cache=shared");
-    connectors::SqlConnectorBase::setDefaultConnector(m_conn);
+    connectors::SqlConnectorFactory factory;
+    m_conn = std::move(factory.createInstance(connectors::EConnectorTypeSqlite, "file:memdb?mode=memory&cache=shared", 3));
+    //m_conn = std::move(factory.createInstance(connectors::EConnectorTypePostgresql, "dbname = postgres"));
+    connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
     ASSERT_TRUE(m_conn->connect());
     prepareSchema();
 }
@@ -86,7 +87,8 @@ void SqlTest::SetUp()
 void SqlTest::TearDown()
 {
     connectors::SqlConnectorBase::setDefaultConnector(nullptr);
-    delete m_conn;
+    EXPECT_TRUE(m_conn->disconnect());
+    m_conn.reset();
 }
 
 TEST_F(SqlTest, transactionCommitTest)

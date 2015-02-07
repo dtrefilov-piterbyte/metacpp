@@ -40,6 +40,8 @@ class SqlTransaction
 public:
     SqlTransaction(SqlTransactionAutoCloseMode autoClose = SqlTransactionAutoRollback,
                    connectors::SqlConnectorBase *connector = connectors::SqlConnectorBase::getDefaultConnector());
+    explicit SqlTransaction(const String& connectionName,
+                            SqlTransactionAutoCloseMode autoClose = SqlTransactionAutoRollback);
 
     virtual ~SqlTransaction();
 

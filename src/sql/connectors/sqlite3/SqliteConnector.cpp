@@ -157,6 +157,11 @@ SqlSyntax SqliteConnector::sqlSyntax() const
     return SqlSyntaxSqlite;
 }
 
+EConnectorType SqliteConnector::connectorType() const
+{
+    return EConnectorTypeSqlite;
+}
+
 const char *describeSqliteError(int errorCode)
 {
     switch (errorCode)

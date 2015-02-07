@@ -33,6 +33,11 @@ SqlTransaction::SqlTransaction(SqlTransactionAutoCloseMode autoClose, connectors
         begin();
 }
 
+SqlTransaction::SqlTransaction(const String &connectionName, SqlTransactionAutoCloseMode autoClose)
+    : SqlTransaction(autoClose, connectors::SqlConnectorBase::getNamedConnector(connectionName))
+{
+}
+
 SqlTransaction::~SqlTransaction()
 {
     if (m_transactionStarted)
