@@ -73,3 +73,6 @@ IF(GTEST_FOUND)
     ADD_TEST("SqlTest" "${CMAKE_BINARY_DIR}/metacpp-test" "--gtest_filter=SqlTest*")
     ADD_TEST("VariantTest" "${CMAKE_BINARY_DIR}/metacpp-test" "--gtest_filter=*VariantTest*")
 ENDIF(GTEST_FOUND)
+
+INSTALL(FILES ${HEADERS} DESTINATION "include/metacpp")
+INSTALL(TARGETS ${CMAKE_PROJECT_NAME} LIBRARY DESTINATION "lib" ARCHIVE DESTINATION "lib")
