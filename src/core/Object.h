@@ -46,7 +46,22 @@ public:
 	*/
     void fromString(const String &s);
 
+    /**
+     * Calls own method on this object
+     * \param methodName - case-sensetive name of the method
+     * \param args - array of arguments to pass to the calling function
+    */
+    Variant invoke(const String& methodName, const VariantArray& args);
+    /**
+     * Calls const own method on this object
+     * \param methodName - case-sensetive name of the method
+     * \param args - array of arguments to pass to the calling function
+    */
+    Variant invoke(const String& methodName, const VariantArray& args) const;
+
 	virtual const MetaObject *metaObject() const = 0;
+private:
+    Variant doInvoke(const String& methodName, const VariantArray& args, bool constness) const;
 };
 
 #define META_INFO_DECLARE(ObjName) \
@@ -58,14 +73,12 @@ public:
         static MetaObject ms_metaObject;
 
 #define META_INFO(ObjName) \
-    MetaObject ObjName::ms_metaObject(&STRUCT_INFO(ObjName), \
+    MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
         &ObjName::constructInstance, &ObjName::destructInstance); \
     const MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
     const MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
     Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
     void ObjName::destructInstance(void *mem) { reinterpret_cast<ObjName *>(mem)->~ObjName(); }
-
-STRUCT_INFO_DECLARE(Object)
 
 
 template<typename TObj, typename TField>
@@ -80,6 +93,8 @@ static constexpr const MetaField *getMetaField(const TField TObj::*member)
 {
     return TObj::staticMetaObject()->fieldByOffset(getMemberOffset(member));
 }
+
+REFLECTIBLE_DESCRIPTOR_DECLARE(Object)
 
 } // namespace metacpp
 #endif // OBJECT_H

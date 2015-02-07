@@ -1,5 +1,6 @@
 #include "VariantTest.h"
 #include "Variant.h"
+#include "MetaInfo.h"
 #include <gtest/gtest-param-test.h>
 
 using namespace metacpp;

@@ -15,11 +15,13 @@
 ****************************************************************************/
 #ifndef VARIANT_H
 #define VARIANT_H
-#include "MetaInfo.h"
 #include "DateTime.h"
 #include "String.h"
 #include "Array.h"
 #include "SharedDataBase.h"
+#include "MetaType.h"
+
+enum EFieldType;
 
 namespace metacpp
 {
@@ -74,16 +76,16 @@ public:
     Variant(void);
     ~Variant();
 
-    explicit Variant(bool v);
-    explicit Variant(int32_t v);
-    explicit Variant(uint32_t v);
-    explicit Variant(const int64_t& v);
-    explicit Variant(const uint64_t& v);
-    explicit Variant(const float& v);
-    explicit Variant(const double& v);
-    explicit Variant(const char *v);
-    explicit Variant(const String& v);
-    explicit Variant(const DateTime& v);
+    Variant(bool v);
+    Variant(int32_t v);
+    Variant(uint32_t v);
+    Variant(const int64_t& v);
+    Variant(const uint64_t& v);
+    Variant(const float& v);
+    Variant(const double& v);
+    Variant(const char *v);
+    Variant(const String& v);
+    Variant(const DateTime& v);
 
     inline EFieldType type() const { return getData()->type(); }
     template<typename T>
@@ -108,6 +110,12 @@ template<typename T>
 T variant_cast(const Variant& v)
 {
     return v.value<T>();
+}
+
+template<>
+inline Variant variant_cast<Variant>(const Variant& v)
+{
+    return v;
 }
 
 typedef Array<Variant> VariantArray;

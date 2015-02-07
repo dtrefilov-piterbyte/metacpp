@@ -21,7 +21,7 @@
 namespace metacpp
 {
 
-MetaObject::MetaObject(const StructInfoDescriptor *descriptor,
+MetaObject::MetaObject(const MetaInfoDescriptor *descriptor,
                        Object *(*constructor)(void *), void (*destructor)(void *))
     : m_descriptor(descriptor), m_initialized(false),
       m_constructor(constructor), m_destructor(destructor)
@@ -39,13 +39,13 @@ const char *MetaObject::name() const
 
 const MetaField *MetaObject::field(size_t i) const
 {
-    preparseFields();
+    prepare();
     return m_fields[i].get();
 }
 
 const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
 {
-    preparseFields();
+    prepare();
     auto it = std::lower_bound(m_fields.begin(), m_fields.end(), offset,
         [](const std::unique_ptr<MetaField>& field, ptrdiff_t off) -> bool
         {
@@ -57,7 +57,7 @@ const MetaField *MetaObject::fieldByOffset(ptrdiff_t offset) const
 
 const MetaField *MetaObject::fieldByName(const String &name, bool caseSensetive) const
 {
-    preparseFields();
+    prepare();
     auto it = std::find_if(m_fields.begin(), m_fields.end(),
         [=](const std::unique_ptr<MetaField>& field)
         {
@@ -68,8 +68,31 @@ const MetaField *MetaObject::fieldByName(const String &name, bool caseSensetive)
 
 size_t MetaObject::totalFields() const
 {
-    preparseFields();
+    prepare();
     return m_fields.size();
+}
+
+const MetaCallBase *MetaObject::method(size_t i) const
+{
+    prepare();
+    return m_methods[i].get();
+}
+
+const MetaCallBase *MetaObject::methodByName(const String &name, bool caseSensetive) const
+{
+    prepare();
+    auto it = std::find_if(m_methods.begin(), m_methods.end(),
+        [=](const std::unique_ptr<MetaCallBase>& method)
+        {
+            return name.equals(method->name(), caseSensetive);
+        });
+    return it == m_methods.end() ? nullptr : it->get();
+}
+
+size_t MetaObject::totalMethods() const
+{
+    prepare();
+    return m_methods.size();
 }
 
 const MetaObject *MetaObject::superMetaObject() const
@@ -87,33 +110,70 @@ size_t MetaObject::size() const
 
 Object *MetaObject::createInstance() const
 {
+    if (!m_constructor)
+        throw std::runtime_error("Have no appropriate constructor");
     void *pMem = ::operator new(size());
     return m_constructor(pMem);
 }
 
 void MetaObject::destroyInstance(Object *object) const
 {
+    if (!m_destructor)
+        throw std::runtime_error("Have no appropriate constructor");
     m_destructor(object);
     ::operator delete(object);
 }
 
-void MetaObject::preparseFields() const
+Variant MetaObject::invoke(const String &methodName, const VariantArray &args) const
 {
-    static std::mutex _mutex;
-    std::lock_guard<std::mutex> _guard(_mutex);
+    prepare();
+    for (auto& method : m_methods)
+    {
+        if (eMethodStatic == method->type() && args.size() == method->numArguments() && methodName.equals(method->name()))
+        {
+            try
+            {
+                return method->invoker()->invoke(this, args);
+            }
+            catch (const BindArgumentException& /*ex*/)
+            {
+                continue;
+            }
+        }
+    }
+    throw MethodNotFoundException(String("Cannot find static method " + methodName + " compatible with arguments provided").c_str());
+}
 
-	if (m_initialized) return;
-    MetaFieldFactory factory;
-	for (const StructInfoDescriptor *desc = m_descriptor; desc; desc = desc->m_superDescriptor)
-	{
-		for (size_t i = 0; desc->m_fieldDescriptors[i].m_pszName; ++i) 
-		{
-            m_fields.push_back(std::move(factory.createInstance(desc->m_fieldDescriptors + i)));
-		}
-	}
-    std::sort(m_fields.begin(), m_fields.end(), [](const std::unique_ptr<MetaField>& a, const std::unique_ptr<MetaField>& b)
-        {return a->offset() < b->offset(); });
-	m_initialized = true;
+void MetaObject::prepare() const
+{
+    // double checked lock
+    if (m_initialized) return;
+    {
+        std::lock_guard<std::mutex> _guard(m_mutex);
+        if (m_initialized) return;
+        MetaFieldFactory fieldFactory;
+        MetaCallFactory methodFactory;
+        for (const MetaInfoDescriptor *desc = m_descriptor; desc; desc = desc->m_superDescriptor)
+        {
+            if (desc->m_fieldDescriptors)
+            {
+                for (size_t i = 0; desc->m_fieldDescriptors[i].m_pszName; ++i)
+                {
+                    m_fields.push_back(std::move(fieldFactory.createInstance(desc->m_fieldDescriptors + i)));
+                }
+            }
+            if (desc->m_methodDescriptors)
+            {
+                for (size_t i = 0; desc->m_methodDescriptors[i].m_pszName; ++i)
+                {
+                    m_methods.push_back(std::move(methodFactory.createInstance(desc->m_methodDescriptors + i)));
+                }
+            }
+        }
+        std::sort(m_fields.begin(), m_fields.end(), [](const std::unique_ptr<MetaField>& a, const std::unique_ptr<MetaField>& b)
+            {return a->offset() < b->offset(); });
+        m_initialized.store(true);
+    }
 }
 
 
@@ -197,6 +257,69 @@ std::unique_ptr<MetaField> MetaFieldFactory::createInstance(const FieldInfoDescr
         break;
     case eFieldDateTime:
         result.reset(new MetaFieldDateTime(arg));
+        break;
+    default:
+        break;
+    }
+    return result;
+}
+
+MetaCallBase::MetaCallBase(const MethodInfoDescriptor *descriptor)
+    : m_descriptor(descriptor)
+{
+
+}
+
+MetaCallBase::~MetaCallBase()
+{
+
+}
+
+const char *MetaCallBase::name() const
+{
+    return m_descriptor->m_pszName;
+}
+
+EMethodType MetaCallBase::type() const
+{
+    return m_descriptor->m_eType;
+}
+
+bool MetaCallBase::constness() const
+{
+    return m_descriptor->m_bConstness;
+}
+
+size_t MetaCallBase::numArguments() const
+{
+    return m_descriptor->m_nArgs;
+}
+
+MetaInvokerBase *MetaCallBase::invoker() const
+{
+    return m_descriptor->m_pInvoker.get();
+}
+
+MetaCallOwn::MetaCallOwn(const MethodInfoDescriptor *descriptor)
+    : MetaCallBase(descriptor)
+{
+}
+
+MetaCallStatic::MetaCallStatic(const MethodInfoDescriptor *descriptor)
+    : MetaCallBase(descriptor)
+{
+}
+
+std::unique_ptr<MetaCallBase> MetaCallFactory::createInstance(const MethodInfoDescriptor *arg)
+{
+    std::unique_ptr<MetaCallBase> result;
+    switch (arg->m_eType)
+    {
+    case eMethodOwn:
+        result.reset(new MetaCallOwn(arg));
+        break;
+    case eMethodStatic:
+        result.reset(new MetaCallStatic(arg));
         break;
     default:
         break;

@@ -54,10 +54,46 @@ void Object::fromString(const String& s)
     if (!reader.parse(s.begin(), s.end(), root, false))
 		throw std::invalid_argument("Json::Reader::parse failed");
     JsonDeserializerVisitor vis(root);
-	vis.visit(this);
+    vis.visit(this);
 }
+
+Variant Object::invoke(const String &methodName, const VariantArray &args)
+{
+    return doInvoke(methodName, args, false);
+}
+
+Variant Object::invoke(const String &methodName, const VariantArray &args) const
+{
+    return doInvoke(methodName, args, true);
+}
+
+Variant Object::doInvoke(const String &methodName, const VariantArray &args, bool constness) const
+{
+    for (size_t i = 0; i < metaObject()->totalMethods(); ++i)
+    {
+        auto method = metaObject()->method(i);
+        if (eMethodOwn == method->type() && args.size() == method->numArguments() && methodName.equals(method->name()))
+        {
+            // cannot call non-const methods on const objects
+            if (constness && !method->constness())
+                continue;
+            try
+            {
+                return method->invoker()->invoke(const_cast<Object *>(this), args);
+            }
+            catch (const BindArgumentException& /*ex*/)
+            {
+                continue;
+            }
+        }
+    }
+    throw MethodNotFoundException(String("Cannot find own method " + methodName + " compatible with arguments provided").c_str());
+}
+
 
 STRUCT_INFO_BEGIN(Object)
 STRUCT_INFO_END(Object)
+
+REFLECTIBLE_F(Object)
 
 } // namespace metacpp

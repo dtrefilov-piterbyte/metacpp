@@ -480,6 +480,7 @@ public:
 		appendTo(result);
 		return result;
 	}
+
 private:
     StringBuilderHelper<T1> m_a;
     StringBuilderHelper<T2> m_b;

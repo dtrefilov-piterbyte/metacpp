@@ -23,50 +23,19 @@
 #include <stack>
 #include <mutex>
 #include <ctime>
+#include <memory>
 #include "Array.h"
 #include "String.h"
 #include "Nullable.h"
 #include "DateTime.h"
+#include "Variant.h"
+#include "MetaType.h"
 
 namespace metacpp
 {
 class Object;
 class MetaObject;
 }
-
-enum EFieldType
-{
-	eFieldVoid		= 'x',
-	eFieldBool		= 'b',
-	eFieldInt		= 'i',
-	eFieldUint		= 'u',
-    eFieldInt64     = 'i' | ('6' << 8) | ('4' << 16),
-    eFieldUint64    = 'u' | ('6' << 8) | ('4' << 16),
-    eFieldFloat		= 'f',
-    eFieldDouble    = 'd',
-	eFieldString	= 's',
-	eFieldEnum		= 'e',
-    eFieldDateTime  = 't',
-	eFieldObject	= 'o',
-    eFieldArray		= 'a',
-};
-
-/** \brief Parameter determines assigning behaviour of the field */
-enum EMandatoriness
-{
-    eRequired,			/**< an exception is thrown if field value was not excplicitly specified  */
-    eOptional,			/**< ignoring omited descriptor */
-    eDefaultable		/**< field is assigned to default value */
-};
-
-/** \brief Type of an enum meta info */
-enum EEnumType
-{
-	eEnumNone,
-	eEnumSimple,
-	eEnumBitset
-};
-
 
 struct EnumValueInfoDescriptor
 {
@@ -79,7 +48,7 @@ struct EnumInfoDescriptor
 	EEnumType		m_type;
 	const char		*m_enumName;
 	uint32_t		m_defaultValue;
-	EnumValueInfoDescriptor *m_valueDescriptors;
+    const EnumValueInfoDescriptor *m_valueDescriptors;
 };
 
 struct FieldInfoDescriptor
@@ -128,7 +97,7 @@ struct FieldInfoDescriptor
             } m_double;
             struct
 			{
-				EnumInfoDescriptor *enumInfo;
+                const EnumInfoDescriptor *enumInfo;
             } m_enum;
             struct
 			{
@@ -202,7 +171,7 @@ struct FieldInfoDescriptor
         {
             mandatoriness = m;
         }
-        explicit Extension(EnumInfoDescriptor *enumInfo)
+        explicit Extension(const EnumInfoDescriptor *enumInfo)
 		{
             ext.m_enum.enumInfo = enumInfo;
             mandatoriness = eDefaultable;
@@ -219,14 +188,6 @@ struct FieldInfoDescriptor
             mandatoriness = eDefaultable;
         }
 	} valueInfo;
-};
-
-struct StructInfoDescriptor
-{
-	const char				*m_strucName;
-	size_t					m_dwSize;
-	StructInfoDescriptor	*m_superDescriptor;
-	FieldInfoDescriptor		*m_fieldDescriptors;
 };
 
 #if defined(_MSC_VER) && !defined(constexpr)
@@ -316,7 +277,7 @@ template<typename T>
 struct FullFieldInfoHelper<T, true, false>
 {
 	static constexpr EFieldType type() { return eFieldEnum; }
-	static constexpr FieldInfoDescriptor::Extension extension(EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
+    static constexpr FieldInfoDescriptor::Extension extension(const EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
     static constexpr bool nullable() { return false; }
 };
 
@@ -341,25 +302,349 @@ struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelp
     static constexpr bool nullable() { return true; }
 };
 
-#define STRUCT_INFO_BEGIN(struc) \
-	extern FieldInfoDescriptor _fieldInfos_##struc[]; \
-	StructInfoDescriptor _strucInfo_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc }; \
-	FieldInfoDescriptor _fieldInfos_##struc[] = {
+class BindArgumentException : public std::invalid_argument
+{
+public:
+    BindArgumentException(const char *errorMsg = "Cannot bind argument")
+        : std::invalid_argument(errorMsg)
+    {
+    }
+};
 
-#define STRUCT_INFO_DERIVED_BEGIN(struc, super) \
-	extern FieldInfoDescriptor _fieldInfos_##struc[]; \
-	StructInfoDescriptor _strucInfo_##struc = { #struc, sizeof(struc), &STRUCT_INFO(super), _fieldInfos_##struc }; \
-	FieldInfoDescriptor _fieldInfos_##struc[] = {
+class MethodNotFoundException : public std::invalid_argument
+{
+public:
+    MethodNotFoundException(const char *methodName)
+        : std::invalid_argument(std::string("Method not found: ") + methodName)
+    {
+    }
+};
+
+namespace detail
+{
+    template<typename Func, typename TRes, typename Tuple, bool Done, int Total, int... N>
+    struct fcall_impl
+    {
+        static TRes call(Func f, Tuple && t)
+        {
+            return fcall_impl<Func, TRes, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, std::forward<Tuple>(t));
+        }
+    };
+
+    template<typename Func, typename TRes, typename Tuple, int Total, int... N>
+    struct fcall_impl<Func, TRes, Tuple, true, Total, N...>
+    {
+        static TRes call(Func f, Tuple && t)
+        {
+            return f(std::get<N>(std::forward<Tuple>(t))...);
+        }
+    };
+
+    template<typename Func, typename TRes, typename TObj, typename Tuple, bool Done, int Total, int... N>
+    struct mcall_impl
+    {
+        static TRes call(Func f, TObj *obj, Tuple && t)
+        {
+            return mcall_impl<Func, TRes, TObj, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(f, obj, std::forward<Tuple>(t));
+        }
+    };
+
+    template<typename Func, typename TRes, typename TObj, typename Tuple, int Total, int... N>
+    struct mcall_impl<Func, TRes, TObj, Tuple, true, Total, N...>
+    {
+        static TRes call(Func f, TObj *obj, Tuple && t)
+        {
+            return (*obj.*f)(std::get<N>(std::forward<Tuple>(t))...);
+        }
+    };
+
+
+    template<size_t N, bool Done, typename... TArgs>
+    struct unpack_impl
+    {
+        static void unpack_arguments(std::tuple<TArgs...>& t, const metacpp::Array<metacpp::Variant>& argList)
+        {
+            typedef typename std::tuple_element<N, std::tuple<TArgs...>>::type ArgType;
+            try
+            {
+                std::get<N>(t) = argList[N].value<ArgType>();
+            }
+            catch (const std::invalid_argument& e)
+            {
+                throw BindArgumentException(e.what());
+            }
+            unpack_impl<N + 1, N + 1 == sizeof...(TArgs), TArgs...>::unpack_arguments(t, argList);
+        }
+    };
+
+    template<size_t N, typename... TArgs>
+    struct unpack_impl<N, true, TArgs...>
+    {
+        static void unpack_arguments(std::tuple<TArgs...>&, const metacpp::Array<metacpp::Variant>&)
+        {
+        }
+    };
+}
+
+class MetaInvokerBase
+{
+public:
+    virtual ~MetaInvokerBase() { }
+    virtual metacpp::Variant invoke(const void *contextObj, const metacpp::Array<metacpp::Variant>& argList) const = 0;
+};
+
+template<typename TRes, typename... TArgs>
+class FunctionInvoker : public MetaInvokerBase
+{
+private:
+
+    template<typename Q = TRes>
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        doInvoke(argList);
+        return metacpp::Variant();
+    }
+
+    template<typename Q = TRes>
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        return metacpp::Variant(doInvoke(argList));
+    }
+
+public:
+    typedef TRes (*TFunction)(TArgs...);
+
+    explicit FunctionInvoker(TFunction func)
+        : m_function(func)
+    {
+    }
+
+    TRes doInvoke(const metacpp::Array<metacpp::Variant>& argList) const
+    {
+        typedef std::tuple<TArgs...> ttype;
+        ttype args;
+        if (sizeof...(TArgs) != argList.size())
+            throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
+                                               metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return detail::fcall_impl<TFunction, TRes, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                ::call(m_function, std::forward<ttype>(args));
+    }
+
+    metacpp::Variant invoke(const void *metaObject, const metacpp::Array<metacpp::Variant>& argList) const override
+    {
+        (void)metaObject;
+        return invokeHelper(argList);
+    }
+
+private:
+    TFunction m_function;
+};
+
+template<typename TRes, typename TObj, typename... TArgs>
+class MethodInvoker : public MetaInvokerBase
+{
+private:
+
+    template<typename Q = TRes>
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        doInvoke(obj, argList);
+        return metacpp::Variant();
+    }
+
+    template<typename Q = TRes>
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        return metacpp::Variant(doInvoke(obj, argList));
+    }
+
+public:
+    typedef TRes (TObj::*TFunction)(TArgs...);
+
+    explicit MethodInvoker(TFunction function)
+        : m_method(function)
+    {
+    }
+
+    TRes doInvoke(TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
+    {
+        typedef std::tuple<TArgs...> ttype;
+        ttype args;
+        if (sizeof...(TArgs) != argList.size())
+            throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
+                                               metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return detail::mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                ::call(m_method, obj, std::forward<ttype>(args));
+    }
+
+    metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
+    {
+        return invokeHelper(reinterpret_cast<TObj *>(const_cast<void *>(obj)), argList);
+    }
+
+private:
+    TFunction m_method;
+};
+
+template<typename TRes, typename TObj, typename... TArgs>
+class ConstMethodInvoker : public MetaInvokerBase
+{
+private:
+
+    template<typename Q = TRes>
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        doInvoke(obj, argList);
+        return metacpp::Variant();
+    }
+
+    template<typename Q = TRes>
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    {
+        return metacpp::Variant(doInvoke(obj, argList));
+    }
+
+public:
+    typedef TRes (TObj::*TFunction)(TArgs...) const;
+
+    ConstMethodInvoker(TFunction function)
+        : m_method(function)
+    {
+    }
+
+    TRes doInvoke(const TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
+    {
+        typedef std::tuple<TArgs...> ttype;
+        ttype args;
+        if (sizeof...(TArgs) != argList.size())
+            throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
+                                               metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return detail::mcall_impl<TFunction, TRes, const TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                ::call(m_method, obj, std::forward<ttype>(args));
+    }
+
+    metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
+    {
+        return invokeHelper(reinterpret_cast<const TObj *>(obj), argList);
+    }
+
+private:
+    TFunction m_method;
+};
+
+template<typename TRes, typename... TArgs>
+std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (*func)(TArgs...))
+{
+    return std::move(std::unique_ptr<MetaInvokerBase>(new FunctionInvoker<TRes, TArgs...>(func)));
+}
+
+template<typename TRes, typename TObj, typename... TArgs>
+std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...))
+{
+    return std::move(std::unique_ptr<MetaInvokerBase>(new MethodInvoker<TRes, TObj, TArgs...>(function)));
+}
+
+template<typename TRes, typename TObj, typename... TArgs>
+std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...) const)
+{
+    return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
+}
+
+enum EMethodType
+{
+    eMethodNone,
+    eMethodStatic,
+    eMethodOwn
+};
+
+struct MethodInfoDescriptor
+{
+    const char *m_pszName;
+    EMethodType m_eType;
+    bool m_bConstness;
+    size_t m_nArgs;
+    std::unique_ptr<MetaInvokerBase> m_pInvoker;
+};
+
+template<typename TFunction>
+struct MethodInfoHelper;
+
+template<typename TRes, typename... TArgs>
+struct MethodInfoHelper<TRes (*)(TArgs...)>
+{
+    static constexpr EMethodType type() { return eMethodStatic; }
+    static constexpr bool constness() { return false; }
+    static constexpr size_t numArguments() { return sizeof...(TArgs); }
+    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (*func)(TArgs...))
+    {
+        return std::move(std::unique_ptr<MetaInvokerBase>(new FunctionInvoker<TRes, TArgs...>(func)));
+    }
+};
+
+template<typename TRes, typename TObj, typename... TArgs>
+struct MethodInfoHelper<TRes (TObj::*)(TArgs...)>
+{
+    static constexpr EMethodType type() { return eMethodOwn; }
+    static constexpr bool constness() { return false; }
+    static constexpr size_t numArguments() { return sizeof...(TArgs); }
+    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...))
+    {
+        return std::move(std::unique_ptr<MetaInvokerBase>(new MethodInvoker<TRes, TObj, TArgs...>(function)));
+    }
+};
+
+template<typename TRes, typename TObj, typename... TArgs>
+struct MethodInfoHelper<TRes (TObj::*)(TArgs...) const>
+{
+    static constexpr EMethodType type() { return eMethodOwn; }
+    static constexpr bool constness() { return true; }
+    static constexpr size_t numArguments() { return sizeof...(TArgs); }
+    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...) const)
+    {
+        return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
+    }
+};
+
+struct MetaInfoDescriptor
+{
+    const char                      *m_strucName;
+    size_t                          m_dwSize;
+    const MetaInfoDescriptor        *m_superDescriptor;
+    const FieldInfoDescriptor		*m_fieldDescriptors;
+    const MethodInfoDescriptor      *m_methodDescriptors;
+};
+
+#define METHOD_INFO_BEGIN(obj) \
+    const MethodInfoDescriptor _methodInfos_##obj[] = {
+
+#define METHOD_INFO_END(obj) \
+        { nullptr, eMethodNone, false, 0, nullptr } \
+    };
+
+#define NAMED_METHOD(name, pMethod) \
+    { \
+        /* name     */   name, \
+        /* type */       MethodInfoHelper<decltype(pMethod)>::type(), \
+        /* constness */  MethodInfoHelper<decltype(pMethod)>::constness(), \
+        /* num args */   MethodInfoHelper<decltype(pMethod)>::numArguments(), \
+        /* invoker */    MethodInfoHelper<decltype(pMethod)>::createInvoker(pMethod) \
+    },
+
+#define METHOD(obj, method) NAMED_METHOD(#method, &obj::method)
+#define SIGNATURE_METHOD(obj, method, signature) NAMED_METHOD(#method, static_cast<signature>(&obj::method))
+
+#define STRUCT_INFO_BEGIN(struc) \
+    const FieldInfoDescriptor _fieldInfos_##struc[] = {
 
 // field info sequence terminator
 #define STRUCT_INFO_END(struc) \
         { 0, 0, 0, eFieldVoid, false, FieldInfoDescriptor::Extension() } \
 	};
 
-#define STRUCT_INFO(struc) _strucInfo_##struc
-#define STRUCT_INFO_DECLARE(struc) extern StructInfoDescriptor _strucInfo_##struc;
-
-#define FIELD_INFO(struc, field, ...) { \
+#define FIELD(struc, field, ...) { \
     /* name */      #field, \
     /* size */      sizeof(decltype(struc::field)), \
     /* offset */    offsetof(struc, field), \
@@ -368,17 +653,38 @@ struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelp
     /* extension */ FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::extension(__VA_ARGS__) \
     },
 
+#define REFLECTIBLE_DESCRIPTOR(struc) _descriptor_##struc
+#define REFLECTIBLE_DESCRIPTOR_DECLARE(struc) extern const MetaInfoDescriptor _descriptor_##struc;
+
+#define REFLECTIBLE_F(struc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc, nullptr }; \
+
+#define REFLECTIBLE_DERIVED_F(struc, superStruc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), _fieldInfos_##struc, nullptr  }; \
+
+#define REFLECTIBLE_M(struc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, nullptr, _methodInfos_##struc }; \
+
+#define REFLECTIBLE_DERIVED_M(struc, superStruc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), nullptr, _methodInfos_##struc }; \
+
+#define REFLECTIBLE_FM(struc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc, _methodInfos_##struc }; \
+
+#define REFLECTIBLE_DERIVED_FM(struc, superStruc) \
+    const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), _fieldInfos_##struc, _methodInfos_##struc }; \
+
 #define ENUM_INFO_BEGIN(_enum, type, def) \
-	extern EnumValueInfoDescriptor _enumValueInfos_##_enum[]; \
-	EnumInfoDescriptor _enumInfo_##_enum = { type, #_enum, (uint32_t)def, _enumValueInfos_##_enum }; \
-	EnumValueInfoDescriptor _enumValueInfos_##_enum[] = {
+    extern const EnumValueInfoDescriptor _enumValueInfos_##_enum[]; \
+    const EnumInfoDescriptor _enumInfo_##_enum = { type, #_enum, (uint32_t)def, _enumValueInfos_##_enum }; \
+    const EnumValueInfoDescriptor _enumValueInfos_##_enum[] = {
 
 #define ENUM_INFO_END(_enum) \
 		{ nullptr, 0 } \
 	};
 
 #define ENUM_INFO(_enum) _enumInfo_##_enum
-#define ENUM_INFO_DECLARE(_enum) extern EnumInfoDescriptor _enumInfo_##_enum;
+#define ENUM_INFO_DECLARE(_enum) extern const EnumInfoDescriptor _enumInfo_##_enum;
 
 #define VALUE_INFO(name) \
 	{ #name, (uint32_t)name },

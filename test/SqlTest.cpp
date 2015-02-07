@@ -20,9 +20,11 @@ public:
 };
 
 STRUCT_INFO_BEGIN(City)
-    FIELD_INFO(City, id)
-    FIELD_INFO(City, name, "Moscow")
+    FIELD(City, id)
+    FIELD(City, name, "Moscow")
 STRUCT_INFO_END(City)
+
+REFLECTIBLE_F(City)
 
 META_INFO(City)
 
@@ -45,13 +47,15 @@ public:
 };
 
 STRUCT_INFO_BEGIN(Person)
-    FIELD_INFO(Person, id)
-    FIELD_INFO(Person, name)
-    FIELD_INFO(Person, age)
-    FIELD_INFO(Person, cat_weight)
-    FIELD_INFO(Person, cityId)
-    FIELD_INFO(Person, birthday)
+    FIELD(Person, id)
+    FIELD(Person, name)
+    FIELD(Person, age)
+    FIELD(Person, cat_weight)
+    FIELD(Person, cityId)
+    FIELD(Person, birthday)
 STRUCT_INFO_END(Person)
+
+REFLECTIBLE_F(Person)
 
 META_INFO(Person)
 

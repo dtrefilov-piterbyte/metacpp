@@ -18,18 +18,22 @@
 #include "MetaInfo.h"
 #include <vector>
 #include <memory>
+#include <mutex>
+#include <atomic>
 #include "Utils.h"
+#include "Variant.h"
 
 namespace metacpp
 {
 
 class MetaField;
+class MetaCallBase;
 
 class MetaObject
 {
 	friend class pkVisitorBase;
 public:
-    explicit MetaObject(const StructInfoDescriptor *descriptor,
+    explicit MetaObject(const MetaInfoDescriptor *descriptor,
                         Object *(*constructor)(void *mem) = nullptr,
                         void (*destructor)(void *mem) = nullptr);
     ~MetaObject(void);
@@ -37,19 +41,29 @@ public:
     const char *name() const;
     const MetaField *field(size_t i) const;
     const MetaField *fieldByOffset(ptrdiff_t offset) const;
-    const MetaField *fieldByName(const String& name, bool caseSensetive = false) const;
+    const MetaField *fieldByName(const String& name, bool caseSensetive = true) const;
     size_t totalFields() const;
+
+    const MetaCallBase *method(size_t i) const;
+    const MetaCallBase *methodByName(const String& name, bool caseSensetive = true) const;
+    size_t totalMethods() const;
+
     const MetaObject *superMetaObject() const;
     size_t size() const;
+
     Object *createInstance() const;
     void destroyInstance(Object *object) const;
-private:
-	void preparseFields() const;
 
-	const StructInfoDescriptor *m_descriptor;
-	mutable bool m_initialized;
+    Variant invoke(const String& methodName, const VariantArray& args) const;
+private:
+    void prepare() const;
+
+    const MetaInfoDescriptor *m_descriptor;
+    mutable std::atomic<bool> m_initialized;
     mutable std::vector<std::unique_ptr<MetaField> > m_fields;
+    mutable std::vector<std::unique_ptr<MetaCallBase> > m_methods;
     mutable std::unique_ptr<const MetaObject> m_super;
+    mutable std::mutex m_mutex;
     Object *(*m_constructor)(void *mem);
     void (*m_destructor)(void *mem);
 };
@@ -187,7 +201,7 @@ public:
 
     inline const char *toString(uint32_t value) const
     {
-        for (EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
+        for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
             if (desc->m_uValue == value) return desc->m_pszValue;
         return nullptr;
     }
@@ -195,7 +209,7 @@ public:
     inline uint32_t fromString(const char *strValue) const
     {
         String s(strValue);
-        for (EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
+        for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
             if (s == desc->m_pszValue) return desc->m_uValue;
         return defaultValue();
     }
@@ -241,6 +255,41 @@ public:
     std::unique_ptr<MetaField> createInstance(const FieldInfoDescriptor *arg) override;
 };
 
+
+class MetaCallBase
+{
+public:
+    explicit MetaCallBase(const MethodInfoDescriptor *descriptor);
+    virtual ~MetaCallBase();
+
+    const char *name() const;
+    EMethodType type() const;
+    bool constness() const;
+    size_t numArguments() const;
+    MetaInvokerBase *invoker() const;
+protected:
+    const MethodInfoDescriptor *m_descriptor;
+};
+
+class MetaCallOwn : public MetaCallBase
+{
+public:
+    explicit MetaCallOwn(const MethodInfoDescriptor *descriptor);
+
+};
+
+class MetaCallStatic : public MetaCallBase
+{
+public:
+    explicit MetaCallStatic(const MethodInfoDescriptor *descriptor);
+
+};
+
+class MetaCallFactory : public FactoryBase<std::unique_ptr<MetaCallBase>, const MethodInfoDescriptor *>
+{
+public:
+    std::unique_ptr<MetaCallBase> createInstance(const MethodInfoDescriptor *arg) override;
+};
 
 } // namespace metacpp
 #endif // METAOBJECT_H
