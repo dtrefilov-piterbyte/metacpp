@@ -95,15 +95,20 @@ String SqlStorable::fieldValue(const MetaFieldBase *field) const
         _FIELD_VAL_ARITH(float)
     case eFieldDouble:
         _FIELD_VAL_ARITH(double)
-    case eFieldString:
+    case eFieldString: {
         if (field->nullable())
         {
             if (!field->access<Nullable<String> >(const_cast<SqlStorable *>(this)->record()))
                 return "NULL";
             else
-                return "\'" + *field->access<Nullable<String> >(const_cast<SqlStorable *>(this)->record()) + "\'";
+            {
+                String val = *field->access<Nullable<String> >(const_cast<SqlStorable *>(this)->record());
+                return "\'" + val.replace("'", "''") + "\'";
+            }
         }
-        return "\'" + field->access<String>(const_cast<SqlStorable *>(this)->record()) + "\'";
+        String val = field->access<String>(const_cast<SqlStorable *>(this)->record());
+        return "\'" + val.replace("'", "''") + "\'";
+    }
     case eFieldObject:
         throw std::runtime_error("Can store only plain objects");
     case eFieldArray:

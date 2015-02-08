@@ -24,13 +24,9 @@ namespace connectors
 namespace sqlite
 {
 
-SqliteConnector::SqliteConnector(const String &databaseName, int poolSize)
-    : m_databaseName(databaseName), m_poolSize(poolSize), m_connected(false)
+SqliteConnector::SqliteConnector(const String &connectionUri)
+    : m_connectionUri(connectionUri), m_poolSize(1), m_connected(false)
 {
-    if (m_poolSize <= 0)
-        throw std::invalid_argument("Negative pool size");
-    if (m_poolSize > 10)
-        throw std::invalid_argument("Pool size is too large");
 }
 
 SqliteConnector::~SqliteConnector()
@@ -49,10 +45,10 @@ bool SqliteConnector::connect()
         return true;
     }
     m_freeDbHandles.reserve(m_poolSize);
-    for (int i = 0; i < m_poolSize; ++i)
+    for (size_t i = 0; i < m_poolSize; ++i)
     {
         sqlite3 *dbHandle;
-        int error = sqlite3_open_v2(m_databaseName.c_str(), &dbHandle,
+        int error = sqlite3_open_v2(m_connectionUri.c_str(), &dbHandle,
                                     SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
         if (SQLITE_OK != error)
         {
@@ -157,9 +153,11 @@ SqlSyntax SqliteConnector::sqlSyntax() const
     return SqlSyntaxSqlite;
 }
 
-EConnectorType SqliteConnector::connectorType() const
+void SqliteConnector::setConnectionPooling(size_t size)
 {
-    return EConnectorTypeSqlite;
+    if (size == 0 || size > 10)
+        throw std::invalid_argument("size");
+    m_poolSize = size;
 }
 
 const char *describeSqliteError(int errorCode)
@@ -233,6 +231,30 @@ const char *describeSqliteError(int errorCode)
     default:
         return "Unknown error";
     }
+}
+
+std::unique_ptr<SqlConnectorBase> SqliteConnectorFactory::createInstance(const Uri &uri)
+{
+    String dbFile = uri.hierarchy();
+    String file = uri.param("file");
+    if (!file.isNullOrEmpty()) dbFile = file;
+    StringArray params;
+    auto traverseParam = [&params, uri](const String& param)
+    {
+        String val = uri.param(param);
+        if (!val.isNullOrEmpty()) params.push_back(param + "=" + val);
+    };
+    // known sqlite3 options
+    traverseParam("vfs");
+    traverseParam("mode");
+    traverseParam("cache");
+    traverseParam("psow");
+    traverseParam("nolock");
+    traverseParam("immutable");
+    String connStr = "file:" + dbFile;
+    if (params.size()) connStr += "?" + params.join("&");
+
+    return std::unique_ptr<SqlConnectorBase>(new SqliteConnector(connStr));
 }
 
 } // namespace sqlite

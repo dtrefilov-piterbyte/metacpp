@@ -31,7 +31,7 @@ namespace postgres {
 class PostgresConnector : public SqlConnectorBase
 {
 public:
-    PostgresConnector(const String& connectionString, int poolSize = 3);
+    PostgresConnector(const String& connectionString);
     ~PostgresConnector();
 
     bool connect() override;
@@ -39,16 +39,21 @@ public:
     SqlTransactionImpl *createTransaction() override;
     bool closeTransaction(SqlTransactionImpl *transaction) override;
     SqlSyntax sqlSyntax() const override;
-    EConnectorType connectorType() const override;
+    void setConnectionPooling(size_t size);
 private:
     String m_connectionString;
-    const int m_poolSize;
+    size_t m_poolSize;
     Array<PGconn *> m_freeDbHandles, m_usedDbHandles;
     std::mutex m_poolMutex;
     std::condition_variable m_dbHandleFreedEvent;
     bool m_connected;
     Array<PostgresTransactionImpl *> m_transactions;
     std::mutex m_transactionMutex;
+};
+
+class PostgresConnectorFactory : public SqlConnectorFactory
+{
+    std::unique_ptr<SqlConnectorBase> createInstance(const Uri &uri);
 };
 
 } // namespace postgres

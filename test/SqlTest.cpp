@@ -4,8 +4,13 @@
 #include "SqlStorable.h"
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
-//#include "PostgresConnector.h"
 #include <thread>
+#ifdef HAVE_SQLITE3
+#include "SqliteConnector.h"
+#endif
+#ifdef HAVE_POSTGRES
+#include "PostgresConnector.h"
+#endif
 
 using namespace ::metacpp;
 using namespace ::metacpp::sql;
@@ -67,18 +72,12 @@ DECLARE_STORABLE(Person,
                  CHECK(COL(Person::age), COL(Person::age) < 120)    // people do not live so much
                  )
 
-
-
-TEST(StorableTest, testConstraints)
-{
-    ASSERT_EQ(Storable<Person>::numConstraints(), 5);
-}
-
 void SqlTest::SetUp()
 {
-    connectors::SqlConnectorFactory factory;
-    m_conn = std::move(factory.createInstance(connectors::EConnectorTypeSqlite, "file:memdb?mode=memory&cache=shared", 3));
-    //m_conn = std::move(factory.createInstance(connectors::EConnectorTypePostgresql, "dbname = postgres"));
+    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://memdb?mode=memory&cache=shared")));
+    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
+    ASSERT_TRUE(m_conn.get()) << "Sql connector unavailable";
+    m_conn->setConnectionPooling(3);
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
     ASSERT_TRUE(m_conn->connect());
     prepareSchema();
@@ -87,8 +86,71 @@ void SqlTest::SetUp()
 void SqlTest::TearDown()
 {
     connectors::SqlConnectorBase::setDefaultConnector(nullptr);
+    ASSERT_TRUE(m_conn.get());
     EXPECT_TRUE(m_conn->disconnect());
     m_conn.reset();
+}
+
+void SqlTest::SetUpTestCase()
+{
+#ifdef HAVE_SQLITE3
+    connectors::SqlConnectorBase::registerConnectorFactory("sqlite3", std::make_shared<connectors::sqlite::SqliteConnectorFactory>());
+#endif
+#ifdef HAVE_POSTGRES
+    connectors::SqlConnectorBase::registerConnectorFactory("postgres", std::make_shared<connectors::postgres::PostgresConnectorFactory>());
+#endif
+}
+
+void SqlTest::TearDownTestCase()
+{
+#ifdef HAVE_SQLITE3
+    connectors::SqlConnectorBase::unregisterConnectorFactory("sqlite3");
+#endif
+#ifdef HAVE_POSTGRES
+    connectors::SqlConnectorBase::unregisterConnectorFactory("postgres");
+#endif
+}
+
+void SqlTest::prepareSchema()
+{
+    SqlTransaction transaction;
+    Storable<City>::createSchema(transaction);
+    Storable<Person>::createSchema(transaction);
+    transaction.commit();
+}
+
+void SqlTest::prepareData()
+{
+    SqlTransaction transaction;
+    Storable<City> city;
+    city.init();
+    city.name = "Moscow";
+    city.insertOne(transaction);
+    Storable<Person> person;
+    person.init();
+    person.name = "Pupkin";
+    person.birthday = DateTime::fromString("2004-12-31 00:00:00");
+    person.cityId = city.id;
+    person.insertOne(transaction);
+    transaction.commit();
+}
+
+void SqlTest::clearData()
+{
+    SqlTransaction transaction;
+    Storable<City> city;
+    Storable<Person> person;
+    person.remove().exec(transaction);
+    city.remove().exec(transaction);
+    transaction.commit();
+}
+
+#ifdef HAVE_SQLITE3
+
+
+TEST(StorableTest, testConstraints)
+{
+    ASSERT_EQ(Storable<Person>::numConstraints(), 5);
 }
 
 TEST_F(SqlTest, transactionCommitTest)
@@ -228,37 +290,4 @@ TEST_F(SqlTest, deleteTest)
         throw;
     }
 }
-
-void SqlTest::prepareSchema()
-{
-    SqlTransaction transaction;
-    Storable<City>::createSchema(transaction);
-    Storable<Person>::createSchema(transaction);
-    transaction.commit();
-}
-
-void SqlTest::prepareData()
-{
-    SqlTransaction transaction;
-    Storable<City> city;
-    city.init();
-    city.name = "Moscow";
-    city.insertOne(transaction);
-    Storable<Person> person;
-    person.init();
-    person.name = "Pupkin";
-    person.birthday = DateTime::fromString("2004-12-31 00:00:00");
-    person.cityId = city.id;
-    person.insertOne(transaction);
-    transaction.commit();
-}
-
-void SqlTest::clearData()
-{
-    SqlTransaction transaction;
-    Storable<City> city;
-    Storable<Person> person;
-    person.remove().exec(transaction);
-    city.remove().exec(transaction);
-    transaction.commit();
-}
+#endif

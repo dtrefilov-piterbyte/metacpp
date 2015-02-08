@@ -20,7 +20,7 @@ namespace metacpp
 {
 
 template<typename TBaseEntityPtr, typename... Args>
-class FactoryBase
+struct FactoryBase
 {
     virtual TBaseEntityPtr createInstance(Args... args) = 0;
 };

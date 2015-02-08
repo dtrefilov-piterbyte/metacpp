@@ -34,7 +34,7 @@ namespace sqlite
 class SqliteConnector : public SqlConnectorBase
 {
 public:
-    SqliteConnector(const String& databaseName, int poolSize = 3);
+    SqliteConnector(const String& connectionUri);
     ~SqliteConnector();
 
     // test database connectivity, initialize connection pool
@@ -43,10 +43,10 @@ public:
     SqlTransactionImpl *createTransaction() override;
     bool closeTransaction(SqlTransactionImpl *transaction) override;
     SqlSyntax sqlSyntax() const override;
-    EConnectorType connectorType() const override;
+    void setConnectionPooling(size_t size) override;
 private:
-    String m_databaseName;
-    const int m_poolSize;
+    String m_connectionUri;
+    size_t m_poolSize;
     Array<sqlite3 *> m_freeDbHandles, m_usedDbHandles;
     std::mutex m_poolMutex;
     std::condition_variable m_dbHandleFreedEvent;
@@ -57,6 +57,11 @@ private:
 
 /** \brief Get human-readable description of a sqlite3 error */
 const char *describeSqliteError(int errorCode);
+
+class SqliteConnectorFactory : public SqlConnectorFactory
+{
+    std::unique_ptr<SqlConnectorBase> createInstance(const Uri &uri);
+};
 
 } // namespace sqlite
 } // namespace connectors

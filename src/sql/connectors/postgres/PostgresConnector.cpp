@@ -20,13 +20,9 @@ namespace sql {
 namespace connectors {
 namespace postgres {
 
-PostgresConnector::PostgresConnector(const String &connectionString, int poolSize)
-    : m_connectionString(connectionString), m_poolSize(poolSize), m_connected(false)
+PostgresConnector::PostgresConnector(const String &connectionString)
+    : m_connectionString(connectionString), m_poolSize(1), m_connected(false)
 {
-    if (m_poolSize <= 0)
-        throw std::invalid_argument("Negative pool size");
-    if (m_poolSize > 10)
-        throw std::invalid_argument("Pool size is too large");
 }
 
 PostgresConnector::~PostgresConnector()
@@ -45,13 +41,14 @@ bool PostgresConnector::connect()
         return true;
     }
     m_freeDbHandles.reserve(m_poolSize);
-    for (int i = 0; i < m_poolSize; ++i)
+    for (size_t i = 0; i < m_poolSize; ++i)
     {
         PGconn *dbConn = PQconnectdb(m_connectionString.c_str());
         ConnStatusType status = PQstatus(dbConn);
         if (status != CONNECTION_OK)
         {
-            std::cerr << "PQconnectdb(): failed to establish connection to database.";
+            std::cerr << "PQconnectdb(): failed to establish connection to database. ";
+            std::cerr << m_connectionString << std::endl;
             disconnect();
             return false;
         }
@@ -148,9 +145,39 @@ SqlSyntax PostgresConnector::sqlSyntax() const
     return SqlSyntaxPostgreSQL;
 }
 
-EConnectorType PostgresConnector::connectorType() const
+void PostgresConnector::setConnectionPooling(size_t size)
 {
-    return EConnectorTypePostgresql;
+    if (size == 0 || size > 10)
+        throw std::invalid_argument("size");
+    m_poolSize = size;
+}
+
+std::unique_ptr<SqlConnectorBase> PostgresConnectorFactory::createInstance(const Uri &uri)
+{
+    String host = uri.host();
+    String port = uri.port();
+    String user = uri.username();
+    String password = uri.password();
+    StringArray params;
+    if (!host.isNullOrEmpty()) params.push_back("host='" + host.replace("'", "\\'").replace("\\", "\\\\") + "'");
+    if (!port.isNullOrEmpty()) params.push_back("port='" + port.replace("'", "\\'").replace("\\", "\\\\") + "'");
+    if (!user.isNullOrEmpty()) params.push_back("user='" + user.replace("'", "\\'").replace("\\", "\\\\") + "'");
+    if (!password.isNullOrEmpty()) params.push_back("password='" + password.replace("'", "\\'").replace("\\", "\\\\") + "'");
+
+    auto traverseParam = [&params, uri](const String& param)
+    {
+        String val = uri.param(param);
+        val.replace("'", "\\'").replace("\\", "\\\\");
+        if (!val.isNullOrEmpty()) params.push_back(param + "='" + val + "'");
+    };
+    traverseParam("dbname");
+    traverseParam("connect_timeout");
+    traverseParam("options");
+    traverseParam("sslmode");
+    traverseParam("krbsrvname");
+    traverseParam("service");
+
+    return std::unique_ptr<SqlConnectorBase>(new PostgresConnector(params.join(" ")));
 }
 
 } // namespace postgres

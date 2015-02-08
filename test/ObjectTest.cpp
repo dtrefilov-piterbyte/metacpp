@@ -146,6 +146,7 @@ void ObjectTest::testInitVisitor()
 
 void ObjectTest::testSerialization()
 {
+#ifdef HAVE_JSONCPP
 	TestStruct t, t2;
     t.init();
     t.id = 123;
@@ -181,6 +182,7 @@ void ObjectTest::testSerialization()
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
+#endif
 }
 
 TEST_F(ObjectTest, MetaInfoTest)

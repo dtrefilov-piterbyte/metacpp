@@ -141,12 +141,13 @@ public:
     StringBase() { }
     StringBase(const T *str) : Base(new Data(str)) { }
     StringBase(const T *str, size_t length) : Base(new Data(str, length)) { }
+    StringBase(const_iterator begin, const_iterator end) : StringBase(begin, std::distance(begin, end)) { }
     StringBase(const StringBase& other) : Base(other) { }
     StringBase(const std::basic_string<T>& stdstr) : Base(new Data(stdstr.c_str(), stdstr.size())) { }
     ~StringBase() { }
 
-	const T *data() const { return this->m_d ? this->m_d->_data() : empty().data(); }
-	const T *c_str() const { return this->m_d ? this->m_d->_data() : empty().data(); }
+    const T *data() const { return this->m_d ? this->m_d->_data() : ms_empty.data(); }
+    const T *c_str() const { return this->m_d ? this->m_d->_data() : ms_empty.data(); }
 
 	bool isNull() const { return !this->m_d || !this->m_d->_data(); }
 	bool isNullOrEmpty() const { return isNull() || !*this->m_d->_data(); }
@@ -210,12 +211,17 @@ public:
     StringBase& operator +=(const StringBase& str) { append(str); return *this; }
     StringBase& operator +=(const T& ch) { append(ch); return *this; }
 
-	size_t firstIndexOf(const T *str, size_t length = npos) const
+    size_t nextIndexOf(const T *str, size_t pos, size_t length = npos) const
 	{
 		if (length == npos) length = StringHelper<T>::strlen(str);
-		auto it = std::search(begin(), end(), str, str + length);
+        if (pos >= size()) return npos;
+        auto it = std::search(begin() + pos, end(), str, str + length);
 		return it == end() ? npos : std::distance(begin(), it);
 	}
+
+    size_t nextIndexOf(const StringBase& other, size_t pos) const { return nextIndexOf(other.data(), pos, other.length()); }
+
+    size_t firstIndexOf(const T *str, size_t length = npos) const { return nextIndexOf(str, 0, length); }
 
     size_t firstIndexOf(const StringBase& other) const { return firstIndexOf(other.data(), other.length()); }
 
@@ -255,8 +261,8 @@ public:
 
     bool endsWith(const StringBase& other) const { return endsWith(other.data(), other.size()); }
 
-    static const StringBase& empty() { return ms_empty; }
-    static const StringBase& null() { return ms_null; }
+    static const StringBase& getEmpty() { return ms_empty; }
+    static const StringBase& getNull() { return ms_null; }
 
 	template<typename T1>
     static StringBase fromValue(T1 value)
@@ -292,6 +298,31 @@ public:
 		}
 		return result;
 	}
+
+    StringBase substr(size_t start = 0, size_t length = npos) const
+    {
+        if (start >= size()) return StringBase();
+        if (npos == length) length = size() - start;
+        if (length > size() - start) length = size() - start;
+        return StringBase(begin() + start, length);
+    }
+
+    StringBase& replace(const StringBase& from, const StringBase& to)
+    {
+        size_t pos = firstIndexOf(from);
+        if (pos != npos) {
+            StringBase newStr;
+            size_t begPos = 0;
+            do {
+                newStr.append(begin() + begPos, pos - begPos);
+                newStr.append(to);
+                begPos = pos + from.size();
+            } while (npos != (pos = nextIndexOf(from, begPos)));
+            newStr.append(begin() + begPos, size() - begPos);
+            *this = newStr;
+        }
+        return *this;
+    }
 
 private:
     static StringBase<T> ms_null;

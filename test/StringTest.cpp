@@ -1,4 +1,5 @@
 #include "StringTest.h"
+#include "Uri.h"
 #include <sstream>
 
 using namespace metacpp;
@@ -11,9 +12,9 @@ void StringTest::testNull()
     String str2 = "not null";
     EXPECT_FALSE(str2.isNull());
     EXPECT_FALSE(str2.isNullOrEmpty());
-    EXPECT_TRUE(String::null().isNull());
-    EXPECT_FALSE(String::empty().isNull());
-    EXPECT_TRUE(String::empty().isNullOrEmpty());
+    EXPECT_TRUE(String::getNull().isNull());
+    EXPECT_FALSE(String::getEmpty().isNull());
+    EXPECT_TRUE(String::getEmpty().isNullOrEmpty());
 }
 
 TEST_F(StringTest, TestNull)
@@ -179,6 +180,49 @@ void StringTest::testJoin()
 TEST_F(StringTest, testJoin)
 {
     testJoin();
+}
+
+void StringTest::testReplace(const String &inStr, const String &from, const String &to, const String &outStr)
+{
+    String str(inStr);
+    str.replace(from, to);
+    EXPECT_EQ(str, outStr);
+}
+
+TEST_F(StringTest, testReplace)
+{
+    testReplace("12345", "12", "ab", "ab345");
+    testReplace("aabcdae", "a", "aa", "aaaabcdaae");
+    testReplace("C%2B%2B", "%2B", "+", "C++");
+}
+
+void StringTest::testUri(const String& strUri, const String &schema, const String &hierarchy,
+                         const std::initializer_list<std::pair<String, String> > &params,
+                         const String &host, const String &port, const String &path, const String &username, const String &password)
+{
+    metacpp::Uri uri(strUri);
+    EXPECT_EQ(uri.schemeName(), schema);
+    EXPECT_EQ(uri.hierarchy(), hierarchy);
+    for (auto param : params)
+        EXPECT_EQ(uri.param(param.first), param.second);
+    EXPECT_EQ(uri.host(), host);
+    EXPECT_EQ(uri.port(), port);
+    EXPECT_EQ(uri.path(), path);
+    EXPECT_EQ(uri.username(), username);
+    EXPECT_EQ(uri.password(), password);
+}
+
+TEST_F(StringTest, testUri)
+{
+    testUri("http://example.com/foo/bar?param1=value1&param2=value2", "http", "example.com/foo/bar",
+        { std::make_pair<String, String>("param1", "value1"), std::make_pair<String, String>("param2", "value2") },
+            "example.com", String(), "foo/bar");
+    testUri("postgres://user:pass@localhost:5432?connect_timeout=5", "postgres", "user:pass@localhost:5432",
+        { std::make_pair<String, String>("connect_timeout", "5") }, "localhost", "5432", String(), "user", "pass");
+    testUri("sqlite3://test.db?mode=memory&cache=shared", "sqlite3", "test.db",
+        { std::make_pair<String, String>("cache", "shared"), std::make_pair<String, String>("mode", "memory") },
+            "test.db");
+    testUri("user@mailhost", String(), "user@mailhost", { }, "mailhost", String(), String(), "user");
 }
 
 TEST_F(StringTest, TestAWConversion)

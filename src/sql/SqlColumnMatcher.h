@@ -49,8 +49,9 @@ public:
 private:
     String escape(const String& s) const
     {
-        // TODO: escape single quote
-        return s;
+        String s1 = s;
+        s1.replace("'", "");
+        return s1;
     }
 };
 

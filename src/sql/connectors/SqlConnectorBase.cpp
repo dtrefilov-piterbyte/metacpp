@@ -14,8 +14,6 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "SqlConnectorBase.h"
-#include "SqliteConnector.h"
-#include "PostgresConnector.h"
 
 namespace metacpp
 {
@@ -64,24 +62,34 @@ namespace connectors
         return it->second;
     }
 
+    void SqlConnectorBase::registerConnectorFactory(const String &schemaName, std::shared_ptr<SqlConnectorFactory> factory)
+    {
+        std::lock_guard<std::mutex> _guard(ms_connectorFactoriesMutex);
+        ms_connectorFactories[schemaName] = factory;
+    }
+
+    void SqlConnectorBase::unregisterConnectorFactory(const String &schemaName)
+    {
+        std::lock_guard<std::mutex> _guard(ms_connectorFactoriesMutex);
+        ms_connectorFactories.erase(schemaName);
+    }
+
+    std::unique_ptr<SqlConnectorBase> SqlConnectorBase::createConnector(const Uri &uri)
+    {
+        std::lock_guard<std::mutex> _guard(ms_connectorFactoriesMutex);
+        auto it = ms_connectorFactories.find(uri.schemeName());
+        if (it == ms_connectorFactories.end())
+        {
+            throw std::invalid_argument(String("Unknown schema: " + uri.schemeName()).c_str());
+        }
+        return it->second->createInstance(uri);
+    }
+
     std::atomic<SqlConnectorBase *> SqlConnectorBase::ms_defaultConnector;
     std::mutex SqlConnectorBase::ms_namedConnectorsMutex;
     std::map<String, SqlConnectorBase *> SqlConnectorBase::ms_namedConnectors;
-
-    std::unique_ptr<SqlConnectorBase> SqlConnectorFactory::createInstance(EConnectorType type, const String &connectionString, size_t poolSize)
-    {
-        std::unique_ptr<SqlConnectorBase> result;
-        switch(type)
-        {
-        case EConnectorTypeSqlite:
-            result.reset(new sqlite::SqliteConnector(connectionString, poolSize));
-            break;
-        case EConnectorTypePostgresql:
-            result.reset(new postgres::PostgresConnector(connectionString, poolSize));
-            break;
-        }
-        return result;
-    }
+    std::mutex SqlConnectorBase::ms_connectorFactoriesMutex;
+    std::map<String, std::shared_ptr<SqlConnectorFactory> > SqlConnectorBase::ms_connectorFactories;
 
 } // namespace connectors
 } // namespace sql

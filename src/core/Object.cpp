@@ -15,8 +15,11 @@
 ****************************************************************************/
 #include "Object.h"
 #include "InitVisitor.h"
+
+#ifdef HAVE_JSONCPP
 #include "JsonSerializerVisitor.h"
 #include "JsonDeserializerVisitor.h"
+#endif
 
 namespace metacpp
 {
@@ -33,6 +36,7 @@ void Object::init()
 
 String Object::toString(bool prettyFormatted) const
 {
+#ifdef HAVE_JSONCPP
     JsonSerializerVisitor vis;
     vis.visit(const_cast<Object *>(this));
 	if (prettyFormatted)
@@ -44,17 +48,24 @@ String Object::toString(bool prettyFormatted) const
 	{
         Json::FastWriter writer;
         return String(writer.write(vis.rootValue()).c_str());
-	}
+    }
+#else
+    throw std::runtime_error("Json eninge unavailable");
+#endif
 }
 
 void Object::fromString(const String& s)
 {
+#ifdef HAVE_JSONCPP
 	Json::Reader reader;
 	Json::Value root;
     if (!reader.parse(s.begin(), s.end(), root, false))
 		throw std::invalid_argument("Json::Reader::parse failed");
     JsonDeserializerVisitor vis(root);
     vis.visit(this);
+#else
+    throw std::runtime_error("Json eninge unavailable");
+#endif
 }
 
 Variant Object::invoke(const String &methodName, const VariantArray &args)

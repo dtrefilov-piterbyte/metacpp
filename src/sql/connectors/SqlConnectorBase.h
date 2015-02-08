@@ -22,6 +22,7 @@
 #include <atomic>
 #include <map>
 #include "String.h"
+#include "Uri.h"
 
 namespace metacpp
 {
@@ -30,19 +31,9 @@ namespace sql
 namespace connectors
 {
 
-/** \brief Result of the fetchNext operation */
-enum FetchResult
-{
-    eFetchError,    /** operation unsupported */
-    eFetchRow,      /** next row successfully fetched */
-    eFetchEnd       /** end of query result reached, no more rows */
-};
+class SqlConnectorBase;
 
-enum EConnectorType
-{
-    EConnectorTypeSqlite,
-    EConnectorTypePostgresql
-};
+typedef FactoryBase<std::unique_ptr<SqlConnectorBase>, const Uri&> SqlConnectorFactory;
 
 class SqlConnectorBase
 {
@@ -71,23 +62,25 @@ public:
 
     virtual SqlSyntax sqlSyntax() const = 0;
 
-    virtual EConnectorType connectorType() const = 0;
+    virtual void setConnectionPooling(size_t size) = 0;
 
     static void setDefaultConnector(SqlConnectorBase *connector);
     static SqlConnectorBase *getDefaultConnector();
 
     static bool setNamedConnector(SqlConnectorBase *connector, const String& connectionName);
     static SqlConnectorBase *getNamedConnector(const String &connectionName);
+
+    static void registerConnectorFactory(const String& schemaName, std::shared_ptr<SqlConnectorFactory> factory);
+    static void unregisterConnectorFactory(const String& schemaName);
+
+    static std::unique_ptr<SqlConnectorBase> createConnector(const Uri& uri);
 private:
     static std::atomic<SqlConnectorBase *> ms_defaultConnector;
     static std::mutex ms_namedConnectorsMutex;
     static std::map<String, SqlConnectorBase *> ms_namedConnectors;
-};
 
-class SqlConnectorFactory : public FactoryBase<std::unique_ptr<SqlConnectorBase>, EConnectorType, const String&, size_t>
-{
-public:
-    std::unique_ptr<SqlConnectorBase> createInstance(EConnectorType type, const String& connectionString, size_t poolSize = 3);
+    static std::mutex ms_connectorFactoriesMutex;
+    static std::map<String, std::shared_ptr<SqlConnectorFactory> > ms_connectorFactories;
 };
 
 } // namespace connectors
