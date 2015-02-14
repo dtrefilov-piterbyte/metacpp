@@ -97,7 +97,7 @@ namespace sql
         static const Array<SqlConstraintBasePtr> ms_constraints;
     };
 
-#define DECLARE_STORABLE(TObj, ...) \
+#define DEFINE_STORABLE(TObj, ...) \
 template<> const Array<SqlConstraintBasePtr> Storable<TObj>::ms_constraints = { __VA_ARGS__ };
 
 } // namespace sql

@@ -33,7 +33,7 @@ REFLECTIBLE_F(City)
 
 META_INFO(City)
 
-DECLARE_STORABLE(City,
+DEFINE_STORABLE(City,
                  PRIMARY_KEY(COL(City::id)),
                  UNIQUE_INDEX(COL(City::id))
                  )
@@ -64,7 +64,7 @@ REFLECTIBLE_F(Person)
 
 META_INFO(Person)
 
-DECLARE_STORABLE(Person,
+DEFINE_STORABLE(Person,
                  PRIMARY_KEY(COL(Person::id)),
                  REFERENCES(COL(Person::cityId), COL(City::id)),
                  UNIQUE_INDEX(COL(Person::id)),
