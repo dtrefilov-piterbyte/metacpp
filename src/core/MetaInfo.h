@@ -40,28 +40,29 @@ class MetaObject;
 /** \brief A structure describing enumeration element */
 struct EnumValueInfoDescriptor
 {
-	const char		*m_pszValue;
-	uint32_t		m_uValue;
+    const char		*m_pszValue;    /**< \brief name of the value */
+    uint32_t		m_uValue;       /**< \brief value casted to uint32_t */
 };
 
 /** \brief A structure describing enumeration */
 struct EnumInfoDescriptor
 {
-	EEnumType		m_type;
-	const char		*m_enumName;
-	uint32_t		m_defaultValue;
-    const EnumValueInfoDescriptor *m_valueDescriptors;
+    EEnumType		m_type;                                 /**< \brief Type of enumeration */
+    const char		*m_enumName;                            /**< \brief Name of enumeration */
+    uint32_t		m_defaultValue;                         /**< \brief Default value for this enum */
+    const EnumValueInfoDescriptor *m_valueDescriptors;      /**< \brief Pointer to the array of value descriptors (terminated with dummy descriptor) */
 };
 
 /** \brief A structure describing the reflection property of the class */
 struct FieldInfoDescriptor
 {
-	const char *m_pszName;
-	size_t		m_dwSize;
-	ptrdiff_t	m_dwOffset;
-	EFieldType	m_eType;
-    bool        m_nullable;
+    const char *m_pszName;  /**< \brief field name */
+    size_t		m_dwSize;   /**< \brief size of field in bytes */
+    ptrdiff_t	m_dwOffset; /**< \brief offset of field in class */
+    EFieldType	m_eType;    /**< \brief type of the field */
+    bool        m_nullable; /**< \brief if this flag is set, field is in form Nullable<T> */
 
+    /** \brief Type-specific extension */
 	struct Extension
 	{
         union UExtension
@@ -116,75 +117,88 @@ struct FieldInfoDescriptor
                 const metacpp::MetaObject *metaObject;
             } m_obj;
         } ext;
-        EMandatoriness	mandatoriness;
+        EMandatoriness	mandatoriness;  /**< \brief Mandatoriness of the field */
 
+        /** \brief Constructs default Extension */
         explicit Extension()
 		{
             mandatoriness = eOptional;
         }
+        /** \brief Constructs bool Extension with default value v */
         explicit Extension(bool v)
 		{
             ext.m_bool.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs int32_t Extension with default value v */
 		explicit Extension(int32_t v)
 		{
             ext.m_int.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs uint32_t Extension with default value v */
 		explicit Extension(uint32_t v)
 		{
             ext.m_uint.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs int64_t Extension with default value v */
         explicit Extension(int64_t v)
         {
             ext.m_int64.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs uint64_t Extension with default value v */
         explicit Extension(uint64_t v)
         {
             ext.m_uint64.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs float Extension with default value v */
 		explicit Extension(float v)
 		{
             ext.m_float.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs double Extension with default value v */
         explicit Extension(double v)
         {
             ext.m_double.defaultValue = v;
             mandatoriness = eDefaultable;
         }
-
+        /** \brief Constructs metacpp::String Extension with default value v */
 		explicit Extension(const char *v)
 		{
             ext.m_string.defaultValue = v;
             mandatoriness = eDefaultable;
         }
 
+        /** \brief Constructs metacpp::DateTime Extension with default value v */
         explicit Extension(const metacpp::DateTime& v)
         {
             ext.m_datetime.defaultValue = v.toStdTime();
             mandatoriness = eDefaultable;
         }
 
+        /** \brief Constructs Extension with given mandatoriness m */
         explicit Extension(EMandatoriness m)
         {
             mandatoriness = m;
         }
+        /** \brief Constructs enum Extension with given enumInfo */
         explicit Extension(const EnumInfoDescriptor *enumInfo)
 		{
             ext.m_enum.enumInfo = enumInfo;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs metacpp::Array Extension with given elemType and elemSize */
         explicit Extension(EFieldType elemType, size_t elemSize)
 		{
             ext.m_array.elemType = elemType;
             ext.m_array.elemSize = elemSize;
             mandatoriness = eDefaultable;
         }
+        /** \brief Constructs metacpp::Object Extension with given metaObject */
         explicit Extension(const metacpp::MetaObject *metaObject)
         {
             ext.m_obj.metaObject = metaObject;
@@ -395,11 +409,11 @@ class MetaInvokerBase
 {
 public:
     virtual ~MetaInvokerBase() { }
+    /** \brief Invokes method with the given context and arguments */
     virtual metacpp::Variant invoke(const void *contextObj, const metacpp::Array<metacpp::Variant>& argList) const = 0;
 };
 
 /** \brief Helper class for invokation of static methods
- * \see \enum EMethodType
  */
 template<typename TRes, typename... TArgs>
 class FunctionInvoker : public MetaInvokerBase
@@ -419,13 +433,6 @@ private:
         return metacpp::Variant(invokeImpl(argList));
     }
 
-public:
-    typedef TRes (*TFunction)(TArgs...);
-
-    explicit FunctionInvoker(TFunction func)
-        : m_function(func)
-    {
-    }
 
     TRes invokeImpl(const metacpp::Array<metacpp::Variant>& argList) const
     {
@@ -439,6 +446,16 @@ public:
                 ::call(m_function, std::forward<ttype>(args));
     }
 
+public:
+    /** \brief Type of the static method */
+    typedef TRes (*TFunction)(TArgs...);
+
+    /** Construct a new instance of FunctionInvoker with given func */
+    explicit FunctionInvoker(TFunction func)
+        : m_function(func)
+    {
+    }
+    /** \brief Overrides MetaInvokerBase::invoke */
     metacpp::Variant invoke(const void *metaObject, const metacpp::Array<metacpp::Variant>& argList) const override
     {
         (void)metaObject;
@@ -450,7 +467,6 @@ private:
 };
 
 /** \brief Helper class for invokation of non-const own methods
- * \see \enum EMethodType
  */
 template<typename TRes, typename TObj, typename... TArgs>
 class MethodInvoker : public MetaInvokerBase
@@ -470,14 +486,6 @@ private:
         return metacpp::Variant(invokeImpl(obj, argList));
     }
 
-public:
-    typedef TRes (TObj::*TFunction)(TArgs...);
-
-    explicit MethodInvoker(TFunction function)
-        : m_method(function)
-    {
-    }
-
     TRes invokeImpl(TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
         typedef std::tuple<TArgs...> ttype;
@@ -489,7 +497,18 @@ public:
         return mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_method, obj, std::forward<ttype>(args));
     }
+public:
+    /** \brief Type of the own method */
+    typedef TRes (TObj::*TFunction)(TArgs...);
 
+    /** Construct a new instance of MethodInvoker with given func */
+    explicit MethodInvoker(TFunction function)
+        : m_method(function)
+    {
+    }
+
+
+    /** \brief Overrides MetaInvokerBase::invoke */
     metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
     {
         return doInvoke(reinterpret_cast<TObj *>(const_cast<void *>(obj)), argList);
@@ -500,7 +519,6 @@ private:
 };
 
 /** \brief Helper class for invokation of const own methods
- * \see \enum EMethodType
  */
 template<typename TRes, typename TObj, typename... TArgs>
 class ConstMethodInvoker : public MetaInvokerBase
@@ -520,14 +538,6 @@ private:
         return metacpp::Variant(invokeImpl(obj, argList));
     }
 
-public:
-    typedef TRes (TObj::*TFunction)(TArgs...) const;
-
-    ConstMethodInvoker(TFunction function)
-        : m_method(function)
-    {
-    }
-
     TRes invokeImpl(const TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
         typedef std::tuple<TArgs...> ttype;
@@ -540,6 +550,17 @@ public:
                 ::call(m_method, obj, std::forward<ttype>(args));
     }
 
+public:
+    /** \brief Type of the own method */
+    typedef TRes (TObj::*TFunction)(TArgs...) const;
+
+    /** Construct a new instance of ConstMethodInvoker with given func */
+    ConstMethodInvoker(TFunction function)
+        : m_method(function)
+    {
+    }
+
+    /** \brief Overrides MetaInvokerBase::invoke */
     metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
     {
         return doInvoke(reinterpret_cast<const TObj *>(obj), argList);
@@ -576,19 +597,19 @@ namespace detail
 */
 enum EMethodType
 {
-    eMethodNone,    /**< Invalid type */
-    eMethodStatic,  /**< Static method */
-    eMethodOwn      /**< Own method */
+    eMethodNone,    /**< \brief Invalid type */
+    eMethodStatic,  /**< \brief Static method */
+    eMethodOwn      /**< \brief Own method */
 };
 
 /** \brief Structure describing reflection method and providing a way for it's invokation */
 struct MethodInfoDescriptor
 {
-    const char *m_pszName;                          /**< name of the method */
-    EMethodType m_eType;                            /**< method type */
-    bool m_bConstness;                              /**< constness of self-reference for own methods. \see ConstMethodInvoker, MethodInvoker */
-    size_t m_nArgs;                                 /**< number of arguments passing to the method (self-reference is not counted here) */
-    std::unique_ptr<MetaInvokerBase> m_pInvoker;    /**< invoker helper */
+    const char *m_pszName;                          /**< \brief name of the method */
+    EMethodType m_eType;                            /**< \brief method type */
+    bool m_bConstness;                              /**< \brief constness of self-reference for own methods. \see ConstMethodInvoker, MethodInvoker */
+    size_t m_nArgs;                                 /**< \brief number of arguments passing to the method (self-reference is not counted here) */
+    std::unique_ptr<MetaInvokerBase> m_pInvoker;    /**< \brief invoker helper */
 };
 
 namespace detail
@@ -638,20 +659,30 @@ namespace detail
 */
 struct MetaInfoDescriptor
 {
-    const char                      *m_strucName;
-    size_t                          m_dwSize;
-    const MetaInfoDescriptor        *m_superDescriptor;
-    const FieldInfoDescriptor		*m_fieldDescriptors;
-    const MethodInfoDescriptor      *m_methodDescriptors;
+    const char                      *m_strucName;           /**< \brief Name of the struct */
+    size_t                          m_dwSize;               /**< \brief Size of the struct */
+    const MetaInfoDescriptor        *m_superDescriptor;     /**< \brief Pointer to the super (base) struct descriptor */
+    const FieldInfoDescriptor		*m_fieldDescriptors;    /**< \brief Pointer to the array of property descriptors (terminated with dummy descriptor) */
+    const MethodInfoDescriptor      *m_methodDescriptors;   /**< \brief Pointer to the array of method descriptors (terminated with dummy descriptor) */
 };
 
+/** \brief Starts a list of method descriptors
+ * \relates MetaInfoDescriptor
+ */
 #define METHOD_INFO_BEGIN(obj) \
     const MethodInfoDescriptor _methodInfos_##obj[] = {
 
+/** \brief Terminates a list of method descriptors
+ * \relates MetaInfoDescriptor
+ */
 #define METHOD_INFO_END(obj) \
         { nullptr, eMethodNone, false, 0, nullptr } \
     };
 
+/** \brief Puts a named method descriptor into the list
+ * \relates MetaInfoDescriptor
+ * \see METHOD_INFO_BEGIN, METHOD_INFO_END, METHOD, SIGNATURE_METHOD
+ */
 #define NAMED_METHOD(name, pMethod) \
     { \
         /* name     */   name, \
@@ -661,17 +692,35 @@ struct MetaInfoDescriptor
         /* invoker */    ::detail::MethodInfoHelper<decltype(pMethod)>::createInvoker(pMethod) \
     },
 
+/** \brief Puts a method descriptor into the list
+ * \relates MetaInfoDescriptor
+ * \see METHOD_INFO_BEGIN, METHOD_INFO_END, NAMED_METHOD, SIGNATURE_METHOD
+ */
 #define METHOD(obj, method) NAMED_METHOD(#method, &obj::method)
+
+/** \brief Puts a method descriptor with given signature into the list
+ * \relates MetaInfoDescriptor
+ * \see METHOD_INFO_BEGIN, METHOD_INFO_END, NAMED_METHOD, METHOD
+ */
 #define SIGNATURE_METHOD(obj, method, signature) NAMED_METHOD(#method, static_cast<signature>(&obj::method))
 
+/** \brief Starts a list of property descriptors
+ * \relates MetaInfoDescriptor
+ */
 #define STRUCT_INFO_BEGIN(struc) \
     const FieldInfoDescriptor _fieldInfos_##struc[] = {
 
-// field info sequence terminator
+/** \brief Terminates a list of property descriptors
+ * \relates MetaInfoDescriptor
+ */
 #define STRUCT_INFO_END(struc) \
         { 0, 0, 0, eFieldVoid, false, FieldInfoDescriptor::Extension() } \
     };
 
+/** \brief Puts a property descriptor into the list
+ * \relates MetaInfoDescriptor
+ * \see STRUCT_INFO_BEGIN, STRUCT_INFO_END
+ */
 #define FIELD(struc, field, ...) { \
     /* name */      #field, \
     /* size */      sizeof(decltype(struc::field)), \
@@ -681,39 +730,81 @@ struct MetaInfoDescriptor
     /* extension */ ::detail::FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::extension(__VA_ARGS__) \
     },
 
+/** \brief Macro used for accessing previously declared MetaInfoDescriptor for the struc
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_DESCRIPTOR(struc) _descriptor_##struc
+
+/** \brief Declares MetaInfoDescriptor for the struc
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_DESCRIPTOR_DECLARE(struc) extern const MetaInfoDescriptor _descriptor_##struc;
 
+/** \brief Defines MetaInfoDescriptor for the struc with property (field) reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_F(struc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc, nullptr }; \
 
+/** \brief Defines MetaInfoDescriptor for the struc with given super class and property (field) reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_DERIVED_F(struc, superStruc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), _fieldInfos_##struc, nullptr  }; \
 
+/** \brief Defines MetaInfoDescriptor for the struc with method reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_M(struc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, nullptr, _methodInfos_##struc }; \
 
+/** \brief Defines MetaInfoDescriptor for the struc with given super class and method reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_DERIVED_M(struc, superStruc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), nullptr, _methodInfos_##struc }; \
 
+/** \brief Defines MetaInfoDescriptor for the struc with field and method reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_FM(struc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), nullptr, _fieldInfos_##struc, _methodInfos_##struc }; \
 
+/** \brief Defines MetaInfoDescriptor for the struc with given super class and field and method reflection info
+  \relates MetaInfoDescriptor
+ */
 #define REFLECTIBLE_DERIVED_FM(struc, superStruc) \
     const MetaInfoDescriptor _descriptor_##struc = { #struc, sizeof(struc), &REFLECTIBLE_DESCRIPTOR(superStruc), _fieldInfos_##struc, _methodInfos_##struc }; \
 
+/** \brief Starts a list of enumeration value descriptors
+ * \relates EnumInfoDescriptor
+ */
 #define ENUM_INFO_BEGIN(_enum, type, def) \
     extern const EnumValueInfoDescriptor _enumValueInfos_##_enum[]; \
     const EnumInfoDescriptor _enumInfo_##_enum = { type, #_enum, (uint32_t)def, _enumValueInfos_##_enum }; \
     const EnumValueInfoDescriptor _enumValueInfos_##_enum[] = {
 
+/** \brief Terminates a list of enumeration value descriptors
+ * \relates EnumInfoDescriptor
+ */
 #define ENUM_INFO_END(_enum) \
 		{ nullptr, 0 } \
 	};
 
+/** \brief Macro used for accessing previously declared EnumInfoDescriptor
+  \relates EnumInfoDescriptor
+ */
 #define ENUM_INFO(_enum) _enumInfo_##_enum
+
+/** \brief Declares EnumInfoDescriptor
+  \relates EnumInfoDescriptor
+ */
 #define ENUM_INFO_DECLARE(_enum) extern const EnumInfoDescriptor _enumInfo_##_enum;
 
+/** \brief Puts a enum value descriptor into the list
+ * \relates EnumInfoDescriptor
+ * \see ENUM_INFO_BEGIN, ENUM_INFO_END
+ */
 #define VALUE_INFO(name) \
 	{ #name, (uint32_t)name },
 

@@ -52,7 +52,7 @@ public:
     virtual void setDone(bool val = true);
     /** \brief Gets sql query text of this statement */
     virtual const String& queryText() const;
-protected:
+private:
     bool m_prepared;
     String m_queryText;
     SqlStatementType m_type;

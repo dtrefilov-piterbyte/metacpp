@@ -77,7 +77,7 @@ public:
 protected:
     /** \brief Constructs a query using specified syntax */
     virtual String buildQuery(SqlSyntax syntax) const = 0;
-    String fieldValue(const MetaFieldBase *field) const;
+    /** \brief Create statement implementation */
     std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
     std::shared_ptr<connectors::SqlStatementImpl> m_impl;
@@ -194,27 +194,34 @@ private:
 class SqlStatementInsert : public SqlStatementBase
 {
 public:
+    /** \brief Constructs a new instance of SqlStatementInsert */
     explicit SqlStatementInsert(SqlStorable *storable);
     ~SqlStatementInsert();
 
+    /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
+    /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) const override;
-
+    /** \brief Executes statement and returns number of rows inserted (on success should be equal to 1) */
     int exec(SqlTransaction& transaction);
 private:
     SqlStorable *m_storable;
 };
 
+/** \brief Class representing Update queries */
 class SqlStatementUpdate : public SqlStatementBase
 {
 public:
+    /** \brief Constructs a new instance of SqlStatementUpdate */
     explicit SqlStatementUpdate(SqlStorable *storable);
     ~SqlStatementUpdate();
 
+    /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
+    /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) const override;
 
-    /** reference other tables */
+    /** \brief Reference other tables */
     template<typename TObj>
     SqlStatementUpdate& ref()
     {
@@ -222,6 +229,7 @@ public:
         return *this;
     }
 
+    /** \brief Reference other tables */
     template<typename TObj1, typename TObj2, typename... TOthers>
     SqlStatementUpdate& ref()
     {
@@ -229,13 +237,15 @@ public:
         return ref<TObj2, TOthers...>();
     }
 
+    /** \brief Specifies a set clause with a given assignment */
     template<typename TObj>
-    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment1)
+    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment)
     {
-        m_sets.push_back(assignment1.expression());
+        m_sets.push_back(assignment.expression());
         return *this;
     }
 
+    /** \brief Specifies a set clause with a given assignments */
     template<typename TObj>
     SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2)
     {
@@ -244,7 +254,7 @@ public:
         return *this;
     }
 
-    // all assignments should be performed on same table
+    /** \brief Specifies a set clause with a given assignments */
     template<typename TObj, typename... TRest>
     typename std::enable_if<sizeof...(TRest) != 0, SqlStatementUpdate>::type&
         set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2, TRest... rest)
@@ -253,7 +263,9 @@ public:
         return set(assignment2, rest...);
     }
 
+    /** \brief Specifies a where clause */
     SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
+    /** \brief Executes statement using given transaction and returns number of rows updated */
     int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
@@ -262,16 +274,20 @@ private:
     SqlStorable *m_storable;
 };
 
+/** \brief Class representing Delete queries */
 class SqlStatementDelete : public SqlStatementBase
 {
 public:
+    /** Constructs a new instance of SqlStatementDelete */
     explicit SqlStatementDelete(SqlStorable *storable);
     ~SqlStatementDelete();
 
+    /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
+    /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) const override;
 
-    /** reference other tables */
+    /** \brief Reference other tables */
     template<typename TObj>
     SqlStatementDelete& ref()
     {
@@ -279,13 +295,17 @@ public:
         return *this;
     }
 
+    /** \brief Reference other tables */
     template<typename TObj1, typename TObj2, typename... TOthers>
     SqlStatementDelete& ref()
     {
         ref<TObj1>();
         return ref<TObj2, TOthers...>();
     }
+
+    /** \brief Specifies a where clause */
     SqlStatementDelete &where(const WhereClauseBuilder& whereClause);
+    /** \brief Executes statement using given transaction and returns number of rows deleted */
     int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
@@ -293,15 +313,19 @@ private:
     SqlStorable *m_storable;
 };
 
+/** \brief Class representing custom user-defined query */
 class SqlStatementCustom : public SqlStatementBase
 {
 public:
+    /** \brief Constructs a new instance of SqlStatementCustom with given queryText */
     explicit SqlStatementCustom(const String& queryText);
     ~SqlStatementCustom();
 
+    /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
+    /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) const override;
-
+    /** \brief Executes statement using given transaction */
     void exec(SqlTransaction& transaction);
 private:
     String m_queryText;

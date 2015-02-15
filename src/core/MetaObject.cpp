@@ -217,46 +217,46 @@ EMandatoriness MetaFieldBase::mandatoriness() const
     return m_descriptor->valueInfo.mandatoriness;
 }
 
-std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *arg)
+std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *fieldDescriptor)
 {
     std::unique_ptr<MetaFieldBase> result;
-    switch (arg->m_eType)
+    switch (fieldDescriptor->m_eType)
     {
     case eFieldBool:
-        result.reset(new MetaFieldBool(arg));
+        result.reset(new MetaFieldBool(fieldDescriptor));
         break;
     case eFieldInt:
-        result.reset(new MetaFieldInt(arg));
+        result.reset(new MetaFieldInt(fieldDescriptor));
         break;
     case eFieldUint:
-        result.reset(new MetaFieldUint(arg));
+        result.reset(new MetaFieldUint(fieldDescriptor));
         break;
     case eFieldInt64:
-        result.reset(new MetaFieldInt64(arg));
+        result.reset(new MetaFieldInt64(fieldDescriptor));
         break;
     case eFieldUint64:
-        result.reset(new MetaFieldUint64(arg));
+        result.reset(new MetaFieldUint64(fieldDescriptor));
         break;
     case eFieldFloat:
-        result.reset(new MetaFieldFloat(arg));
+        result.reset(new MetaFieldFloat(fieldDescriptor));
         break;
     case eFieldDouble:
-        result.reset(new MetaFieldDouble(arg));
+        result.reset(new MetaFieldDouble(fieldDescriptor));
         break;
     case eFieldString:
-        result.reset(new MetaFieldString(arg));
+        result.reset(new MetaFieldString(fieldDescriptor));
         break;
     case eFieldEnum:
-        result.reset(new MetaFieldEnum(arg));
+        result.reset(new MetaFieldEnum(fieldDescriptor));
         break;
     case eFieldObject:
-        result.reset(new MetaFieldObject(arg));
+        result.reset(new MetaFieldObject(fieldDescriptor));
         break;
     case eFieldArray:
-        result.reset(new MetaFieldArray(arg));
+        result.reset(new MetaFieldArray(fieldDescriptor));
         break;
     case eFieldDateTime:
-        result.reset(new MetaFieldDateTime(arg));
+        result.reset(new MetaFieldDateTime(fieldDescriptor));
         break;
     default:
         break;
@@ -310,16 +310,16 @@ MetaCallStatic::MetaCallStatic(const MethodInfoDescriptor *descriptor)
 {
 }
 
-std::unique_ptr<MetaCallBase> MetaCallFactory::createInstance(const MethodInfoDescriptor *arg)
+std::unique_ptr<MetaCallBase> MetaCallFactory::createInstance(const MethodInfoDescriptor *descriptor)
 {
     std::unique_ptr<MetaCallBase> result;
-    switch (arg->m_eType)
+    switch (descriptor->m_eType)
     {
     case eMethodOwn:
-        result.reset(new MetaCallOwn(arg));
+        result.reset(new MetaCallOwn(descriptor));
         break;
     case eMethodStatic:
-        result.reset(new MetaCallStatic(arg));
+        result.reset(new MetaCallStatic(descriptor));
         break;
     default:
         break;

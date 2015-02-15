@@ -24,23 +24,27 @@ namespace metacpp
 namespace sql
 {
 
-#ifndef DOXYGEN_SHOULD_SKIP_THIS
+/** \brief Base template class representing assignement expressions */
 template<typename TObj>
 class SqlColumnAssignmentBase
 {
 public:
+    /** \brief Returns sql-formed expression */
     virtual String expression() const = 0;
 };
 
+/** \brief General implementation for assignments */
 template<typename TObj, typename TField1, typename TField2, typename>
 class SqlColumnAssignment : public SqlColumnAssignmentBase<TObj>
 {
 public:
+    /** \brief Constructs a new instance of SqlColumnAssignment with given left hand side and right hand side */
     SqlColumnAssignment(const SqlColumnMatcherFieldBase<TObj, TField1>& lhs, const SqlColumnMatcherBase<TField2>& rhs)
     {
         m_expr = String(lhs.metaField()->name()) + " = " + rhs.expression();
     }
 
+    /** \brief Overrides SqlColumnAssignmentBase::expression */
     String expression() const override
     {
         return m_expr;
@@ -48,7 +52,7 @@ public:
 private:
     String m_expr;
 };
-#endif // #ifndef DOXYGEN_SHOULD_SKIP_THIS
+
 } // namespace sql
 } // namespace metacpp
 

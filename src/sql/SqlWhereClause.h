@@ -55,7 +55,7 @@ private:
     String m_string;
 };
 
-/** Where clause compined from two others using 'and' or 'or' operators */
+/** \brief Where clause compined from two others using 'and' or 'or' operators */
 class ComplexWhereClauseBuilder : public DirectWhereClauseBuilder
 {
 public:
