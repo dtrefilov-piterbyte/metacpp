@@ -236,10 +236,10 @@ namespace metacpp
 
 #endif
 
-    template<> const size_t StringData<char>::npos = std::numeric_limits<size_t>::max();
+    template<> const size_t detail::StringData<char>::npos = std::numeric_limits<size_t>::max();
     template<> const size_t StringBase<char>::npos = std::numeric_limits<size_t>::max();
 
-    template<> const size_t StringData<char16_t>::npos = std::numeric_limits<size_t>::max();
+    template<> const size_t detail::StringData<char16_t>::npos = std::numeric_limits<size_t>::max();
     template<> const size_t StringBase<char16_t>::npos = std::numeric_limits<size_t>::max();
 
     template<>

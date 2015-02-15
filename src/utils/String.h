@@ -71,66 +71,70 @@ T string_cast(const std::string& strA);
 template<typename T>
 T string_cast(const std::basic_string<char16_t>& strW);
 
-template<typename T>
-class StringData : public ArrayData<T>
+namespace detail
 {
-public:
-	typedef StringHelper<T> Helper;
-	static const size_t npos;
 
-    StringData()
-		: m_dwLength(0)
-	{
-	}
+    template<typename T>
+    class StringData : public ArrayData<T>
+    {
+    public:
+        typedef StringHelper<T> Helper;
+        static const size_t npos;
 
-    explicit StringData(const T *data, size_t length = npos)
-        : ArrayData<T>(data, length == npos ? (data ? Helper::strlen(data) + 1 : 0) : length + 1),
-		m_dwLength(this->m_dwSize ? this->m_dwSize - 1 : 0)
-	{
-		if (this->m_data) this->m_data[m_dwLength] = T(0);
-	}
+        StringData()
+            : m_dwLength(0)
+        {
+        }
 
-    StringData(const StringData&)/* =delete */;
+        explicit StringData(const T *data, size_t length = npos)
+            : ArrayData<T>(data, length == npos ? (data ? Helper::strlen(data) + 1 : 0) : length + 1),
+            m_dwLength(this->m_dwSize ? this->m_dwSize - 1 : 0)
+        {
+            if (this->m_data) this->m_data[m_dwLength] = T(0);
+        }
 
-    SharedDataBase *clone() const override
-	{
-        StringData *copy = new StringData();
-		copy->m_data = new T[m_dwLength + 1];
-		std::copy(this->m_data, this->m_data + m_dwLength + 1, copy->m_data);
-		copy->m_dwLength = m_dwLength;
-		copy->m_dwAllocatedSize = copy->m_dwSize = m_dwLength + 1;
+        StringData(const StringData&)/* =delete */;
 
-		return copy;
-	}
+        SharedDataBase *clone() const override
+        {
+            StringData *copy = new StringData();
+            copy->m_data = new T[m_dwLength + 1];
+            std::copy(this->m_data, this->m_data + m_dwLength + 1, copy->m_data);
+            copy->m_dwLength = m_dwLength;
+            copy->m_dwAllocatedSize = copy->m_dwSize = m_dwLength + 1;
 
-	void _resize(size_t size) 
-	{
-        ArrayData<T>::_resize(size);
-		m_dwLength = this->m_dwSize ? this->m_dwSize - 1 : 0;
-		this->m_data[m_dwLength] = T(0);
-	}
+            return copy;
+        }
 
-	size_t _length() const { return m_dwLength;  }
-	int _cmp(const T *o) { return this->m_data ? Helper::strcmp(this->m_data, o) : -1; }
-    int _icmp(const T *o) { return this->m_data ? Helper::strcasecmp(this->m_data, o) : -1; }
+        void _resize(size_t size)
+        {
+            ArrayData<T>::_resize(size);
+            m_dwLength = this->m_dwSize ? this->m_dwSize - 1 : 0;
+            this->m_data[m_dwLength] = T(0);
+        }
 
-	void _append(const T *data, size_t length = npos)
-	{
-		if (length == npos) length = Helper::strlen(data);
-        ArrayData<T>::_resize(m_dwLength + length + 1);
-		std::copy(data, data + length, this->m_data + m_dwLength);
-		m_dwLength += length;
-		this->m_data[m_dwLength] = T(0);	// null terminator
-	}
-private:
-	size_t m_dwLength;
-};
+        size_t _length() const { return m_dwLength;  }
+        int _cmp(const T *o) { return this->m_data ? Helper::strcmp(this->m_data, o) : -1; }
+        int _icmp(const T *o) { return this->m_data ? Helper::strcasecmp(this->m_data, o) : -1; }
+
+        void _append(const T *data, size_t length = npos)
+        {
+            if (length == npos) length = Helper::strlen(data);
+            ArrayData<T>::_resize(m_dwLength + length + 1);
+            std::copy(data, data + length, this->m_data + m_dwLength);
+            m_dwLength += length;
+            this->m_data[m_dwLength] = T(0);	// null terminator
+        }
+    private:
+        size_t m_dwLength;
+    };
+} // namespace detail
 
 template<typename T>
-class StringBase : protected SharedDataPointer<StringData<T> >
+class StringBase : protected SharedDataPointer<detail::StringData<T> >
 {
-    typedef StringData<T> Data;
-    typedef  SharedDataPointer<StringData<T> > Base;
+    typedef detail::StringData<T> Data;
+    typedef  SharedDataPointer<detail::StringData<T> > Base;
 public:
 	typedef T *iterator;
 	typedef const T *const_iterator;

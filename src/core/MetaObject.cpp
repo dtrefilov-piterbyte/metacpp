@@ -111,7 +111,7 @@ size_t MetaObject::size() const
 Object *MetaObject::createInstance() const
 {
     if (!m_constructor)
-        throw std::runtime_error("Have no appropriate constructor");
+        throw std::runtime_error("Have no appropriate class constructor");
     void *pMem = ::operator new(size());
     return m_constructor(pMem);
 }
@@ -119,7 +119,7 @@ Object *MetaObject::createInstance() const
 void MetaObject::destroyInstance(Object *object) const
 {
     if (!m_destructor)
-        throw std::runtime_error("Have no appropriate constructor");
+        throw std::runtime_error("Have no appropriate class destructor");
     m_destructor(object);
     ::operator delete(object);
 }

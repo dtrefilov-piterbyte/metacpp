@@ -20,6 +20,10 @@
 
 namespace metacpp
 {
+namespace serialization
+{
+namespace json
+{
 
 JsonSerializerVisitor::JsonSerializerVisitor(void)
 	: m_value(Json::objectValue)
@@ -153,4 +157,6 @@ const Json::Value& JsonSerializerVisitor::rootValue() const
 	return m_value;
 }
 
+} // namespace json
+} // namespace serialization
 } // namespace metacpp

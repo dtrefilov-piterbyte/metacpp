@@ -67,7 +67,7 @@ namespace sql
         }
 
         const MetaFieldBase *primaryKey() const override {
-//            if (m_pkey) return m_pkey;
+            if (m_pkey) return m_pkey;
             for (size_t i = 0; i < ms_constraints.size(); ++i)
                 if (ms_constraints[i]->type() == SqlConstraintTypePrimaryKey)
                     return m_pkey = ms_constraints[i]->metaField();

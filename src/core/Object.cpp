@@ -21,6 +21,10 @@
 #include "JsonDeserializerVisitor.h"
 #endif
 
+#ifdef HAVE_MONGODB
+#include "BsonSerializerVisitor.h"
+#endif
+
 namespace metacpp
 {
 
@@ -34,9 +38,10 @@ void Object::init()
 	vis.visit(this);
 }
 
-String Object::toString(bool prettyFormatted) const
-{
 #ifdef HAVE_JSONCPP
+String Object::toJson(bool prettyFormatted) const
+{
+    using namespace serialization::json;
     JsonSerializerVisitor vis;
     vis.visit(const_cast<Object *>(this));
 	if (prettyFormatted)
@@ -49,24 +54,19 @@ String Object::toString(bool prettyFormatted) const
         Json::FastWriter writer;
         return String(writer.write(vis.rootValue()).c_str());
     }
-#else
-    throw std::runtime_error("Json eninge unavailable");
-#endif
 }
 
-void Object::fromString(const String& s)
+void Object::fromJson(const String& s)
 {
-#ifdef HAVE_JSONCPP
+    using namespace serialization::json;
 	Json::Reader reader;
 	Json::Value root;
     if (!reader.parse(s.begin(), s.end(), root, false))
 		throw std::invalid_argument("Json::Reader::parse failed");
     JsonDeserializerVisitor vis(root);
     vis.visit(this);
-#else
-    throw std::runtime_error("Json eninge unavailable");
-#endif
 }
+#endif
 
 Variant Object::invoke(const String &methodName, const VariantArray &args)
 {
@@ -98,6 +98,11 @@ Variant Object::getProperty(const String &propName) const
     return Variant();
 }
 
+const MetaObject *Object::staticMetaObject()
+{
+    return &ms_metaObject;
+}
+
 Variant Object::doInvoke(const String &methodName, const VariantArray &args, bool constness) const
 {
     for (size_t i = 0; i < metaObject()->totalMethods(); ++i)
@@ -126,5 +131,7 @@ STRUCT_INFO_BEGIN(Object)
 STRUCT_INFO_END(Object)
 
 REFLECTIBLE_F(Object)
+
+const MetaObject Object::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(Object));
 
 } // namespace metacpp

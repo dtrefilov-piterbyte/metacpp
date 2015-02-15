@@ -22,95 +22,99 @@ namespace metacpp {
 // standard time lib isn't thread safe
 static std::mutex g_stdTimeMutex;
 
-
-DateTimeData::DateTimeData(time_t stdTime)
+namespace detail
 {
-    std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
-    m_tm = *localtime(&stdTime);
-}
+    DateTimeData::DateTimeData(time_t stdTime)
+    {
+        std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
+        m_tm = *localtime(&stdTime);
+    }
 
-DateTimeData::DateTimeData(const tm &tm)
-    : m_tm(tm)
-{
+    DateTimeData::DateTimeData(const tm &tm)
+        : m_tm(tm)
+    {
 
-}
+    }
 
-DateTimeData::~DateTimeData()
-{
+    DateTimeData::~DateTimeData()
+    {
 
-}
+    }
 
-bool DateTimeData::operator ==(const DateTimeData& rhs) const
-{
-    return  m_tm.tm_year == rhs.m_tm.tm_year &&
-            m_tm.tm_mon == rhs.m_tm.tm_mon &&
-            m_tm.tm_mday == rhs.m_tm.tm_mday &&
-            m_tm.tm_hour == rhs.m_tm.tm_hour &&
-            m_tm.tm_min == rhs.m_tm.tm_min &&
-            m_tm.tm_sec == rhs.m_tm.tm_sec;
-}
+    bool DateTimeData::operator ==(const DateTimeData& rhs) const
+    {
+        return  m_tm.tm_year == rhs.m_tm.tm_year &&
+                m_tm.tm_mon == rhs.m_tm.tm_mon &&
+                m_tm.tm_mday == rhs.m_tm.tm_mday &&
+                m_tm.tm_hour == rhs.m_tm.tm_hour &&
+                m_tm.tm_min == rhs.m_tm.tm_min &&
+                m_tm.tm_sec == rhs.m_tm.tm_sec;
+    }
 
-bool DateTimeData::operator !=(const DateTimeData& rhs) const
-{
-    return !(*this == rhs);
-}
+    bool DateTimeData::operator !=(const DateTimeData& rhs) const
+    {
+        return !(*this == rhs);
+    }
 
-int DateTimeData::year() const
-{
-    return m_tm.tm_year + 1900;
-}
+    int DateTimeData::year() const
+    {
+        return m_tm.tm_year + 1900;
+    }
 
-int DateTimeData::month() const
-{
-    return m_tm.tm_mon + 1;
-}
+    int DateTimeData::month() const
+    {
+        return m_tm.tm_mon + 1;
+    }
 
-int DateTimeData::day() const
-{
-    return m_tm.tm_mday;
-}
+    int DateTimeData::day() const
+    {
+        return m_tm.tm_mday;
+    }
 
-int DateTimeData::hours() const
-{
-    return m_tm.tm_hour;
-}
+    int DateTimeData::hours() const
+    {
+        return m_tm.tm_hour;
+    }
 
-int DateTimeData::minutes() const
-{
-    return m_tm.tm_min;
-}
+    int DateTimeData::minutes() const
+    {
+        return m_tm.tm_min;
+    }
 
-int DateTimeData::seconds() const
-{
-    return m_tm.tm_sec;
-}
+    int DateTimeData::seconds() const
+    {
+        return m_tm.tm_sec;
+    }
 
-time_t DateTimeData::toStdTime() const
-{
-    return mktime(const_cast<struct tm *>(&m_tm));
-}
+    time_t DateTimeData::toStdTime() const
+    {
+        return mktime(const_cast<struct tm *>(&m_tm));
+    }
 
-String DateTimeData::toString() const
-{
-    char buf[50];
-    //strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
-    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year(), month(), day(), hours(), minutes(), seconds());
-    return buf;
-}
+    String DateTimeData::toString() const
+    {
+        char buf[50];
+        //strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
+        sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year(), month(), day(), hours(), minutes(), seconds());
+        return buf;
+    }
 
-void DateTimeData::fromString(const char *isoString)
-{
-    if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
-        throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
-}
+    void DateTimeData::fromString(const char *isoString)
+    {
+        if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
+            throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
+    }
 
-SharedDataBase *DateTimeData::clone() const
-{
-    return new DateTimeData(m_tm);
-}
+    SharedDataBase *DateTimeData::clone() const
+    {
+        return new DateTimeData(m_tm);
+    }
+
+
+} // namespace detail
 
 DateTime::DateTime(time_t stdTime)
-    : SharedDataPointer<DateTimeData>(new DateTimeData(stdTime))
+    : SharedDataPointer(new detail::DateTimeData(stdTime))
 {
 
 }
@@ -170,7 +174,7 @@ int DateTime::seconds() const
     return getData()->seconds();
 }
 
-DateTimeData *DateTime::getData() const
+detail::DateTimeData *DateTime::getData() const
 {
     if (!m_d)
         throw std::runtime_error("DateTime is invalid");
@@ -190,7 +194,7 @@ String DateTime::toString() const
 DateTime DateTime::fromString(const char *isoString)
 {
     DateTime res;
-    res.m_d = new DateTimeData();
+    res.m_d = new detail::DateTimeData();
     res.m_d->fromString(isoString);
     return res;
 }

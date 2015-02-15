@@ -19,6 +19,7 @@
 namespace metacpp
 {
 
+/** \brief Base class for factories */
 template<typename TBaseEntityPtr, typename... Args>
 struct FactoryBase
 {

@@ -162,8 +162,8 @@ void ObjectTest::testSerialization()
     item.name = "asdj"; t.arrValue.push_back(item);
     item.name = ""; t.arrValue.push_back(item);
     t.optFloatValue = 2.5;
-    t.datetimeValue = DateTime::fromString("0100-10-12 00:00:00");
-    t2.fromString(t.toString());
+    t.datetimeValue = DateTime::fromString("1970-10-12 00:00:00");
+    t2.fromJson(t.toJson());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
     EXPECT_EQ(t.boolValue, t2.boolValue);

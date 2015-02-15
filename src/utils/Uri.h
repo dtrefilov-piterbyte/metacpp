@@ -7,7 +7,7 @@
 namespace metacpp
 {
 
-// TODO: decodeUri
+/** \brief Basic URI parser */
 template<typename CharT>
 class UriBase
 {

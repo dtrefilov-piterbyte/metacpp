@@ -21,8 +21,12 @@
 namespace metacpp
 {
 
-/**
-	A basic class for representing objects with metainfo
+/** \brief Base class for objects supporting property and method reflection via MetaObject.
+ *
+ * All other object should derive from this class, must be default constructible and have
+ * metainformation descriptor, generated using special macros.
+ *
+ * TODO: need detailed usage example here
 */
 class Object
 {
@@ -35,26 +39,42 @@ public:
 	*/
     void init();
 	
-	/**
+
+#ifdef HAVE_JSONCPP
+    /**
 		performs json object serialization
 		\throws std::invalid_argument
 	*/
-    String toString(bool prettyFormatted = true) const;
+    String toJson(bool prettyFormatted = true) const;
 
 	/**
 		performs json object deserialization
 		\throws std::invalid_argument
 	*/
-    void fromString(const String &s);
+    void fromJson(const String &s);
+#endif
+
+#ifdef HAVE_MONGODB
+    /**
+        performs bson object serialization
+        \throws std::invalid_argument
+    */
+    ByteArray toBson(bool prettyFormatted = true) const;
 
     /**
-     * Calls own method on this object
+        performs bson object deserialization
+        \throws std::invalid_argument
+    */
+    void fromBson(const void *data);
+#endif
+
+    /** \brief Calls reflection own method on this object
      * \param methodName - case-sensetive name of the method
      * \param args - array of arguments to pass to the calling function
     */
     Variant invoke(const String& methodName, const VariantArray& args);
-    /**
-     * Calls const own method on this object
+
+    /** \brief Calls reflection const own method on this object
      * \param methodName - case-sensetive name of the method
      * \param args - array of arguments to pass to the calling function
     */
@@ -72,16 +92,19 @@ public:
         return variant_cast<TRet>(invoke(methodName, { args... }));
     }
 
-    /** Sets a static or dynamic field of the object */
+    /** \brief Sets a static or dynamic field of the object */
     void setProperty(const String& propName, const Variant& val);
-    /** Gets object's static or dynamic field */
+    /** \brief Gets object's static or dynamic field */
     Variant getProperty(const String& propName) const;
-
-	virtual const MetaObject *metaObject() const = 0;
+    /** \brief Returns the MetaObject instance for the object */
+    virtual const MetaObject *metaObject() const = 0;
+    /** \brief Returns the MetaObject instance for the class */
+    static const MetaObject *staticMetaObject();
 private:
     Variant doInvoke(const String& methodName, const VariantArray& args, bool constness) const;
 private:
     std::map<String, Variant> m_dynamicProperties;
+    static const MetaObject ms_metaObject;
 };
 
 #define META_INFO_DECLARE(ObjName) \
@@ -90,10 +113,10 @@ private:
         static Object *constructInstance(void *mem); \
         static void destructInstance(void *mem); \
     private: \
-        static MetaObject ms_metaObject;
+        static const MetaObject ms_metaObject;
 
 #define META_INFO(ObjName) \
-    MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
+    const MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
         &ObjName::constructInstance, &ObjName::destructInstance); \
     const MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
     const MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
@@ -107,7 +130,8 @@ static constexpr ptrdiff_t getMemberOffset(const TField TObj::*member)
     return reinterpret_cast<ptrdiff_t>(&(reinterpret_cast<const TObj *>(NULL)->*member));
 }
 
-/** \brief Usage: getMetaField(&Object::field); */
+/** \brief Get a correspondig MetaFieldBase for the specified public field.
+ * Usage: getMetaField(&Object::field); */
 template<typename TObj, typename TField>
 static constexpr const MetaFieldBase *getMetaField(const TField TObj::*member)
 {

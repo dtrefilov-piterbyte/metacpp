@@ -29,9 +29,12 @@ namespace metacpp
 class MetaFieldBase;
 class MetaCallBase;
 
+/**
+  * \brief Class represents meta-information about objects
+  * \see Object
+*/
 class MetaObject
 {
-	friend class pkVisitorBase;
 public:
     explicit MetaObject(const MetaInfoDescriptor *descriptor,
                         Object *(*constructor)(void *mem) = nullptr,

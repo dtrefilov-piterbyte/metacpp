@@ -37,12 +37,14 @@ class Object;
 class MetaObject;
 }
 
+/** \brief A structure describing enumeration element */
 struct EnumValueInfoDescriptor
 {
 	const char		*m_pszValue;
 	uint32_t		m_uValue;
 };
 
+/** \brief A structure describing enumeration */
 struct EnumInfoDescriptor
 {
 	EEnumType		m_type;
@@ -51,6 +53,7 @@ struct EnumInfoDescriptor
     const EnumValueInfoDescriptor *m_valueDescriptors;
 };
 
+/** \brief A structure describing the reflection property of the class */
 struct FieldInfoDescriptor
 {
 	const char *m_pszName;
@@ -190,118 +193,118 @@ struct FieldInfoDescriptor
 	} valueInfo;
 };
 
-#if defined(_MSC_VER) && !defined(constexpr)
-#define constexpr
-#endif
-
-template<typename T>
-struct PartialFieldInfoHelper;
-
-template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
-struct FullFieldInfoHelper;
-
-template<>
-struct PartialFieldInfoHelper<bool> {
-	static constexpr EFieldType type() { return eFieldBool; }
-    static FieldInfoDescriptor::Extension extension(bool v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<int32_t> {
-	static constexpr EFieldType type() { return eFieldInt; }
-    static FieldInfoDescriptor::Extension extension(int32_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<uint32_t> {
-	static constexpr EFieldType type() { return eFieldUint; }
-    static FieldInfoDescriptor::Extension extension(uint32_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<int64_t> {
-    static constexpr EFieldType type() { return eFieldInt64; }
-    static FieldInfoDescriptor::Extension extension(int64_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<uint64_t> {
-    static constexpr EFieldType type() { return eFieldUint64; }
-    static FieldInfoDescriptor::Extension extension(uint64_t v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<float> {
-	static constexpr EFieldType type() { return eFieldFloat; }
-    static FieldInfoDescriptor::Extension extension(float v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<double> {
-    static constexpr EFieldType type() { return eFieldDouble; }
-    static FieldInfoDescriptor::Extension extension(double v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<metacpp::String> {
-	static constexpr EFieldType type() { return eFieldString; }
-    static FieldInfoDescriptor::Extension extension(const char *v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<>
-struct PartialFieldInfoHelper<metacpp::DateTime> {
-    static constexpr EFieldType type() { return eFieldDateTime; }
-    static FieldInfoDescriptor::Extension extension(const metacpp::DateTime& v) { return FieldInfoDescriptor::Extension(v); }
-    static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
-};
-
-template<typename T>
-struct PartialFieldInfoHelper<metacpp::Array<T> >
+namespace detail
 {
-    static constexpr EFieldType type() { return eFieldArray; }
-	static constexpr FieldInfoDescriptor::Extension extension()
-	{
-        return FieldInfoDescriptor::Extension(FullFieldInfoHelper<T>::type(), sizeof(T));
-	}
-};
+    template<typename T>
+    struct PartialFieldInfoHelper;
 
-template<typename T>
-struct FullFieldInfoHelper<T, true, false>
-{
-	static constexpr EFieldType type() { return eFieldEnum; }
-    static constexpr FieldInfoDescriptor::Extension extension(const EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
-    static constexpr bool nullable() { return false; }
-};
+    template<typename T, bool IsEnum = std::is_enum<T>::value, bool IsObject = std::is_base_of<metacpp::Object, T>::value>
+    struct FullFieldInfoHelper;
+
+    template<>
+    struct PartialFieldInfoHelper<bool> {
+        static constexpr EFieldType type() { return eFieldBool; }
+        static FieldInfoDescriptor::Extension extension(bool v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<int32_t> {
+        static constexpr EFieldType type() { return eFieldInt; }
+        static FieldInfoDescriptor::Extension extension(int32_t v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<uint32_t> {
+        static constexpr EFieldType type() { return eFieldUint; }
+        static FieldInfoDescriptor::Extension extension(uint32_t v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<int64_t> {
+        static constexpr EFieldType type() { return eFieldInt64; }
+        static FieldInfoDescriptor::Extension extension(int64_t v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<uint64_t> {
+        static constexpr EFieldType type() { return eFieldUint64; }
+        static FieldInfoDescriptor::Extension extension(uint64_t v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<float> {
+        static constexpr EFieldType type() { return eFieldFloat; }
+        static FieldInfoDescriptor::Extension extension(float v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<double> {
+        static constexpr EFieldType type() { return eFieldDouble; }
+        static FieldInfoDescriptor::Extension extension(double v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<metacpp::String> {
+        static constexpr EFieldType type() { return eFieldString; }
+        static FieldInfoDescriptor::Extension extension(const char *v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<>
+    struct PartialFieldInfoHelper<metacpp::DateTime> {
+        static constexpr EFieldType type() { return eFieldDateTime; }
+        static FieldInfoDescriptor::Extension extension(const metacpp::DateTime& v) { return FieldInfoDescriptor::Extension(v); }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
+    template<typename T>
+    struct PartialFieldInfoHelper<metacpp::Array<T> >
+    {
+        static constexpr EFieldType type() { return eFieldArray; }
+        static constexpr FieldInfoDescriptor::Extension extension()
+        {
+            return FieldInfoDescriptor::Extension(FullFieldInfoHelper<T>::type(), sizeof(T));
+        }
+    };
+
+    template<typename T>
+    struct FullFieldInfoHelper<T, true, false>
+    {
+        static constexpr EFieldType type() { return eFieldEnum; }
+        static constexpr FieldInfoDescriptor::Extension extension(const EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
+        static constexpr bool nullable() { return false; }
+    };
 
 
-template<typename T>
-struct FullFieldInfoHelper<T, false, false> : public PartialFieldInfoHelper<T>
-{
-    static constexpr bool nullable() { return false; }
-};
+    template<typename T>
+    struct FullFieldInfoHelper<T, false, false> : public PartialFieldInfoHelper<T>
+    {
+        static constexpr bool nullable() { return false; }
+    };
 
-template<typename T>
-struct FullFieldInfoHelper<T, false, true>
-{
-	static constexpr EFieldType type() { return eFieldObject; }
-    static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(T::staticMetaObject()); }
-    static constexpr bool nullable() { return false; }
-};
+    template<typename T>
+    struct FullFieldInfoHelper<T, false, true>
+    {
+        static constexpr EFieldType type() { return eFieldObject; }
+        static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(T::staticMetaObject()); }
+        static constexpr bool nullable() { return false; }
+    };
 
-template<typename T>
-struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelper<T>
-{
-    static constexpr bool nullable() { return true; }
-};
+    template<typename T>
+    struct FullFieldInfoHelper<Nullable<T>, false, false> : public FullFieldInfoHelper<T>
+    {
+        static constexpr bool nullable() { return true; }
+    };
+} // namespace detail
 
+/** \brief Exception thrown internally during invokation of reflection methods */
 class BindArgumentException : public std::invalid_argument
 {
 public:
@@ -311,6 +314,7 @@ public:
     }
 };
 
+/** \brief Exception thrown when a method with specified name and signature is not found in metainformation */
 class MethodNotFoundException : public std::invalid_argument
 {
 public:
@@ -320,7 +324,7 @@ public:
     }
 };
 
-namespace detail
+namespace
 {
     template<typename Func, typename TRes, typename Tuple, bool Done, int Total, int... N>
     struct fcall_impl
@@ -386,6 +390,7 @@ namespace detail
     };
 }
 
+/** \brief Base helper class for invokation of reflection methods */
 class MetaInvokerBase
 {
 public:
@@ -393,22 +398,25 @@ public:
     virtual metacpp::Variant invoke(const void *contextObj, const metacpp::Array<metacpp::Variant>& argList) const = 0;
 };
 
+/** \brief Helper class for invokation of static methods
+ * \see \enum EMethodType
+ */
 template<typename TRes, typename... TArgs>
 class FunctionInvoker : public MetaInvokerBase
 {
 private:
 
     template<typename Q = TRes>
-    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(const metacpp::Array<metacpp::Variant> &argList) const
     {
-        doInvoke(argList);
+        invokeImpl(argList);
         return metacpp::Variant();
     }
 
     template<typename Q = TRes>
-    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(const metacpp::Array<metacpp::Variant> &argList) const
     {
-        return metacpp::Variant(doInvoke(argList));
+        return metacpp::Variant(invokeImpl(argList));
     }
 
 public:
@@ -419,44 +427,47 @@ public:
     {
     }
 
-    TRes doInvoke(const metacpp::Array<metacpp::Variant>& argList) const
+    TRes invokeImpl(const metacpp::Array<metacpp::Variant>& argList) const
     {
         typedef std::tuple<TArgs...> ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
-        return detail::fcall_impl<TFunction, TRes, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return fcall_impl<TFunction, TRes, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_function, std::forward<ttype>(args));
     }
 
     metacpp::Variant invoke(const void *metaObject, const metacpp::Array<metacpp::Variant>& argList) const override
     {
         (void)metaObject;
-        return invokeHelper(argList);
+        return doInvoke(argList);
     }
 
 private:
     TFunction m_function;
 };
 
+/** \brief Helper class for invokation of non-const own methods
+ * \see \enum EMethodType
+ */
 template<typename TRes, typename TObj, typename... TArgs>
 class MethodInvoker : public MetaInvokerBase
 {
 private:
 
     template<typename Q = TRes>
-    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
     {
-        doInvoke(obj, argList);
+        invokeImpl(obj, argList);
         return metacpp::Variant();
     }
 
     template<typename Q = TRes>
-    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
     {
-        return metacpp::Variant(doInvoke(obj, argList));
+        return metacpp::Variant(invokeImpl(obj, argList));
     }
 
 public:
@@ -467,43 +478,46 @@ public:
     {
     }
 
-    TRes doInvoke(TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
+    TRes invokeImpl(TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
         typedef std::tuple<TArgs...> ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
-        return detail::mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_method, obj, std::forward<ttype>(args));
     }
 
     metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
     {
-        return invokeHelper(reinterpret_cast<TObj *>(const_cast<void *>(obj)), argList);
+        return doInvoke(reinterpret_cast<TObj *>(const_cast<void *>(obj)), argList);
     }
 
 private:
     TFunction m_method;
 };
 
+/** \brief Helper class for invokation of const own methods
+ * \see \enum EMethodType
+ */
 template<typename TRes, typename TObj, typename... TArgs>
 class ConstMethodInvoker : public MetaInvokerBase
 {
 private:
 
     template<typename Q = TRes>
-    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
     {
-        doInvoke(obj, argList);
+        invokeImpl(obj, argList);
         return metacpp::Variant();
     }
 
     template<typename Q = TRes>
-    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type invokeHelper(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
+    typename std::enable_if<!std::is_same<Q, void>::value, metacpp::Variant>::type doInvoke(const TObj *obj, const metacpp::Array<metacpp::Variant> &argList) const
     {
-        return metacpp::Variant(doInvoke(obj, argList));
+        return metacpp::Variant(invokeImpl(obj, argList));
     }
 
 public:
@@ -514,100 +528,114 @@ public:
     {
     }
 
-    TRes doInvoke(const TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
+    TRes invokeImpl(const TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
         typedef std::tuple<TArgs...> ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        detail::unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
-        return detail::mcall_impl<TFunction, TRes, const TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        return mcall_impl<TFunction, TRes, const TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_method, obj, std::forward<ttype>(args));
     }
 
     metacpp::Variant invoke(const void *obj, const metacpp::Array<metacpp::Variant>& argList) const override
     {
-        return invokeHelper(reinterpret_cast<const TObj *>(obj), argList);
+        return doInvoke(reinterpret_cast<const TObj *>(obj), argList);
     }
 
 private:
     TFunction m_method;
 };
 
-template<typename TRes, typename... TArgs>
-std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (*func)(TArgs...))
+namespace detail
 {
-    return std::move(std::unique_ptr<MetaInvokerBase>(new FunctionInvoker<TRes, TArgs...>(func)));
-}
-
-template<typename TRes, typename TObj, typename... TArgs>
-std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...))
-{
-    return std::move(std::unique_ptr<MetaInvokerBase>(new MethodInvoker<TRes, TObj, TArgs...>(function)));
-}
-
-template<typename TRes, typename TObj, typename... TArgs>
-std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...) const)
-{
-    return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
-}
-
-enum EMethodType
-{
-    eMethodNone,
-    eMethodStatic,
-    eMethodOwn
-};
-
-struct MethodInfoDescriptor
-{
-    const char *m_pszName;
-    EMethodType m_eType;
-    bool m_bConstness;
-    size_t m_nArgs;
-    std::unique_ptr<MetaInvokerBase> m_pInvoker;
-};
-
-template<typename TFunction>
-struct MethodInfoHelper;
-
-template<typename TRes, typename... TArgs>
-struct MethodInfoHelper<TRes (*)(TArgs...)>
-{
-    static constexpr EMethodType type() { return eMethodStatic; }
-    static constexpr bool constness() { return false; }
-    static constexpr size_t numArguments() { return sizeof...(TArgs); }
-    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (*func)(TArgs...))
+    template<typename TRes, typename... TArgs>
+    std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (*func)(TArgs...))
     {
         return std::move(std::unique_ptr<MetaInvokerBase>(new FunctionInvoker<TRes, TArgs...>(func)));
     }
-};
 
-template<typename TRes, typename TObj, typename... TArgs>
-struct MethodInfoHelper<TRes (TObj::*)(TArgs...)>
-{
-    static constexpr EMethodType type() { return eMethodOwn; }
-    static constexpr bool constness() { return false; }
-    static constexpr size_t numArguments() { return sizeof...(TArgs); }
-    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...))
+    template<typename TRes, typename TObj, typename... TArgs>
+    std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...))
     {
         return std::move(std::unique_ptr<MetaInvokerBase>(new MethodInvoker<TRes, TObj, TArgs...>(function)));
     }
-};
 
-template<typename TRes, typename TObj, typename... TArgs>
-struct MethodInfoHelper<TRes (TObj::*)(TArgs...) const>
-{
-    static constexpr EMethodType type() { return eMethodOwn; }
-    static constexpr bool constness() { return true; }
-    static constexpr size_t numArguments() { return sizeof...(TArgs); }
-    static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...) const)
+    template<typename TRes, typename TObj, typename... TArgs>
+    std::unique_ptr<MetaInvokerBase> createInvokeHelper(TRes (TObj::*function)(TArgs...) const)
     {
         return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
     }
+} // namespace detail
+
+/** \brief Type of the reflection method.
+ * Static methods are called by providing a pointer to metacpp::MetaObject as first argument
+ * to the invoker. Own methods are called by providing a pointer to metacpp::Object.
+*/
+enum EMethodType
+{
+    eMethodNone,    /**< Invalid type */
+    eMethodStatic,  /**< Static method */
+    eMethodOwn      /**< Own method */
 };
 
+/** \brief Structure describing reflection method and providing a way for it's invokation */
+struct MethodInfoDescriptor
+{
+    const char *m_pszName;                          /**< name of the method */
+    EMethodType m_eType;                            /**< method type */
+    bool m_bConstness;                              /**< constness of self-reference for own methods. \see ConstMethodInvoker, MethodInvoker */
+    size_t m_nArgs;                                 /**< number of arguments passing to the method (self-reference is not counted here) */
+    std::unique_ptr<MetaInvokerBase> m_pInvoker;    /**< invoker helper */
+};
+
+namespace detail
+{
+    template<typename TFunction>
+    struct MethodInfoHelper;
+
+    template<typename TRes, typename... TArgs>
+    struct MethodInfoHelper<TRes (*)(TArgs...)>
+    {
+        static constexpr EMethodType type() { return eMethodStatic; }
+        static constexpr bool constness() { return false; }
+        static constexpr size_t numArguments() { return sizeof...(TArgs); }
+        static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (*func)(TArgs...))
+        {
+            return std::move(std::unique_ptr<MetaInvokerBase>(new FunctionInvoker<TRes, TArgs...>(func)));
+        }
+    };
+
+    template<typename TRes, typename TObj, typename... TArgs>
+    struct MethodInfoHelper<TRes (TObj::*)(TArgs...)>
+    {
+        static constexpr EMethodType type() { return eMethodOwn; }
+        static constexpr bool constness() { return false; }
+        static constexpr size_t numArguments() { return sizeof...(TArgs); }
+        static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...))
+        {
+            return std::move(std::unique_ptr<MetaInvokerBase>(new MethodInvoker<TRes, TObj, TArgs...>(function)));
+        }
+    };
+
+    template<typename TRes, typename TObj, typename... TArgs>
+    struct MethodInfoHelper<TRes (TObj::*)(TArgs...) const>
+    {
+        static constexpr EMethodType type() { return eMethodOwn; }
+        static constexpr bool constness() { return true; }
+        static constexpr size_t numArguments() { return sizeof...(TArgs); }
+        static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...) const)
+        {
+            return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
+        }
+    };
+} // namespace detail
+
+/**
+  * \brief Structure describing class internals
+*/
 struct MetaInfoDescriptor
 {
     const char                      *m_strucName;
@@ -627,10 +655,10 @@ struct MetaInfoDescriptor
 #define NAMED_METHOD(name, pMethod) \
     { \
         /* name     */   name, \
-        /* type */       MethodInfoHelper<decltype(pMethod)>::type(), \
-        /* constness */  MethodInfoHelper<decltype(pMethod)>::constness(), \
-        /* num args */   MethodInfoHelper<decltype(pMethod)>::numArguments(), \
-        /* invoker */    MethodInfoHelper<decltype(pMethod)>::createInvoker(pMethod) \
+        /* type */       ::detail::MethodInfoHelper<decltype(pMethod)>::type(), \
+        /* constness */  ::detail::MethodInfoHelper<decltype(pMethod)>::constness(), \
+        /* num args */   ::detail::MethodInfoHelper<decltype(pMethod)>::numArguments(), \
+        /* invoker */    ::detail::MethodInfoHelper<decltype(pMethod)>::createInvoker(pMethod) \
     },
 
 #define METHOD(obj, method) NAMED_METHOD(#method, &obj::method)
@@ -642,15 +670,15 @@ struct MetaInfoDescriptor
 // field info sequence terminator
 #define STRUCT_INFO_END(struc) \
         { 0, 0, 0, eFieldVoid, false, FieldInfoDescriptor::Extension() } \
-	};
+    };
 
 #define FIELD(struc, field, ...) { \
     /* name */      #field, \
     /* size */      sizeof(decltype(struc::field)), \
     /* offset */    offsetof(struc, field), \
-    /* type */      FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::type(), \
-    /* nullable */  FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::nullable(), \
-    /* extension */ FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::extension(__VA_ARGS__) \
+    /* type */      ::detail::FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::type(), \
+    /* nullable */  ::detail::FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::nullable(), \
+    /* extension */ ::detail::FullFieldInfoHelper<std::remove_cv<decltype(struc::field)>::type>::extension(__VA_ARGS__) \
     },
 
 #define REFLECTIBLE_DESCRIPTOR(struc) _descriptor_##struc

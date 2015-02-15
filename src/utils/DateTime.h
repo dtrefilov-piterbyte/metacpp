@@ -21,36 +21,40 @@
 
 namespace metacpp {
 
-
-class DateTimeData : public SharedDataBase
+namespace detail
 {
-public:
-    explicit DateTimeData(time_t stdTime = 0);
-    explicit DateTimeData(const struct tm& tm);
-    ~DateTimeData();
 
-    bool operator==(const DateTimeData& rhs) const;
-    bool operator!=(const DateTimeData& rhs) const;
+    class DateTimeData : public SharedDataBase
+    {
+    public:
+        explicit DateTimeData(time_t stdTime = 0);
+        explicit DateTimeData(const struct tm& tm);
+        ~DateTimeData();
 
-    int year() const;
-    int month() const;
-    int day() const;
-    int hours() const;
-    int minutes() const;
-    int seconds() const;
+        bool operator==(const DateTimeData& rhs) const;
+        bool operator!=(const DateTimeData& rhs) const;
 
-    time_t toStdTime() const;
-    String toString() const;
+        int year() const;
+        int month() const;
+        int day() const;
+        int hours() const;
+        int minutes() const;
+        int seconds() const;
 
-    SharedDataBase *clone() const override;
+        time_t toStdTime() const;
+        String toString() const;
 
-    void fromString(const char *isoString);
+        SharedDataBase *clone() const override;
 
-private:
-    struct tm m_tm;
-};
+        void fromString(const char *isoString);
 
-class DateTime : protected SharedDataPointer<DateTimeData>
+    private:
+        struct tm m_tm;
+    };
+
+} // namespace detail
+
+class DateTime : protected SharedDataPointer<detail::DateTimeData>
 {
 public:
     explicit DateTime(time_t stdTime);
@@ -75,7 +79,7 @@ public:
     static DateTime fromString(const char *isoString);
     static DateTime now();
 private:
-    DateTimeData *getData() const;
+    detail::DateTimeData *getData() const;
 };
 
 std::ostream& operator<<(std::ostream& stream, const DateTime& dt);

@@ -25,8 +25,8 @@ template<typename T> class SharedDataPointer;
 template<typename T> class SharedPointer;
 
 /**
-    \brief \c pkSharedDataBase represents an implicitly shared object
-    commonly used via \c SharedDataPointer
+    \brief SharedDataBase represents an implicitly shared object
+    commonly used via SharedDataPointer
 */
 class SharedDataBase
 {

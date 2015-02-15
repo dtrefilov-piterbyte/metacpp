@@ -22,7 +22,7 @@ namespace metacpp
 namespace sql
 {
 
-SqlResultIterator::SqlResultIterator(SqlResultSetData *resultSet, int rowId)
+SqlResultIterator::SqlResultIterator(detail::SqlResultSetData *resultSet, int rowId)
     : m_resultSet(resultSet), m_rowId(rowId)
 {
 }

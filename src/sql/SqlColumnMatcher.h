@@ -23,13 +23,14 @@ namespace metacpp
 namespace sql
 {
 
+/** \see SqlColumnFullMatcher::isNull */
 typedef struct
 {
 } null_t;
 
 static const null_t null;
 
-/** Performs conversion of C++ value to an SQL literal */
+/** \brief Performs conversion of C++ value to an SQL literal */
 template<typename T, typename = void>
 struct ValueEvaluator;
 
@@ -288,113 +289,113 @@ SqlColumnFullMatcher<TObj, TField> GetColumnMatcher(const TField TObj::*member)
 
 #define COL(ColumnSpec) GetColumnMatcher(&ColumnSpec)
 
-template<typename T, typename Enable = void>
-struct TypePromotionPriorityHelper;
-
-template<>
-struct TypePromotionPriorityHelper<long double>
+namespace detail
 {
-    static constexpr int priority() { return 0; }
-};
 
-template<>
-struct TypePromotionPriorityHelper<double>
-{
-    static constexpr int priority() { return 1; }
-};
+    template<typename T, typename Enable = void>
+    struct TypePromotionPriorityHelper;
 
-template<>
-struct TypePromotionPriorityHelper<float>
-{
-    static constexpr int priority() { return 2; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<long double>
+    {
+        static constexpr int priority() { return 0; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<long long unsigned int>
-{
-    static constexpr int priority() { return 3; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<double>
+    {
+        static constexpr int priority() { return 1; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<long long int>
-{
-    static constexpr int priority() { return 4; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<float>
+    {
+        static constexpr int priority() { return 2; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<long unsigned int>
-{
-    static constexpr int priority() { return 5; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<long long unsigned int>
+    {
+        static constexpr int priority() { return 3; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<long int>
-{
-    static constexpr int priority() { return 6; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<long long int>
+    {
+        static constexpr int priority() { return 4; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<unsigned int>
-{
-    static constexpr int priority() { return 7; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<long unsigned int>
+    {
+        static constexpr int priority() { return 5; }
+    };
 
-template<>
-struct TypePromotionPriorityHelper<int>
-{
-    static constexpr int priority() { return 8; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<long int>
+    {
+        static constexpr int priority() { return 6; }
+    };
 
-// all others are promoted to int
-template<typename T>
-struct TypePromotionPriorityHelper<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-{
-    static constexpr int priority() { return 1000; }
-};
+    template<>
+    struct TypePromotionPriorityHelper<unsigned int>
+    {
+        static constexpr int priority() { return 7; }
+    };
 
-enum _PromotionType
-{
-    _PromoteToFirst,
-    _PromoteToSecond,
-    _PromoteToInt
-};
+    template<>
+    struct TypePromotionPriorityHelper<int>
+    {
+        static constexpr int priority() { return 8; }
+    };
 
-template<typename T1, typename T2, _PromotionType>
-struct TypePromotionHelper;
+    // all others are promoted to int
+    template<typename T>
+    struct TypePromotionPriorityHelper<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
+    {
+        static constexpr int priority() { return 1000; }
+    };
 
-template<typename T1, typename T2>
-struct TypePromotionHelper<T1, T2, _PromoteToFirst>
-{
-    typedef T1 PromotionType;
-};
+    enum _PromotionType
+    {
+        _PromoteToFirst,
+        _PromoteToSecond,
+        _PromoteToInt
+    };
 
-template<typename T1, typename T2>
-struct TypePromotionHelper<T1, T2, _PromoteToSecond>
-{
-    typedef T2 PromotionType;
-};
+    template<typename T1, typename T2, _PromotionType>
+    struct TypePromotionHelper;
 
-template<typename T1, typename T2>
-struct TypePromotionHelper<T1, T2, _PromoteToInt>
-{
-    typedef int PromotionType;
-};
+    template<typename T1, typename T2>
+    struct TypePromotionHelper<T1, T2, _PromoteToFirst>
+    {
+        typedef T1 PromotionType;
+    };
 
-template<typename TField1, typename TField2>
-struct TypePromotion
-{
-    typedef typename TypePromotionHelper<TField1, TField2,
-    TypePromotionPriorityHelper<TField1>::priority() >= 1000 &&
-    TypePromotionPriorityHelper<TField2>::priority() >= 1000 ? _PromoteToInt :
-    (TypePromotionPriorityHelper<TField1>::priority() <
-     TypePromotionPriorityHelper<TField2>::priority() ?
-         _PromoteToFirst : _PromoteToSecond)>::PromotionType Type;
-};
+    template<typename T1, typename T2>
+    struct TypePromotionHelper<T1, T2, _PromoteToSecond>
+    {
+        typedef T2 PromotionType;
+    };
 
-//static_assert(std::is_same<typename TypePromotion<int, char>::Type, int>::value, "int with char should promote to int");
-//static_assert(std::is_same<typename TypePromotion<short, char>::Type, int>::value, "short with char should promote to int");
-//static_assert(std::is_same<typename TypePromotion<short, float>::Type, float>::value, "short with float should promote to float");
-//static_assert(std::is_same<typename TypePromotion<float, float>::Type, float>::value, "float with float should promote to float");
+    template<typename T1, typename T2>
+    struct TypePromotionHelper<T1, T2, _PromoteToInt>
+    {
+        typedef int PromotionType;
+    };
+
+    template<typename TField1, typename TField2>
+    struct TypePromotion
+    {
+        typedef typename TypePromotionHelper<TField1, TField2,
+        TypePromotionPriorityHelper<TField1>::priority() >= 1000 &&
+        TypePromotionPriorityHelper<TField2>::priority() >= 1000 ? _PromoteToInt :
+        (TypePromotionPriorityHelper<TField1>::priority() <
+         TypePromotionPriorityHelper<TField2>::priority() ?
+             _PromoteToFirst : _PromoteToSecond)>::PromotionType Type;
+    };
+
+} // namespace detail
 
 #define _INST_REL_OPERATOR(op, sqlop) \
     template<typename TField1, typename TField2> \
@@ -455,28 +456,28 @@ operator+(const SqlColumnMatcherBase<TField>& inner)
 
 #define _INST_BINARY_OPERATOR(op) \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type> \
 operator op(const SqlColumnMatcherBase<TField1>& lhs, \
           const TField2& rhs) \
 { \
     ValueEvaluator<TField2> eval; \
-    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>( \
+    return SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type>( \
         "(" + lhs.expression() + " " #op " " + eval(rhs) + ")"); \
 } \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type> \
 operator op(const TField1& lhs, \
           const SqlColumnMatcherBase<TField2>& rhs) \
 { \
     ValueEvaluator<TField1> eval; \
-    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>("(" + eval(lhs) + " " #op " " + rhs.expression() + ")"); \
+    return SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type>("(" + eval(lhs) + " " #op " " + rhs.expression() + ")"); \
 } \
 template<typename TField1, typename TField2, typename = typename std::enable_if<std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value>::type> \
-SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type> \
+SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type> \
 operator op(const SqlColumnMatcherBase<TField1>& lhs, \
           const SqlColumnMatcherBase<TField2>& rhs) \
 { \
-    return SqlColumnMatcherDirectExpression<typename TypePromotion<TField1, TField2>::Type>( \
+    return SqlColumnMatcherDirectExpression<typename detail::TypePromotion<TField1, TField2>::Type>( \
                 "(" + lhs.expression() + " " #op + " " + rhs.expression() + ")"); \
 }
 

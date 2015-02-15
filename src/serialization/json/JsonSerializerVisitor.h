@@ -13,27 +13,38 @@
 * See the License for the specific language governing permissions and       *
 * limitations under the License.                                            *
 ****************************************************************************/
-#ifndef JSONDESERIALIZERVISITOR_H
-#define JSONDESERIALIZERVISITOR_H
+#ifndef JSONSERIALIZERVISITOR_H
+#define JSONSERIALIZERVISITOR_H
 #include "VisitorBase.h"
 #include <json/json.h>
 
 namespace metacpp
 {
+class Object;
 
-class JsonDeserializerVisitor :
-	public VisitorBase
+namespace serialization
+{
+namespace json
+{
+
+class JsonSerializerVisitor :
+    public VisitorBase
 {
 public:
-    JsonDeserializerVisitor(const Json::Value& val);
-    ~JsonDeserializerVisitor(void);
+    JsonSerializerVisitor(void);
+    ~JsonSerializerVisitor(void);
+
+    const Json::Value& rootValue() const;
 protected:
-    void visitField(Object *obj, const MetaFieldBase *desc) override;
+    void visitField(Object *obj, const MetaFieldBase *field) override;
 private:
-    void ParseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr, Json::ArrayIndex i = 0);
+    void appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
+                        const MetaFieldBase *desc = nullptr, Json::ArrayIndex = 0);
 private:
-	const Json::Value& m_value;
+	Json::Value m_value;
 };
 
+} // namespace json
+} // namespace serialization
 } // namespace metacpp
-#endif // JSONDESERIALIZERVISITOR_H
+#endif // JSONSERIALIZERVISITOR_H

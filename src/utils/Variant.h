@@ -26,98 +26,139 @@ enum EFieldType;
 namespace metacpp
 {
 
-class VariantData : public SharedDataBase
+namespace detail
 {
-public:
-    VariantData();
-    ~VariantData();
-
-    explicit VariantData(bool v);
-    explicit VariantData(int32_t v);
-    explicit VariantData(uint32_t v);
-    explicit VariantData(const int64_t& v);
-    explicit VariantData(const uint64_t& v);
-    explicit VariantData(const float& v);
-    explicit VariantData(const double& v);
-    explicit VariantData(const String& v);
-    explicit VariantData(const DateTime& v);
-    
-    EFieldType type() const;
-    template<typename T>
-    T value() const;
-    
-    SharedDataBase *clone() const override;
-private:
-    template<typename T>
-    T arithmetic_convert() const;
-private:
-    EFieldType m_type;
-    // union storage for POD types
-    union
+    class VariantData : public SharedDataBase
     {
-        bool m_bool;
-        int32_t m_int;
-        uint32_t m_uint;
-        int64_t m_int64;
-        uint64_t m_uint64;
-        float m_float;
-        double m_double;
-    } m_storage;
-    String m_string;
-    DateTime m_datetime;
-};
+    public:
+        VariantData();
+        ~VariantData();
+
+        explicit VariantData(bool v);
+        explicit VariantData(int32_t v);
+        explicit VariantData(uint32_t v);
+        explicit VariantData(const int64_t& v);
+        explicit VariantData(const uint64_t& v);
+        explicit VariantData(const float& v);
+        explicit VariantData(const double& v);
+        explicit VariantData(const String& v);
+        explicit VariantData(const DateTime& v);
+
+        EFieldType type() const;
+        template<typename T>
+        T value() const;
+
+        SharedDataBase *clone() const override;
+    private:
+        template<typename T>
+        T arithmetic_convert() const;
+    private:
+        EFieldType m_type;
+        // union storage for POD types
+        union
+        {
+            bool m_bool;
+            int32_t m_int;
+            uint32_t m_uint;
+            int64_t m_int64;
+            uint64_t m_uint64;
+            float m_float;
+            double m_double;
+        } m_storage;
+        String m_string;
+        DateTime m_datetime;
+    };
+} // namespace detail
 
 /**
-    \brief Variant type for storing scalar values.
+    \brief Class for effective union-like storing scalar values of several types.
+
+    Supported types:
+    - void, invalid variant (eFieldVoid)
+    - bool (eFieldBool)
+    - int32_t (eFieldInt)
+    - uint32_t (eFieldUint)
+    - int64_t (eFieldInt64)
+    - uint64_t (eFieldUint64)
+    - float (eFieldFloat)
+    - double (eFieldDouble)
+    - metacpp::String (eFieldString)
+    - metacpp::DateTime (eFieldDateTime)
 */
-class Variant : SharedDataPointer<VariantData>
+class Variant final : SharedDataPointer<detail::VariantData>
 {
 public:
+    /** \brief Constructs a new instance of the void (invalid) variant */
     Variant(void);
     ~Variant();
 
+    /** \brief Constructs a new instance of the bool variant */
     Variant(bool v);
+    /** \brief Constructs a new instance of the int32_t variant */
     Variant(int32_t v);
+    /** \brief Constructs a new instance of the uint32_t variant */
     Variant(uint32_t v);
+    /** \brief Constructs a new instance of the int64_t variant */
     Variant(const int64_t& v);
+    /** \brief Constructs a new instance of the uint64_t variant */
     Variant(const uint64_t& v);
+    /** \brief Constructs a new instance of the float variant */
     Variant(const float& v);
+    /** \brief Constructs a new instance of the double variant */
     Variant(const double& v);
+    /** \brief Constructs a new instance of the metacpp::String variant using a pointer to C-style string */
     Variant(const char *v);
+    /** \brief Constructs a new instance of the metacpp::String variant */
     Variant(const String& v);
+    /** \brief Constructs a new instance of the metacpp::DateTime variant */
     Variant(const DateTime& v);
 
+    /** \brief Gets a type of the stored value */
     inline EFieldType type() const { return getData()->type(); }
 
+    /** \brief Gets the stored value of converted to the type T if needed.
+     *
+     * \see variant_cast
+    */
     template<typename T>
     typename std::enable_if<!std::is_void<T>::value && !std::is_same<Variant, T>::value, T>::type value() const
     {
         return getData()->value<T>();
     }
 
+    /** \brief Ensures that this variant is invalid (i.e. of the void type) */
     template<typename T>
     typename std::enable_if<std::is_void<T>::value, void>::type value() const
     {
         if (valid()) throw std::runtime_error("Not a void variant");
     }
 
+    /** \brief Specialization for the getter of stored value of unspecified type */
     template<typename T>
     typename std::enable_if<std::is_same<T, Variant>::value, const Variant&>::type value() const
     {
         return *this;
     }
 
+    /** \brief Checks if this variant is valid (i.e. of non-void type) */
     bool valid() const;
+    /** \brief Checks whether this variant stores value of any integral type (bool, int32_t, uint32_t, int64_t or uint64_t) */
     bool isIntegral() const;
+    /** \brief Checks whether this variant stores value of any floating point type (float or double) */
     bool isFloatingPoint() const;
+    /** \brief Checks whether this variant stores a number (i.e. integral or floating point)
+     * \see isIntegral, isFloatingPoint
+    */
     bool isArithmetic() const;
+    /** \brief Checks if this variant stores a metacpp::String */
     bool isString() const;
+    /** \brief Checks if this variant stores a metacpp::DateTime */
     bool isDateTime() const;
 private:
-    VariantData *getData() const;
+    detail::VariantData *getData() const;
 };
 
-/** \brief Gets the stored value.
+/** \brief Generalized form of getter for the stored value of v to the template type T.
 An automatic type conversion is performed as needed:
  - any arithmetic (either integral or floating point) is converted to any other arithmetic type
  - any type is converted to String using String::fromValue()

@@ -25,7 +25,7 @@ TYPED_TEST_P(TypedVariantTest, TypeTest)
 {
     TypeParam p = TypeParam();
     Variant v(p);
-    ASSERT_EQ(v.type(), FullFieldInfoHelper<TypeParam>::type());
+    ASSERT_EQ(v.type(), ::detail::FullFieldInfoHelper<TypeParam>::type());
 }
 
 TYPED_TEST_P(TypedVariantTest, AssignTest)

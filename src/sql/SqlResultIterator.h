@@ -22,8 +22,12 @@ namespace metacpp
 namespace sql
 {
 
-class SqlStorable;
+namespace detail
+{
 class SqlResultSetData;
+}
+
+class SqlStorable;
 
 static const int ROW_ID_PAST_THE_END = -1;
 static const int ROW_ID_INVALID = -2;
@@ -32,7 +36,7 @@ static const int ROW_ID_INVALID = -2;
 class SqlResultIterator
 {
 public:
-    explicit SqlResultIterator(SqlResultSetData *resultSet, int rowId);
+    explicit SqlResultIterator(detail::SqlResultSetData *resultSet, int rowId);
     SqlResultIterator(const SqlResultIterator& other);
     virtual ~SqlResultIterator();
 
@@ -48,8 +52,8 @@ public:
 private:
     inline void setRowId(int rowId) { m_rowId = rowId; }
 private:
-    friend class SqlResultSetData;
-    SqlResultSetData *m_resultSet;
+    friend class detail::SqlResultSetData;
+    detail::SqlResultSetData *m_resultSet;
     int m_rowId;
 
 };
