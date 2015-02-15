@@ -22,6 +22,7 @@ namespace metacpp
 {
 namespace sql
 {
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 /** \see SqlColumnFullMatcher::isNull */
 typedef struct
@@ -539,6 +540,8 @@ inline SqlColumnMatcherDirectExpression<int64_t> random()
 {
     return SqlColumnMatcherDirectExpression<int64_t>("random()");
 }
+
+#endif // #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 } // namespace sql
 } // namespace metacpp

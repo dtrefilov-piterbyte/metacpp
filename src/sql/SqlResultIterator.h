@@ -29,13 +29,20 @@ class SqlResultSetData;
 
 class SqlStorable;
 
+/** \brief Reserved value of the row for iterators pointing to the end of SqlResultSet
+ * \relates SqlResultIterator
+ */
 static const int ROW_ID_PAST_THE_END = -1;
+/** \brief Reserved value of the row for representing invalid iterators
+ * \relates SqlResultIterator
+ */
 static const int ROW_ID_INVALID = -2;
 
 /** Forward iterator for iterating over sql result set */
 class SqlResultIterator
 {
 public:
+    /** Constucts a new instance of SqlResultIterator */
     explicit SqlResultIterator(detail::SqlResultSetData *resultSet, int rowId);
     SqlResultIterator(const SqlResultIterator& other);
     virtual ~SqlResultIterator();
@@ -44,10 +51,14 @@ public:
     bool operator==(const SqlResultIterator& rhs);
     bool operator!=(const SqlResultIterator& rhs);
 
+    /** \brief Dereferences iterator, returns row id pointing by this iterator */
     int operator*() const;
+    /** \brief Dereferences iterator, returns row id pointing by this iterator */
     int operator->() const;
 
+    /** \brief Moves cursor one row further in a SqlResultSet */
     SqlResultIterator& operator++();
+    /** \brief Returns row id pointed by this iterator */
     inline int rowId() const { return m_rowId; }
 private:
     inline void setRowId(int rowId) { m_rowId = rowId; }

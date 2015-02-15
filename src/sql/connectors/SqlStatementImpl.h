@@ -28,8 +28,9 @@ namespace sql
 namespace connectors
 {
 
-/**
-    \brief Base class for all statements
+/** \brief An abstract base class for statements
+ *
+ * This class should never be used directly
 */
 class SqlStatementImpl
 {
@@ -43,13 +44,13 @@ public:
     virtual SqlStatementType type() const;
     /** \brief Check if statement is prepared */
     virtual bool prepared() const;
-    /** \brief Set prepared flag */
+    /** \brief Sets prepared flag */
     virtual void setPrepared(bool val = true);
     /** \brief Check if we've done executing this statement (no more rows) */
     virtual bool done() const;
-    /** \brief Set done flag */
+    /** \brief Sets done flag */
     virtual void setDone(bool val = true);
-    /** \brief Get sql query text */
+    /** \brief Gets sql query text of this statement */
     virtual const String& queryText() const;
 protected:
     bool m_prepared;

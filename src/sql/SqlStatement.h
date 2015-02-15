@@ -29,13 +29,16 @@ namespace sql
 // TODO: think how to implement composite statements with agregate functions, i.e.
 // select city.* from city where not (select avg(age) from person where cityid = city.id) > 12;
 
+/** \brief Type of an sql staement
+ * \relates SqlStatementBase
+ */
 enum SqlStatementType
 {
-    SqlStatementTypeUnknown,
-    SqlStatementTypeSelect,
-    SqlStatementTypeInsert,
-    SqlStatementTypeUpdate,
-    SqlStatementTypeDelete,
+    SqlStatementTypeUnknown,   /**< Custom non-standard statement */
+    SqlStatementTypeSelect,    /**< Select query */
+    SqlStatementTypeInsert,    /**< Insert query */
+    SqlStatementTypeUpdate,    /**< Update query */
+    SqlStatementTypeDelete,    /**< Delete query */
 };
 
 class SqlTransaction;
@@ -46,26 +49,33 @@ namespace connectors
     class SqlStatementImpl;
 }
 
+/** \brief Type of the sql syntax used by SqlStatementBase
+ * \relates SqlStatementBase */
 enum SqlSyntax
 {
-    SqlSyntaxUnknown,
-    SqlSyntaxSqlite,
-    SqlSyntaxPostgreSQL,
-    SqlSyntaxMysql,
-    SqlSyntaxMssql
+    SqlSyntaxUnknown,       /**< Invalid syntax type */
+    SqlSyntaxSqlite,        /**< Sqlite syntax */
+    SqlSyntaxPostgreSQL,    /**< Postgresql syntax */
+    SqlSyntaxMysql,         /**< Mysql syntax */
+    SqlSyntaxMssql,         /**< Microsoft SQL Server syntax */
+    SqlSyntaxFirebird,      /**< Firebird/Interbase syntax */
+    SqlSyntaxOracle         /**< Oracle RDBMS syntax */
 };
 
-/** \brief Base class for all common-types statement builders */
+/** \brief Base class for all types of SQL statements */
 class SqlStatementBase
 {
 protected:
+    /** \brief Constructs a new instance of SqlStatementBase */
     SqlStatementBase();
     SqlStatementBase(const SqlStatementBase&)=default;
     SqlStatementBase& operator=(const SqlStatementBase&)=default;
 public:
     virtual ~SqlStatementBase();
+    /** \brief Returns type of this statement */
     virtual SqlStatementType type() const = 0;
 protected:
+    /** \brief Constructs a query using specified syntax */
     virtual String buildQuery(SqlSyntax syntax) const = 0;
     String fieldValue(const MetaFieldBase *field) const;
     std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
@@ -73,17 +83,21 @@ protected:
     std::shared_ptr<connectors::SqlStatementImpl> m_impl;
 };
 
+/** \brief Class representing Select queries */
 class SqlStatementSelect : public SqlStatementBase
 {
 public:
-    // TODO: select only certain columns
+    /** \brief Constructs a new instance of SqlStatementSelect */
     explicit SqlStatementSelect(SqlStorable *storable);
     ~SqlStatementSelect();
 
+    /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
 
+    /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) const override;
 
+    /** \brief Specifies other table to be used in inner join with this statement */
     template<typename TObj>
     SqlStatementSelect& innerJoin()
     {
@@ -94,6 +108,7 @@ public:
         return *this;
     }
 
+    /** \brief Specifies other tables to be used in inner join with this statement */
     template<typename TObj1, typename TObj2, typename... TOthers>
     SqlStatementSelect& innerJoin()
     {
@@ -101,7 +116,7 @@ public:
         return innerJoin<TObj2, TOthers...>();
     }
 
-    /** construct left outer join statement */
+    /** \brief Specifies other table to be used in keft outer join with this statement */
     template<typename TObj>
     SqlStatementSelect& outerJoin()
     {
@@ -112,6 +127,7 @@ public:
         return *this;
     }
 
+    /** \brief Specifies other tables to be used in inner join with this statement */
     template<typename TObj1, typename TObj2, typename... TOthers>
     SqlStatementSelect& outerJoin()
     {
@@ -119,19 +135,23 @@ public:
         return outerJoin<TObj2, TOthers...>();
     }
 
-
+    /** \brief Specifies maximum number of rows returned by execution of this statement */
     SqlStatementSelect& limit(size_t lim);
+    /** \brief Specifies number of skipped rows in result set */
     SqlStatementSelect& offset(size_t off);
+    /** \brief Specifies where clause for this statement */
     SqlStatementSelect& where(const WhereClauseBuilder& whereClause);
-
+    /** \brief Executes statement and returns result set */
     SqlResultSet exec(SqlTransaction& transaction);
 
+    /** \brief Specifies columns to be used for sorting in ascending order of result set */
     template<typename TObj1, typename TField1, typename... TOthers>
     SqlStatementSelect& orderAsc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
     {
         return orderByHelper(true, column, others...);
     }
 
+    /** \brief Specifies columns to be used for sorting in descending order of result set */
     template<typename TObj1, typename TField1, typename... TOthers>
     SqlStatementSelect& orderDesc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
     {
@@ -146,11 +166,9 @@ private:
     template<typename TObj1, typename TField1, typename... TOthers>
     SqlStatementSelect& orderByHelper(bool asc, const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
     {
-        if (m_orderAsc && asc != *m_orderAsc)
-            throw std::runtime_error("Cannot mix order modes");
         m_orderAsc = true;
         m_order.reserve(m_order.size() + 1 + sizeof...(others));
-        m_order.push_back(column.expression());
+        m_order.push_back(column.expression() + (asc ? " ASC" : " DESC"));
         return orderByHelper(asc, others...);
     }
 private:
@@ -172,6 +190,7 @@ private:
 };
 
 
+/** \brief Class representing Insert queries */
 class SqlStatementInsert : public SqlStatementBase
 {
 public:

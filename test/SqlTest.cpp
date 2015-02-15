@@ -206,7 +206,7 @@ TEST_F(SqlTest, selectTest)
                 COL(Person::cityId) == COL(City::id) &&
                 !lower(COL(Person::name)).like("invalid_%") &&
                 COL(Person::birthday) > DateTime::fromString("2000-01-01 00:00:00"))
-                .limit(10).orderAsc(COL(Person::name), COL(Person::age)).exec(transaction);
+                .limit(10).orderAsc(COL(Person::name), COL(City::name)).orderDesc(COL(Person::age)).exec(transaction);
 
         StringArray persons;
         for (auto it : resultSet)

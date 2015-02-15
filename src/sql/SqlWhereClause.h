@@ -29,8 +29,11 @@ class WhereClauseBuilder
 public:
     virtual ~WhereClauseBuilder() { }
 
-    /** \brief print sql subexpression into a stream */
+    /** \brief print an sql string representation of this where clause */
     virtual String expression() const = 0;
+    /** \brief checks whether this expression is complex, i.e. should be wraped in
+     * parenthesis while embedding into more complex statements
+    */
     virtual bool complex() const { return false; }
 };
 
@@ -38,10 +41,14 @@ public:
 class DirectWhereClauseBuilder : public WhereClauseBuilder
 {
 public:
+    /** \brief Constructs new instance of DirectWhereClauseBuilder
+     * \param s - final sql expression
+    */
     DirectWhereClauseBuilder(const String& s);
 
     ~DirectWhereClauseBuilder();
 
+    /** \brief Overriden from WhereClauseBuilder::expression */
     String expression() const override;
 
 private:
@@ -58,9 +65,17 @@ public:
         OperatorOr
     };
 
+    /** Constructs a new instance of ComplexWhereClauseBuilder
+     * \param op - an operator used to combine two expressions
+     * \param left - left hand side of the expression
+     * \param right - right hand side of the expression
+    */
     ComplexWhereClauseBuilder(Operator op, const WhereClauseBuilder& left,
                               const WhereClauseBuilder& right);
 
+    /** \brief Overriden from WhereClauseBuilder::complex
+     * \returns true
+    */
     bool complex() const override
     {
         return true;
@@ -70,26 +85,39 @@ private:
                               const WhereClauseBuilder& right);
 };
 
+/** \brief Represents negated where clause expression */
 class NegationWhereClauseBuilder : public DirectWhereClauseBuilder
 {
 public:
+    /** \brief Constructs new instance of NegationWhereClauseBuilder
+     * \param inner - inner expression
+    */
     NegationWhereClauseBuilder(const WhereClauseBuilder& inner);
 
     String buildExpression(const WhereClauseBuilder& inner);
 };
 
+/** \relates WhereClauseBuilder
+ * Combine two where clause expressions using logical AND operator
+ */
 inline ComplexWhereClauseBuilder operator &&(const WhereClauseBuilder& left,
                                       const WhereClauseBuilder& right)
 {
     return ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::OperatorAnd, left, right);
 }
 
+/** \relates WhereClauseBuilder
+ * Combine two where clause expressions using logical OR operator
+ */
 inline ComplexWhereClauseBuilder operator ||(const WhereClauseBuilder& left,
                                       const WhereClauseBuilder& right)
 {
     return ComplexWhereClauseBuilder(ComplexWhereClauseBuilder::OperatorOr, left, right);
 }
 
+/** \relates WhereClauseBuilder
+ * Negates the specified where clause expression
+ */
 inline NegationWhereClauseBuilder operator !(const WhereClauseBuilder& inner)
 {
     return NegationWhereClauseBuilder(inner);

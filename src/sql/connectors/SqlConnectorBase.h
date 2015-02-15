@@ -33,11 +33,19 @@ namespace connectors
 
 class SqlConnectorBase;
 
+/** \brief Factory type for SqlConnectorBase
+ * \relates SqlConnectorBase
+ */
 typedef FactoryBase<std::unique_ptr<SqlConnectorBase>, const Uri&> SqlConnectorFactory;
 
+/** \brief A base abstract class representing database connection
+ *
+ * Should never be used directly
+ */
 class SqlConnectorBase
 {
 protected:
+    /** \brief Constructs a new instance of SqlConnectorBase */
     SqlConnectorBase();
 public:
     SqlConnectorBase(const SqlConnectorBase&)=delete;
@@ -48,31 +56,51 @@ public:
     /** \brief Perform initial connection to the database */
     virtual bool connect() = 0;
 
-    /** \brief Close connection to the database */
+    /** \brief Closes all connections to the database */
     virtual bool disconnect() = 0;
 
-    /** \brief create a new transaction using existing connection to the database.
-     * After you finish with transaction you should return it back to the connector
-     * using either commitTransaction or or rollbackTransaction
-     * NOTE: Level of isolation for transaction is implementation defined
+    /** \brief Creates a new transaction implementation using available connection to the database.
+     *
+     * After you finish with transaction you should return it back to the connector with closeTransaction
     */
     virtual SqlTransactionImpl *createTransaction() = 0;
 
+    /** \brief Destroys the transaction and frees database connection which was occupied by it
+     *
+     * \see SqlConnectorBasse::setConnectionPooling
+    */
     virtual bool closeTransaction(SqlTransactionImpl *transaction) = 0;
 
+    /** \brief Gets type of the sql syntax accepted by this connector */
     virtual SqlSyntax sqlSyntax() const = 0;
 
+    /** \brief Sets number of parallel connections used by this connector for parallel execution
+     *
+     * This method should be called before performing actual connection with SqlConnectorBase::connect
+    */
     virtual void setConnectionPooling(size_t size) = 0;
 
+    /** \brief Sets connector to be used as a default for all transactions */
     static void setDefaultConnector(SqlConnectorBase *connector);
+    /** \brief Gets default connector previously set by SqlConnectorBase::setDefaultConnector */
     static SqlConnectorBase *getDefaultConnector();
 
+    /** \brief Sets connector as a named connection */
     static bool setNamedConnector(SqlConnectorBase *connector, const String& connectionName);
+    /** \brief Gets a named connection previously set by SqlConnectorBase::setNamedConnector */
     static SqlConnectorBase *getNamedConnector(const String &connectionName);
 
+    /** \brief Registers schemaName to be used with specified factory for creation of connectors with
+     * SqlConnectorBase::createConnector
+    */
     static void registerConnectorFactory(const String& schemaName, std::shared_ptr<SqlConnectorFactory> factory);
+    /** \brief Unregisters factory for the schemaName previously registered with SqlConnectorBase::registerConnectorFactory */
     static void unregisterConnectorFactory(const String& schemaName);
 
+    /** \brief Creates a new connector with database connection parameters specified by uri
+     *
+     * \see SqlConnectorBase::registerConnectorFactory, SqlConnectorBase::unregisterConnectorFactory
+    */
     static std::unique_ptr<SqlConnectorBase> createConnector(const Uri& uri);
 private:
     static std::atomic<SqlConnectorBase *> ms_defaultConnector;

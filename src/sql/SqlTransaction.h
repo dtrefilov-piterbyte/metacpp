@@ -28,18 +28,40 @@ namespace connectors
     class SqlTransactionImpl;
 }
 
+/** \brief Defines consistency policy of SqlTransaction */
 enum SqlTransactionAutoCloseMode
 {
-    SqlTransactionAutoRollback,
-    SqlTransactionAutoCommit,
-    SqlTransactionAutoCloseManual
+    SqlTransactionAutoRollback,     /**< Transaction is rollbacked automatically if was not previously closed manually. This is the default policy. */
+    SqlTransactionAutoCommit,       /**< Transaction is commited automatically if was not closed manually */
+    SqlTransactionAutoCloseManual   /**< In this mode transaction should always be closed manually */
 };
 
+/** \brief Provides ACID garantees on executed sql statements.
+ *
+ * All sql statements is only possible to execute in a context of transaction.
+ * TODO: detailed example
+ *
+ * Note: You should avoid recursive instantiation of SqlTransaction since
+ * each instance is holding a dedicated connection to the database, which
+ * is freed automatically in SqlTransaction destructor. Having several
+ * SqlTransaction instances in same thread is possible due to connection pooling,
+ * but this is an error-prone practice beacause at some point you may
+ * run out of available connections. In this case your program will become
+ * dead-locked.
+*/
 class SqlTransaction
 {
 public:
+    /** \brief Constructs a new instance of SqlTransaction
+     * \param autoClose defines consistency policy.
+     * \param connector provides connection to database
+    */
     SqlTransaction(SqlTransactionAutoCloseMode autoClose = SqlTransactionAutoRollback,
                    connectors::SqlConnectorBase *connector = connectors::SqlConnectorBase::getDefaultConnector());
+    /** \brief Constructs a new instance of SqlTransaction
+     * \param connectionName references connection to the database. \see SqlConnectorBase::getNamedConnector
+     * \param autoClose defines consistency policy
+    */
     explicit SqlTransaction(const String& connectionName,
                             SqlTransactionAutoCloseMode autoClose = SqlTransactionAutoRollback);
 
@@ -48,11 +70,20 @@ public:
     SqlTransaction(const SqlTransaction&)=delete;
     SqlTransaction operator=(const SqlTransaction&)=delete;
 
+    /** \brief Returns the connector used by this transaction */
     connectors::SqlConnectorBase *connector() const;
+    /** \brief Returns a connector-specific implementation */
     connectors::SqlTransactionImpl *impl() const;
+    /** \brief Checks whether transaction is started */
     bool started() const;
+    /** \brief Starts a transaction block
+     * \throws std::runtime_error
+    */
     void begin();
+    /** \brief Executes all statements in current transaction block and finishes it */
     void commit();
+    /** \brief Drp[s all statements in current transaction block and finishes it.
+     * The database is rollbacked to it's previous consistent state */
     void rollback();
 private:
     connectors::SqlConnectorBase *m_connector;

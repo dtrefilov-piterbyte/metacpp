@@ -57,7 +57,8 @@ namespace detail
 
 } // namespace detail
 
-class SqlResultSet : private SharedDataPointer<detail::SqlResultSetData>
+/** \brief Result of an SqlSelectStatement */
+class SqlResultSet final : SharedDataPointer<detail::SqlResultSetData>
 {
 public:
     /** Construct result set from select statement
@@ -67,7 +68,9 @@ public:
                  std::shared_ptr<connectors::SqlStatementImpl> statement,
                  SqlStorable *storable);
     virtual ~SqlResultSet();
+    /** \brief Returns iterator pointing to the begin of this set */
     SqlResultIterator begin();
+    /** \brief Returns iterator pointing to the end of this set */
     SqlResultIterator end();
 };
 

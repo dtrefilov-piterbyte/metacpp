@@ -25,6 +25,10 @@ namespace sql
 namespace connectors
 {
 
+/** \brief An abstract base class for execution of sql-statements in a context of transaction.
+ *
+ * This class should never be used directly
+ */
 class SqlTransactionImpl
 {
 protected:
@@ -50,7 +54,9 @@ public:
     /** \brief Prepare statement */
     virtual bool prepare(SqlStatementImpl *statement) = 0;
 
-    /** \brief Execute statement */
+    /** \brief Execute statement
+     * \param numRowsAffected pointer to retrieve number of rows affected with update or delete statement
+    */
     virtual bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) = 0;
 
     /** \brief Write result of select operation into storable and move cursor to the next row */
@@ -59,7 +65,7 @@ public:
     /** \brief Retrieve an id of the previously inserted row */
     virtual bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) = 0;
 
-    /** \brief Destroy statement */
+    /** \brief Destroys statement */
     virtual bool closeStatement(SqlStatementImpl *statement) = 0;
 
 };

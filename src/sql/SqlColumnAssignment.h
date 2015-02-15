@@ -24,6 +24,7 @@ namespace metacpp
 namespace sql
 {
 
+#ifndef DOXYGEN_SHOULD_SKIP_THIS
 template<typename TObj>
 class SqlColumnAssignmentBase
 {
@@ -47,7 +48,7 @@ public:
 private:
     String m_expr;
 };
-
+#endif // #ifndef DOXYGEN_SHOULD_SKIP_THIS
 } // namespace sql
 } // namespace metacpp
 
