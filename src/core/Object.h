@@ -34,7 +34,7 @@ public:
 	virtual ~Object();
 
 	/**
-		initializes object with default values from metainfo
+        \brief initializes object with default values from metainfo
 		\throws std::invalid_argument
 	*/
     void init();
@@ -42,13 +42,13 @@ public:
 
 #ifdef HAVE_JSONCPP
     /**
-		performs json object serialization
+        \brief Performs json object serialization
 		\throws std::invalid_argument
 	*/
     String toJson(bool prettyFormatted = true) const;
 
 	/**
-		performs json object deserialization
+        \brief Performs json object deserialization
 		\throws std::invalid_argument
 	*/
     void fromJson(const String &s);
@@ -56,13 +56,13 @@ public:
 
 #ifdef HAVE_MONGODB
     /**
-        performs bson object serialization
+        \brief Performs bson object serialization
         \throws std::invalid_argument
     */
-    ByteArray toBson(bool prettyFormatted = true) const;
+    ByteArray toBson() const;
 
     /**
-        performs bson object deserialization
+        \brief Performs bson object deserialization
         \throws std::invalid_argument
     */
     void fromBson(const void *data);
@@ -80,12 +80,20 @@ public:
     */
     Variant invoke(const String& methodName, const VariantArray& args) const;
 
+    /** \brief Calls reflection const own method on this object
+     * \param methodName - case-sensetive name of the method
+     * \param args - array of arguments to pass to the calling function
+    */
     template<typename TRet, typename... TArgs>
     TRet invoke(const String& methodName, TArgs... args)
     {
         return variant_cast<TRet>(invoke(methodName, { args... }));
     }
 
+    /** \brief Calls reflection const own method on this object
+     * \param methodName - case-sensetive name of the method
+     * \param args - array of arguments to pass to the calling function
+    */
     template<typename TRet, typename... TArgs>
     TRet invoke(const String& methodName, TArgs... args) const
     {
@@ -107,7 +115,11 @@ private:
     static const MetaObject ms_metaObject;
 };
 
+/** \brief Macro which must be presented in declaration of classes derived from metacpp::Object
+ * \relates metacpp::Object
+ */
 #define META_INFO_DECLARE(ObjName) \
+    public: \
         const MetaObject *metaObject() const override; \
         static const MetaObject *staticMetaObject(); \
         static Object *constructInstance(void *mem); \
@@ -115,6 +127,9 @@ private:
     private: \
         static const MetaObject ms_metaObject;
 
+/** \brief Macro which must be presented in definition of classes derived from metacpp::Object
+ * \relates metacpp::Object
+ */
 #define META_INFO(ObjName) \
     const MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
         &ObjName::constructInstance, &ObjName::destructInstance); \
@@ -123,7 +138,7 @@ private:
     Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
     void ObjName::destructInstance(void *mem) { reinterpret_cast<ObjName *>(mem)->~ObjName(); }
 
-
+/** \brief Get offset of the field into the struct */
 template<typename TObj, typename TField>
 static constexpr ptrdiff_t getMemberOffset(const TField TObj::*member)
 {

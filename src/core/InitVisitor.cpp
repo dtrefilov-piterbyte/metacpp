@@ -18,16 +18,16 @@
 namespace metacpp
 {
 
-pkInitVisitor::pkInitVisitor()
+InitVisitor::InitVisitor()
 {
 }
 
 
-pkInitVisitor::~pkInitVisitor(void)
+InitVisitor::~InitVisitor(void)
 {
 }
 
-void pkInitVisitor::visitField(Object *obj, const MetaFieldBase *field)
+void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
     if (field->nullable())
     {

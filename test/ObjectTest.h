@@ -8,6 +8,7 @@ public:
 	void testMetaInfo();
     void testInitVisitor();
 	void testSerialization();
+    void testBsonSerialization();
 	void tesetDesierialization();
 };
 #endif // OBJECTTEST_H

@@ -23,6 +23,7 @@
 
 #ifdef HAVE_MONGODB
 #include "BsonSerializerVisitor.h"
+#include "BsonDeserializerVisitor.h"
 #endif
 
 namespace metacpp
@@ -34,7 +35,7 @@ Object::~Object()
 
 void Object::init()
 {
-    pkInitVisitor vis;
+    InitVisitor vis;
 	vis.visit(this);
 }
 
@@ -66,7 +67,29 @@ void Object::fromJson(const String& s)
     JsonDeserializerVisitor vis(root);
     vis.visit(this);
 }
-#endif
+
+#endif // HAVE_JSONCPP
+
+#ifdef HAVE_MONGODB
+
+ByteArray Object::toBson() const
+{
+    using namespace serialization::bson;
+    BsonSerializerVisitor vis;
+    vis.visit(const_cast<Object *>(this));
+    mongo::BSONObj bsonObj = vis.doneObj();
+    return ByteArray(reinterpret_cast<const uint8_t *>(bsonObj.objdata()), bsonObj.objsize());
+}
+
+void Object::fromBson(const void *data)
+{
+    using namespace serialization::bson;
+    mongo::BSONObj bsonObj(reinterpret_cast<const char *>(data));
+    BsonDeserializerVisitor vis(bsonObj);
+    vis.visit(this);
+}
+
+#endif // HAVE_MONGODB
 
 Variant Object::invoke(const String &methodName, const VariantArray &args)
 {

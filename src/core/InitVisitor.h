@@ -21,13 +21,16 @@
 namespace metacpp
 {
 
-class pkInitVisitor :
+/** \brief Visitor used for initialization of object using common introspection mechanism  */
+class InitVisitor :
 	public VisitorBase
 {
 public:
-    pkInitVisitor();
-	~pkInitVisitor(void);
+    /** \brief Constructs a new instance of InitVisitor  */
+    InitVisitor();
+    ~InitVisitor(void);
 
+    /** \brief Overrides metacpp::VisitorBase::visitField  */
     void visitField(Object *obj, const MetaFieldBase *field) override;
 };
 

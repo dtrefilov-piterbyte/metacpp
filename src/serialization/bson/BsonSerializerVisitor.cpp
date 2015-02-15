@@ -105,7 +105,7 @@ void BsonSerializerVisitor::appendSubValue(mongo::BSONObjBuilder &parent, EField
         parent.append(fieldName.c_str(), *reinterpret_cast<const double *>(pValue));
         break;
     case eFieldString:
-        parent.append(fieldName.c_str(), *reinterpret_cast<const String *>(pValue)->c_str());
+        parent.append(fieldName.c_str(), reinterpret_cast<const String *>(pValue)->c_str());
         break;
     case eFieldArray:
     {
@@ -130,7 +130,7 @@ void BsonSerializerVisitor::appendSubValue(mongo::BSONObjBuilder &parent, EField
     }
     case eFieldDateTime: {
         time_t tt = reinterpret_cast<const metacpp::DateTime *>(pValue)->toStdTime();
-        parent.append(fieldName.c_str(), mongo::Date_t(tt));
+        parent.append(fieldName.c_str(), mongo::Date_t(tt * 1000));
         break;
     }
     }	// switch

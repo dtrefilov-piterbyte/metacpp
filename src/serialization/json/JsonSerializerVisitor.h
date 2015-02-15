@@ -27,15 +27,19 @@ namespace serialization
 namespace json
 {
 
+/** \brief Visitor for json serialization of objects */
 class JsonSerializerVisitor :
     public VisitorBase
 {
 public:
+    /** \brief Constructs a new instance of JsonSerializerVisitor */
     JsonSerializerVisitor(void);
     ~JsonSerializerVisitor(void);
 
+    /** \brief Gets a value containing introspecting object */
     const Json::Value& rootValue() const;
 protected:
+    /** \brief Overrides VisitorBase::visitField */
     void visitField(Object *obj, const MetaFieldBase *field) override;
 private:
     void appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,

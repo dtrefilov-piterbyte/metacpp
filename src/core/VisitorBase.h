@@ -20,15 +20,21 @@
 namespace metacpp
 {
 
+/** \brief Base class for visitors used for object introspection */
 class VisitorBase
 {
 public:
+    /** \brief Constructs a new instance of the VisitorBase */
 	VisitorBase();
 	virtual ~VisitorBase(void);
-	void visit(Object *obj);
+    /** \brief Introspects object using this visitor */
+    void visit(Object *object);
 protected:
+    /** \brief Method called before starting introspection */
     virtual void previsitStruct(Object *obj);
+    /** \brief Method called on each property of the object during introspection */
     virtual void visitField(Object *obj, const MetaFieldBase *);
+    /** \brief Method called at the end of introspection */
     virtual void postvisitStruct(Object *obj);
 };
 

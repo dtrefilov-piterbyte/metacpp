@@ -104,10 +104,11 @@ void BsonDeserializerVisitor::parseValue(const mongo::BSONObj &parent, EFieldTyp
         if (!val.isNumber()) throw std::invalid_argument("Type mismatch: not a number");
         *reinterpret_cast<double *>(pValue) = val.numberDouble();
         break;
-    case eFieldString:
+    case eFieldString: {
         if (mongo::String != val.type()) throw std::invalid_argument("Type mismatch: not a string");
         *reinterpret_cast<metacpp::String *>(pValue) = val.String();
         break;
+    }
     case eFieldArray:
     {
         if (!val.isABSONObj() && !val.isNull())  throw std::invalid_argument("Type mismatch: not an array");
@@ -118,7 +119,7 @@ void BsonDeserializerVisitor::parseValue(const mongo::BSONObj &parent, EFieldTyp
         {
             metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
             arrayValue->resize(obj.nFields());
-            for (size_t i = 0; i < (size_t)val.size(); ++i)
+            for (size_t i = 0; i < (size_t)obj.nFields(); ++i)
             {
                 void *pValue = arrayValue->data() + reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize() * i;
                 parseValue(obj, reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(), pValue, nullptr, i);
@@ -129,7 +130,8 @@ void BsonDeserializerVisitor::parseValue(const mongo::BSONObj &parent, EFieldTyp
     }
     case eFieldObject: {
         if (!val.isABSONObj()) throw std::invalid_argument("Type mismatch: not an object");
-        BsonDeserializerVisitor nestedSerializer(val.Obj());
+        mongo::BSONObj nestedObj = val.Obj();
+        BsonDeserializerVisitor nestedSerializer(nestedObj);
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
         break;
     }

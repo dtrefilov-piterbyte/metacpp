@@ -10,12 +10,15 @@ namespace serialization
 namespace bson
 {
 
+/** \brief Visitor for bson deserialization of objects */
 class BsonDeserializerVisitor : public VisitorBase
 {
 public:
+    /** \brief Constructs new instance of JsonDeserializerVisitor with a given value */
     BsonDeserializerVisitor(const mongo::BSONObj& rootObj);
     ~BsonDeserializerVisitor();
 protected:
+    /** \brief Overrides VisitorBase::visitField */
     void visitField(Object *obj, const MetaFieldBase *desc) override;
 private:
     void parseValue(const mongo::BSONObj& parent, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr, int i = 0);

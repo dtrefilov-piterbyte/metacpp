@@ -25,13 +25,16 @@ namespace serialization
 namespace json
 {
 
+/** \brief Visitor for json deserialization of objects */
 class JsonDeserializerVisitor :
 	public VisitorBase
 {
 public:
-    JsonDeserializerVisitor(const Json::Value& val);
+    /** \brief Constructs new instance of JsonDeserializerVisitor with a given value */
+    JsonDeserializerVisitor(const Json::Value& value);
     ~JsonDeserializerVisitor(void);
 protected:
+    /** \brief Overrides VisitorBase::visitField */
     void visitField(Object *obj, const MetaFieldBase *desc) override;
 private:
     void parseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr, Json::ArrayIndex i = 0);

@@ -185,6 +185,47 @@ void ObjectTest::testSerialization()
 #endif
 }
 
+void ObjectTest::testBsonSerialization()
+{
+#ifdef HAVE_MONGODB
+    TestStruct t, t2;
+    t.init();
+    t.id = 123;
+    t.enumValue = eEnumValue1;
+    t.boolValue = false;
+    t.intValue = 123414;
+    t.uintValue = -1239;
+    t.doubleValue = 1231.123f;
+    t.strValue = "abdasdc";
+    t.substruct.name = "1231";
+    TestSubStruct item;
+    item.name = "12"; t.arrValue.push_back(item);
+    item.name = "asdj"; t.arrValue.push_back(item);
+    item.name = ""; t.arrValue.push_back(item);
+    t.optFloatValue = 2.5;
+    t.datetimeValue = DateTime::fromString("2000-10-12 12:48:24");
+    t2.fromBson(t.toBson().data());
+    EXPECT_EQ(t.id, t2.id);
+    EXPECT_EQ(t.enumValue, t2.enumValue);
+    EXPECT_EQ(t.boolValue, t2.boolValue);
+    EXPECT_EQ(t.intValue, t2.intValue);
+    EXPECT_EQ(t.uintValue, t2.uintValue);
+    EXPECT_EQ(t.doubleValue, t2.doubleValue);
+    EXPECT_EQ(t.strValue, t2.strValue);
+    EXPECT_EQ(t.substruct.name, t2.substruct.name);
+    EXPECT_EQ(t.arrValue.size(), t2.arrValue.size());
+    for (size_t i = 0; i < t.arrValue.size(); ++i)
+        ASSERT_EQ(t.arrValue[i].name, t2.arrValue[i].name);
+
+    EXPECT_EQ(*t2.optEnumValue, eEnumValueUnk);
+    EXPECT_EQ(*t2.optBoolValue, true);
+    EXPECT_EQ(*t2.optIntValue, -1);
+    EXPECT_EQ(*t2.optUintValue, 123154);
+    EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
+    EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
+#endif
+}
+
 TEST_F(ObjectTest, MetaInfoTest)
 {
 	testMetaInfo();
@@ -198,6 +239,11 @@ TEST_F(ObjectTest, InitVisitorTest)
 TEST_F(ObjectTest, SerializationTest)
 {
 	testSerialization();
+}
+
+TEST_F(ObjectTest, BsonSerializationTest)
+{
+    testBsonSerialization();
 }
 
 TEST_F(ObjectTest, TestGetFieldProperty)

@@ -450,7 +450,7 @@ public:
     /** \brief Type of the static method */
     typedef TRes (*TFunction)(TArgs...);
 
-    /** Construct a new instance of FunctionInvoker with given func */
+    /** \brief Construct a new instance of FunctionInvoker with given func */
     explicit FunctionInvoker(TFunction func)
         : m_function(func)
     {
@@ -501,7 +501,7 @@ public:
     /** \brief Type of the own method */
     typedef TRes (TObj::*TFunction)(TArgs...);
 
-    /** Construct a new instance of MethodInvoker with given func */
+    /** \brief Construct a new instance of MethodInvoker with given func */
     explicit MethodInvoker(TFunction function)
         : m_method(function)
     {
@@ -554,7 +554,7 @@ public:
     /** \brief Type of the own method */
     typedef TRes (TObj::*TFunction)(TArgs...) const;
 
-    /** Construct a new instance of ConstMethodInvoker with given func */
+    /** \brief Construct a new instance of ConstMethodInvoker with given func */
     ConstMethodInvoker(TFunction function)
         : m_method(function)
     {
