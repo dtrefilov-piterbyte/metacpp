@@ -20,7 +20,8 @@
 
 namespace metacpp
 {
-	template<typename T>
+    /** \brief Template class holding a shared reference to SharedDataBase */
+    template<typename T>
     class SharedDataPointer {
 
 	public:
@@ -64,7 +65,7 @@ namespace metacpp
 			return *this;
 		}
 
-        SharedDataPointer& operator=(const T * d)
+        SharedDataPointer& operator=(const T *d)
 		{
 			if (d != m_d)
 			{
@@ -114,6 +115,33 @@ namespace metacpp
 
 		T *m_d;
 	};
+
+    /** \brief Template class holding a shared reference to T */
+    template<typename T>
+    class SharedPointer final : public SharedDataPointer<SharedData<T> >
+    {
+    public:
+        SharedPointer()
+        {
+        }
+
+        explicit SharedPointer(const T& from)
+            : SharedDataPointer<SharedData<T> >(new SharedData<T>(from))
+        {
+        }
+
+        template<typename... TArgs>
+        explicit SharedPointer(TArgs... args)
+            : SharedDataPointer<SharedData<T> >(new SharedData<T>(args...))
+        {
+        }
+    };
+
+    template<typename T, typename... TArgs>
+    SharedPointer<T> MakeShared(TArgs... args)
+    {
+        return SharedPointer<T>(args...);
+    }
 
 } // namespace metacpp
 #endif // SHAREDDATAPOINTER_H

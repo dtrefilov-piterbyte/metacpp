@@ -27,8 +27,8 @@
 #include "Array.h"
 #include "String.h"
 #include "Nullable.h"
-#include "DateTime.h"
 #include "Variant.h"
+#include "DateTime.h"
 #include "MetaType.h"
 
 namespace metacpp

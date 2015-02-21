@@ -18,7 +18,8 @@
 #include <stdexcept>
 #include <type_traits>
 
-template<typename T/*, typename = typename std::enable_if<std::is_pod<T>::type>::value*/>
+/** \brief Basic type wrapper for representing optionally set values */
+template<typename T>
 class Nullable
 {
 public:
@@ -26,14 +27,32 @@ public:
     Nullable(const T& value) : m_isSet(true), m_value(value) {}
     Nullable(const Nullable& other) : m_isSet(other.m_isSet), m_value(other.m_value) {}
 
-    Nullable& operator=(const Nullable& other)
+    typename std::enable_if<std::is_copy_assignable<T>::value, Nullable>::type& operator=(const Nullable& other)
     {
         m_isSet = other.m_isSet;
         m_value = other.m_value;
         return *this;
     }
 
-    T& operator=(const T& value) { set(value); return m_value; }
+    typename std::enable_if<std::is_copy_assignable<T>::value, T>::type& operator=(const T& value)
+    {
+        set(value);
+        return m_value;
+    }
+
+    typename std::enable_if<std::is_move_assignable<T>::value, Nullable>::type& operator=(Nullable&& other)
+    {
+        m_isSet = other.m_isSet;
+        m_value = std::move(other.m_value);
+        return *this;
+    }
+
+    typename std::enable_if<std::is_move_assignable<T>::value, T>::type& operator=(T&& value)
+    {
+        set(std::move(value));
+        return m_value;
+    }
+
     bool operator==(const T& value) { return m_isSet && value == m_value; }
     const T& operator *() const { return get(); }
     T& operator *() { return get(); }
@@ -57,7 +76,8 @@ public:
     const T& take(const T& _default = T()) const { return m_isSet ? get() : _default; }
 
 private:
-    void set(const T& value) { m_value = value; m_isSet = true; }
+    typename std::enable_if<std::is_copy_assignable<T>::value, void>::type set(const T& value) { m_value = value; m_isSet = true; }
+    typename std::enable_if<std::is_move_assignable<T>::value, void>::type set(const T&& value) { m_value = std::move(value); m_isSet = true; }
 
 private:
     bool m_isSet;

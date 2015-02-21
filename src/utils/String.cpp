@@ -33,6 +33,8 @@
 
 namespace metacpp
 {
+namespace detail
+{
 
     template<>
     size_t StringHelper<char>::strlen(const char *str) {
@@ -235,6 +237,7 @@ namespace metacpp
     }
 
 #endif
+} // namespace detail
 
     template<> const size_t detail::StringData<char>::npos = std::numeric_limits<size_t>::max();
     template<> const size_t StringBase<char>::npos = std::numeric_limits<size_t>::max();
@@ -275,7 +278,7 @@ namespace metacpp
             return WString();
         }
 
-        size_t inputSize = (size_t)-1 != length ? length : StringHelper<char>::strlen(aString);
+        size_t inputSize = (size_t)-1 != length ? length : detail::StringHelper<char>::strlen(aString);
 
         size_t bufLength = inputSize;
         size_t converted = -1;
@@ -323,7 +326,7 @@ namespace metacpp
             return String();
         }
 
-        size_t inputSize = (size_t)-1 != length ? length : StringHelper<char16_t>::strlen(wString);
+        size_t inputSize = (size_t)-1 != length ? length : detail::StringHelper<char16_t>::strlen(wString);
 
         size_t bufLength = inputSize;
         size_t converted = -1;

@@ -101,7 +101,9 @@ protected:
 public:
     virtual ~MetaFieldBase();
 
+    /** \brief Deleted copy constructor */
     MetaFieldBase(const MetaFieldBase&)=delete;
+    /** \brief Deleted assignment operator */
     MetaFieldBase& operator=(const MetaFieldBase& rhs)=delete;
 
     /** \brief Gets a name of the field */

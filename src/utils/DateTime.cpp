@@ -61,14 +61,46 @@ namespace detail
         return m_tm.tm_year + 1900;
     }
 
-    int DateTimeData::month() const
+    EMonth DateTimeData::month() const
     {
-        return m_tm.tm_mon + 1;
+        switch (m_tm.tm_mon)
+        {
+        case 0:  return January;
+        case 1:  return February;
+        case 2:  return March;
+        case 3:  return April;
+        case 4:  return May;
+        case 5:  return June;
+        case 6:  return July;
+        case 7:  return August;
+        case 8:  return September;
+        case 9:  return October;
+        case 10: return Novermber;
+        case 11: return December;
+        default: throw std::invalid_argument("Invalid tm_mon");
+        }
+
+        return static_cast<EMonth>(m_tm.tm_mon);
     }
 
     int DateTimeData::day() const
     {
         return m_tm.tm_mday;
+    }
+
+    EDayOfWeek DateTimeData::dayOfWeek() const
+    {
+        switch (m_tm.tm_wday)
+        {
+        case 0:  return Sunday;
+        case 1:  return Monday;
+        case 2:  return Tuesday;
+        case 3:  return Wednesday;
+        case 4:  return Thursday;
+        case 5:  return Friday;
+        case 6:  return Sataday;
+        default: throw std::invalid_argument("Invalid tm_wday");
+        }
     }
 
     int DateTimeData::hours() const
@@ -91,18 +123,39 @@ namespace detail
         return mktime(const_cast<struct tm *>(&m_tm));
     }
 
+    tm DateTimeData::toTm() const
+    {
+        return m_tm;
+    }
+
     String DateTimeData::toString() const
     {
         char buf[50];
         //strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &m_tm);
-        sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year(), month(), day(), hours(), minutes(), seconds());
+        sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year(), static_cast<int>(month()) + 1, day(), hours(), minutes(), seconds());
         return buf;
+    }
+
+    String DateTimeData::toString(const char *format) const
+    {
+        for (size_t bufSize = 50; ; bufSize += 0.3 * bufSize)
+        {
+            char *buf = reinterpret_cast<char *>(alloca(bufSize));
+            size_t size = strftime(buf, bufSize, format, &m_tm);
+            if (size) return String(buf, size - 1);
+        }
     }
 
     void DateTimeData::fromString(const char *isoString)
     {
         if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
             throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
+    }
+
+    void DateTimeData::fromString(const char *str, const char *format)
+    {
+        if (NULL == strptime(str, format, &m_tm))
+            throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
     }
 
     SharedDataBase *DateTimeData::clone() const
@@ -149,7 +202,7 @@ int DateTime::year() const
     return getData()->year();
 }
 
-int DateTime::month() const
+EMonth DateTime::month() const
 {
     return getData()->month();
 }
@@ -157,6 +210,11 @@ int DateTime::month() const
 int DateTime::day() const
 {
     return getData()->day();
+}
+
+EDayOfWeek DateTime::dayOfWeek() const
+{
+    return getData()->dayOfWeek();
 }
 
 int DateTime::hours() const
@@ -172,6 +230,48 @@ int DateTime::minutes() const
 int DateTime::seconds() const
 {
     return getData()->seconds();
+}
+
+DateTime &DateTime::addYears(int years)
+{
+    struct tm tm = getData()->toTm();
+    tm.tm_year += years;
+    this->m_d->deref();
+    this->m_d = new detail::DateTimeData(tm);
+    return *this;
+}
+
+DateTime &DateTime::addMonths(int months)
+{
+    struct tm tm = getData()->toTm();
+    tm.tm_mon += months;
+    this->m_d->deref();
+    this->m_d = new detail::DateTimeData(tm);
+    return *this;
+}
+
+DateTime &DateTime::addDays(int days)
+{
+    return addSeconds(days * 24 * 60 * 60);
+}
+
+DateTime &DateTime::addHours(int hours)
+{
+    return addSeconds(hours * 60 * 60);
+}
+
+DateTime &DateTime::addMinutes(int minutes)
+{
+    return addSeconds(minutes * 60);
+}
+
+DateTime &DateTime::addSeconds(int seconds)
+{
+    time_t time = getData()->toStdTime();
+    time += seconds;
+    this->m_d->deref();
+    this->m_d = new detail::DateTimeData(time);
+    return *this;
 }
 
 detail::DateTimeData *DateTime::getData() const
@@ -191,11 +291,24 @@ String DateTime::toString() const
     return getData()->toString();
 }
 
+String DateTime::toString(const char *format) const
+{
+    return getData()->toString(format);
+}
+
 DateTime DateTime::fromString(const char *isoString)
 {
     DateTime res;
     res.m_d = new detail::DateTimeData();
     res.m_d->fromString(isoString);
+    return res;
+}
+
+DateTime DateTime::fromString(const char *string, const char *format)
+{
+    DateTime res;
+    res.m_d = new detail::DateTimeData();
+    res.m_d->fromString(string, format);
     return res;
 }
 

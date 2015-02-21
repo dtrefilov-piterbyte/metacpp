@@ -50,7 +50,7 @@ private:
     mutable std::atomic<int> m_count;
 };
 
-template<typename T, typename = typename std::enable_if<std::is_default_constructible<T>::value && std::is_copy_constructible<T>::value>::type>
+template<typename T>
 class SharedData : public SharedDataBase
 {
     template<typename T1>
@@ -61,7 +61,13 @@ public:
         return new SharedData<T>(m_data);
     }
 
-    SharedData(const T& data = T())
+    template<typename... TArgs>
+    explicit SharedData(TArgs... args)
+        : m_data(args...)
+    {
+    }
+
+    explicit SharedData(const T& data = T())
         : m_data(data)
     {
     }
