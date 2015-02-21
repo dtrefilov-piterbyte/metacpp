@@ -7,7 +7,10 @@
 namespace metacpp
 {
 
-/** \brief Basic URI parser */
+/** \brief Basic URI parser
+ *
+ * Uri example: http://user:password@example.com:8081/foo/bar?key1=value1&key2=value2
+*/
 template<typename CharT>
 class UriBase
 {
@@ -15,6 +18,7 @@ public:
     UriBase()=delete;
     UriBase(const UriBase&)=default;
     UriBase& operator=(const UriBase&)=default;
+    /** \brief Construct a new instance of UriBase using specified uri string */
     explicit UriBase(const StringBase<CharT>& uri)
     {
         parseUri(uri);
@@ -79,14 +83,45 @@ private:
         }
     }
 public:
+    /** \brief Extracts scheme name from the uri
+     *
+     * In the above example this method will return "http"
+    */
     const StringBase<CharT>& schemeName() const { return m_schemeName; }
+    /** \brief Extracts hierarchy from the uri
+     *
+     * In the above example this method will return "user:password@example.com:8081/foo/bar"
+    */
     const StringBase<CharT>& hierarchy() const { return m_hierarchy; }
+    /** \brief Extracts host from the uri
+     *
+     * In the above example this method will return "example.com"
+    */
     const StringBase<CharT>& host() const { return m_host; }
+    /** \brief Extracts port from the uri
+     *
+     * In the above example this method will return "8081"
+    */
     const StringBase<CharT>& port() const { return m_port; }
+    /** \brief Extracts user name from the uri
+     *
+     * In the above example this method will return "user"
+    */
     const StringBase<CharT>& username() const { return m_username; }
+    /** \brief Extracts password from the uri
+     *
+     * In the above example this method will return "password"
+    */
     const StringBase<CharT>& password() const { return m_password; }
+    /** \brief Extracts path from the uri
+     *
+     * In the above example this method will return "foo/bar"
+    */
     const StringBase<CharT>& path() const { return m_path; }
-
+    /** \brief Extracts named parameter from the uri
+     *
+     * In the above example named parameters are key1=value1 and key2=value2
+    */
     const StringBase<CharT>& param(const StringBase<CharT>& key) const
     {
         auto it = std::find_if(m_params.begin(), m_params.end(),

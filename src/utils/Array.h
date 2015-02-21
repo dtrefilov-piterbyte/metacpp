@@ -31,6 +31,7 @@ namespace detail
     template<typename T, typename Enable = void>
     struct TypeTraits;
 
+    /** \brief Array traits specialization for POD types */
     template<typename T>
     struct TypeTraits<T, typename std::enable_if<std::is_pod<T>::value>::type>
     {
@@ -54,8 +55,9 @@ namespace detail
         }
     };
 
+    /** \brief Array traits specialization for non-movable types */
     template<typename T>
-    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value>::type>
+    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && !std::is_move_assignable<T>::value>::type>
     {
         static T *Allocate(size_t size, const T *initialData = nullptr)
         {
@@ -75,6 +77,35 @@ namespace detail
             if (data)
             {
                 std::copy_n(data, std::min(newSize, oldSize), newData);
+                delete[] data;
+            }
+            return newData;
+        }
+    };
+
+    /** \brief Array traits specialization for movable types */
+    template<typename T>
+    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && std::is_move_assignable<T>::value>::type>
+    {
+        static T *Allocate(size_t size, const T *initialData = nullptr)
+        {
+            T *data = new T[size];
+            if (initialData)
+                std::move(initialData, initialData + size, data);
+            return data;
+        }
+
+        static void Deallocate(T *data)
+        {
+            delete[] data;
+        }
+
+        static T *Reallocate(T *data, size_t newSize, size_t oldSize)
+        {
+            T *newData = new T[newSize];
+            if (data)
+            {
+                std::move(data, data + std::min(newSize, oldSize), newData);
                 delete[] data;
             }
             return newData;
@@ -250,30 +281,42 @@ namespace detail
     };
 } // namespace detail
 
+/** \brief A template class that provides dynamic collection of simple datatypes.
+ * Utilizes copy-on-write techinque.
+ */
 template<typename T>
 class Array : protected SharedDataPointer<detail::ArrayData<T> >
 {
     typedef SharedDataPointer<detail::ArrayData<T> > Base;
 public:
+    /** \brief Random access STL iterator for this array */
 	typedef T *iterator;
+    /** \brief Const random access STL iterator for this array */
 	typedef const T *const_iterator;
+    /** \brief Reference to the element of array */
 	typedef T& reference;
+    /** \brief Const reference to the element of array */
 	typedef const T& const_reference;
 
+    /** \brief Constructs a new empty array */
     Array()
         : Base(new detail::ArrayData<T>())
 	{
 	}
 
+    /** \brief Constructs a new array from the existing. Both arrays shares the same data buffer
+     * until someone will not try to change one of them  */
     Array(const Array& o) : Base(o)
 	{
     }
 
+    /** \brief Constructs a new array and initializes it's data from raw buffer */
     Array(const T *data, size_t size)
         : Base(new detail::ArrayData<T>(data, size))
 	{
 	}
 
+    /** \brief Constructs a new array and initializes it with braced initializer list */
     Array(const std::initializer_list<T>& init)
     {
         reserve(init.size());
@@ -285,38 +328,69 @@ public:
 	{
 	}
 
+    /** \brief Gets the pointer to the raw buffer */
 	T *data() { this->detach(); return this->m_d->_data(); }
+    /** \brief Gets the pointer to the readonly raw buffer */
 	const T *data() const { return this->m_d ? this->m_d->_data() : nullptr; }
+    /** \brief Gets number of elements in the array */
 	size_t size() const { return this->m_d ? this->m_d->_size() : 0; }
+    /** \brief Checks whether array is empty (i.e. either uninitialized or having no elements) */
 	bool empty() const { return 0 == size(); }
+    /** \brief Gets maximum number of arguments that may be fitted into this array without need of expanding buffers */
 	size_t capacity() const { return this->m_d ? this->m_d->_capacity() : 0; }
+    /** \brief Ensures that array may fit given number of arguments */
 	void reserve(size_t size) { this->detach(); this->m_d->_reserve(size); }
+    /** \brief Resizes array to the given number of arguments.
+     *
+     * If current size of the array exceeds given number, the array is truncted to the specified value,
+     * if array size is smaller than given size, the array is expanded with default constructed elements
+     */
 	void resize(size_t size) { this->detach(); this->m_d->_resize(size); }
+    /** \brief Sqeezes allocated buffers to the minimum size to fit array data */
 	void squeeze() { this->detach(); this->m_d->_squeeze(); }
-	void erase(size_t i) { this->detach(); this->m_d->_erase(i, i + 1); } 
-	void erase(size_t from, size_t to) { this->detach(); this->m_d->_erase(from, to); } 
+    /** \brief Removes one element at the specified position */
+    void erase(size_t i) { this->detach(); this->m_d->_erase(i, i + 1); }
+    /** \brief Removes element in the inclusive range between specified positions */
+    void erase(size_t from, size_t to) { this->detach(); this->m_d->_erase(from, to); }
+    /** \brief Removes one element pointed by specified iterator */
     void erase(const_iterator it) { erase(it - begin()); }
 
+    /** \brief Gets reference to the element at specified index */
 	reference operator[](size_t i) { this->detach(); assert(i < size()); return this->m_d->_data()[i]; }
+    /** \brief Gets const reference to the element at specified index */
 	const_reference operator[](size_t i) const { assert(i < size()); return this->m_d->_data()[i]; }
 
+    /** \brief Gets reference to the first element in the array. Array should not be empty. */
 	reference front() { assert(size()); return *begin(); }
+    /** \brief Gets const reference to the first element in the array. Array should not be empty. */
 	const_reference front() const { assert(size()); return *begin(); }
+    /** \brief Gets reference to the last element in the array. Array should not be empty. */
 	reference back() { assert(size()); return *(end() - 1); }
+    /** \brief Gets const reference to the last element in the array. Array should not be empty. */
 	const_reference back() const { assert(size()); return *(end() - 1); }
 
+    /** \brief Gets an STL iterator pointing to the begin of this array */
 	iterator begin() { this->detach(); return this->m_d->_data(); }
+    /** \brief Gets an STL iterator pointing to the end of this array */
 	iterator end() { this->detach(); return this->m_d->_data() + this->m_d->_size(); }
+    /** \brief Gets an const STL iterator pointing to the begin of this array */
 	const_iterator begin() const { return this->m_d->_data(); }
+    /** \brief Gets an const STL iterator pointing to the end of this array */
 	const_iterator end() const { return this->m_d->_data() + this->m_d->_size(); }
 
+    /** \brief Puts given element into the end of this array. Operation has complexity O(1). */
 	void push_back(const T& v) { this->detach(); this->m_d->_push_back(v); }
+    /** \brief Puts given element into the begin of this array. Operation has complexity O(N), where N is a current array size. */
 	void push_front(const T& v) { this->detach(); this->m_d->_push_front(v); }
+    /** \brief Removes element from the end of this array. Operation has complexity O(1) */
 	void pop_back() { this->detach(); this->m_d->_pop_back(); }
+    /** \brief Removes element from the begin of this array. Operation has complexity O(N), where N is a current array size. */
 	void pop_front() { this->detach(); this->m_d->_pop_front(); }
 
+    /** \brief Empties this array */
     void clear() { resize(0); }
 
+    /** \brief Applies functor to each element in this array and returns a new array of results */
     template<typename TRes>
     Array<TRes> map(const std::function<TRes (const T&)>& functor)
     {
@@ -328,6 +402,9 @@ public:
     }
 };
 
+/** \brief Array of bytes
+ * \relates metacpp::Array
+ */
 typedef Array<uint8_t> ByteArray;
 
 } // namespace metacpp
