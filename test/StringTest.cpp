@@ -192,6 +192,12 @@ void StringTest::testStreams()
         EXPECT_EQ(n2, 456);
         EXPECT_EQ(n3, 789);
     }
+    {
+        metacpp::StringBuf buf;
+        std::ostream os(&buf);
+        os << "Test: " << std::hex << 255;
+        EXPECT_EQ(buf.str(), "Test: ff");
+    }
 }
 
 TEST_F(StringTest, testStreams)

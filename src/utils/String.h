@@ -164,7 +164,7 @@ public:
     typedef typename traits_type::pos_type                      pos_type;
     typedef typename traits_type::off_type                      off_type;
 
-    explicit StringBufBase(const StringBase<T>& s = StringBase<T>(), std::ios_base::openmode which =
+    explicit StringBufBase(const StringBase<T>& s, std::ios_base::openmode which =
             std::ios_base::in | std::ios_base::out)
         : m_str(s), m_sink(nullptr)
     {
@@ -193,6 +193,12 @@ public:
     {
     }
 
+    const StringBase<T>& str()
+    {
+        sync();
+        return m_str;
+    }
+
 private:
 
     StringBufBase(const StringBufBase&)=delete;
@@ -201,6 +207,7 @@ private:
     // input overrides
     int_type underflow() override
     {
+        sync();
         char_type *ptr = this->gptr();
         return ptr == this->egptr() ?
                     traits_type::eof() :
@@ -225,15 +232,18 @@ private:
 
     int sync() override
     {
-        // avoid detach
-        char_type *beg = const_cast<char_type *>(m_str.begin());
-        char_type *end = const_cast<char_type *>(m_str.end());
+        char_type *beg = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).begin());
 
         std::streamsize nBase = std::distance(beg, this->pbase());
         std::streamsize nCurrent = std::distance(beg, this->pptr());
+        std::streamsize nInput = std::distance(beg, this->gptr());
+        std::streamsize nInputEnd = std::distance(beg, this->egptr());
         if (m_sink && *m_sink)
             m_sink->write(this->pbase(), nCurrent - nBase);
-        this->setp(beg + nCurrent, end);
+        this->setp(beg + nCurrent, beg + m_str.capacity());
+        m_str.resize(std::max(nCurrent, nInputEnd));
+        char_type *end = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).end());
+        this->setg(beg, beg + nInput, end);
         return 0;
     }
 
@@ -253,22 +263,19 @@ private:
     void update_ptrs(int nInput, int nBase, int nOutputCurrent)
     {
         // avoid detach
-        char_type *beg = const_cast<char_type *>(m_str.begin());
-        char_type *end = const_cast<char_type *>(m_str.end());
+        char_type *beg = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).begin());
+        char_type *end = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).end());
 
         // set input pointers
         this->setg(beg, beg + nInput, end);
         // set output pointers
-        this->setp(beg + nBase, end);
+        this->setp(beg + nBase, beg + m_str.capacity());
         this->pbump(nOutputCurrent - nBase);
     }
 
 private:
     StringBase<T> m_str;
     std::basic_ostream<T> *m_sink;
-
-    friend class OutputStringStreamBase<T>;
-    friend class StringStreamBase<T>;
 };
 
 typedef StringBufBase<char> StringBuf;
@@ -299,9 +306,9 @@ public:
     {
     }
 
-    const StringBase<T>& str() const
+    const StringBase<T>& str()
     {
-        return m_stringbuf.m_str;
+        return m_stringbuf.str();
     }
 private:
     StringBufBase<T> m_stringbuf;
@@ -326,9 +333,9 @@ public:
 
     }
 
-    const StringBase<T>& str() const
+    const StringBase<T>& str()
     {
-        return m_stringbuf.m_str;
+        return m_stringbuf.str();
     }
 private:
     StringBufBase<T> m_stringbuf;
@@ -434,9 +441,9 @@ public:
     const_reference back() const { assert(size()); return *(end() - 1); }
 
     /** \brief Gets an iterator pointing to the first character in the string. */
-	iterator begin() { this->detach(); return this->m_d->_data(); }
+    iterator begin() { this->detach(); return isNull() ? ms_empty.begin() : this->m_d->_data(); }
     /** \brief Gets an iterator pointing to the null terminating character in the string. */
-	iterator end() { this->detach(); return this->m_d->_data() + this->m_d->_length(); }
+    iterator end() { this->detach(); return isNull() ? ms_empty.end() : (this->m_d->_data() + this->m_d->_length()); }
     /** \brief Gets a const iterator pointing to the first character in the string. */
     const_iterator begin() const { return isNull() ? ms_empty.begin() : this->m_d->_data(); }
     /** \brief Gets a const iterator pointing to the null terminating character in the string. */
