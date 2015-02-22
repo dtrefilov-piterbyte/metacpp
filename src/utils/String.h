@@ -150,6 +150,193 @@ namespace detail
     };
 } // namespace detail
 
+template<typename T> class InputStringStreamBase;
+template<typename T> class OutputStringStreamBase;
+template<typename T> class StringStreamBase;
+
+template<typename T>
+class StringBufBase : public std::basic_streambuf<T>
+{
+public:
+    typedef typename std::basic_streambuf<T>::char_type			char_type;
+    typedef typename std::basic_streambuf<T>::traits_type 		traits_type;
+    typedef typename traits_type::int_type                      int_type;
+    typedef typename traits_type::pos_type                      pos_type;
+    typedef typename traits_type::off_type                      off_type;
+
+    explicit StringBufBase(const StringBase<T>& s = StringBase<T>(), std::ios_base::openmode which =
+            std::ios_base::in | std::ios_base::out)
+        : m_str(s), m_sink(nullptr)
+    {
+        update_ptrs(0, 0, which & std::ios_base::ate ? m_str.size() : 0);
+    }
+
+    explicit StringBufBase(std::basic_ostream<T> *sink, std::ios_base::openmode which =
+            std::ios_base::in | std::ios_base::out, std::size_t initialBufSize = 32)
+        : m_sink(sink)
+    {
+        (void)which;
+        m_str.reserve(initialBufSize);
+        update_ptrs(0, 0, 0);
+    }
+
+    explicit StringBufBase(std::ios_base::openmode which =
+            std::ios_base::in | std::ios_base::out, std::size_t initialBufSize = 32)
+        : m_sink(nullptr)
+    {
+        (void)which;
+        m_str.reserve(initialBufSize);
+        update_ptrs(0, 0, 0);
+    }
+
+    ~StringBufBase()
+    {
+    }
+
+private:
+
+    StringBufBase(const StringBufBase&)=delete;
+    StringBufBase& operator=(const StringBufBase&)=delete;
+
+    // input overrides
+    int_type underflow() override
+    {
+        char_type *ptr = this->gptr();
+        return ptr == this->egptr() ?
+                    traits_type::eof() :
+                    traits_type::to_int_type(*ptr);
+    }
+
+    std::streamsize showmanyc() override
+    {
+        return std::distance(this->gptr(), this->egptr());
+    }
+
+    // output overrides
+    int_type overflow(int_type ch) override
+    {
+        if ((!m_sink || *m_sink) && traits_type::eof() != ch)
+        {
+            append(ch);
+            return ch;
+        }
+        return traits_type::eof();
+    }
+
+    int sync() override
+    {
+        // avoid detach
+        char_type *beg = const_cast<char_type *>(m_str.begin());
+        char_type *end = const_cast<char_type *>(m_str.end());
+
+        std::streamsize nBase = std::distance(beg, this->pbase());
+        std::streamsize nCurrent = std::distance(beg, this->pptr());
+        if (m_sink && *m_sink)
+            m_sink->write(this->pbase(), nCurrent - nBase);
+        this->setp(beg + nCurrent, end);
+        return 0;
+    }
+
+    void append(int_type ch)
+    {
+        // save current buffer pointers
+        std::streamsize nInputCurrent = std::distance(this->eback(), this->gptr());
+        std::streamsize nOutputBase = std::distance(const_cast<char_type *>(m_str.begin()), this->pbase());
+        std::streamsize nOutputCurrent = std::distance(const_cast<char_type *>(m_str.begin()), this->pptr());
+
+        if (m_str.size() <= (size_t)nOutputCurrent)
+            m_str.resize(nOutputCurrent + 1);
+        m_str[nOutputCurrent++] = ch;
+        update_ptrs(nInputCurrent, nOutputBase, nOutputCurrent);
+    }
+
+    void update_ptrs(int nInput, int nBase, int nOutputCurrent)
+    {
+        // avoid detach
+        char_type *beg = const_cast<char_type *>(m_str.begin());
+        char_type *end = const_cast<char_type *>(m_str.end());
+
+        // set input pointers
+        this->setg(beg, beg + nInput, end);
+        // set output pointers
+        this->setp(beg + nBase, end);
+        this->pbump(nOutputCurrent - nBase);
+    }
+
+private:
+    StringBase<T> m_str;
+    std::basic_ostream<T> *m_sink;
+
+    friend class OutputStringStreamBase<T>;
+    friend class StringStreamBase<T>;
+};
+
+typedef StringBufBase<char> StringBuf;
+typedef StringBufBase<char16_t> WStringBuf;
+
+template<typename T>
+class InputStringStreamBase : public std::basic_istream<T>
+{
+public:
+    explicit InputStringStreamBase(const StringBase<T>& s = StringBase<T>(),
+                                   std::ios_base::openmode which = std::ios_base::in)
+        : std::basic_istream<T>(&m_stringbuf), m_stringbuf(s, which)
+    {
+    }
+private:
+    StringBufBase<T> m_stringbuf;
+};
+
+typedef InputStringStreamBase<char> InputStringStream;
+typedef InputStringStreamBase<char16_t> WInputStringStream;
+
+template<typename T>
+class OutputStringStreamBase : public std::basic_ostream<T>
+{
+public:
+    explicit OutputStringStreamBase(std::ios_base::openmode which = std::ios_base::out)
+        : std::basic_ostream<T>(&m_stringbuf), m_stringbuf(which)
+    {
+    }
+
+    const StringBase<T>& str() const
+    {
+        return m_stringbuf.m_str;
+    }
+private:
+    StringBufBase<T> m_stringbuf;
+};
+
+typedef OutputStringStreamBase<char> OutputStringStream;
+typedef OutputStringStreamBase<char16_t> WOutputStringStream;
+
+template<typename T>
+class StringStreamBase : public std::basic_iostream<T>
+{
+public:
+    explicit StringStreamBase(const StringBase<T>& s,
+                                   std::ios_base::openmode which = std::ios_base::in | std::ios_base::out)
+        : std::basic_iostream<T>(&m_stringbuf), m_stringbuf(s, which)
+    {
+    }
+
+    explicit StringStreamBase(std::ios_base::openmode which = std::ios_base::in | std::ios_base::out)
+        : std::basic_iostream<T>(&m_stringbuf), m_stringbuf(which)
+    {
+
+    }
+
+    const StringBase<T>& str() const
+    {
+        return m_stringbuf.m_str;
+    }
+private:
+    StringBufBase<T> m_stringbuf;
+};
+
+typedef StringStreamBase<char> StringStream;
+typedef StringStreamBase<char16_t> WStringStream;
+
 /** \brief Base template class for representing strings (in either system encoding or UTF-16 encoding)
  * Implementation uses copy-on-write optimization methods.
  */
@@ -251,9 +438,9 @@ public:
     /** \brief Gets an iterator pointing to the null terminating character in the string. */
 	iterator end() { this->detach(); return this->m_d->_data() + this->m_d->_length(); }
     /** \brief Gets a const iterator pointing to the first character in the string. */
-	const_iterator begin() const { return this->m_d->_data(); }
+    const_iterator begin() const { return isNull() ? ms_empty.begin() : this->m_d->_data(); }
     /** \brief Gets a const iterator pointing to the null terminating character in the string. */
-	const_iterator end() const { return this->m_d->_data() + this->m_d->_length(); }
+    const_iterator end() const { return isNull() ? ms_empty.end() : (this->m_d->_data() + this->m_d->_length()); }
 
     /** \brief Appends given character buffer to this string */
 	void append(const T *str, size_t length = npos)
@@ -384,20 +571,24 @@ public:
 
     /** \brief Transforms given value to the string */
 	template<typename T1>
-    static StringBase fromValue(T1 value)
-	{
-		std::ostringstream ss;
-		ss << value;
-		const std::string& s = ss.str();
-        return string_cast<StringBase>(s.c_str(), s.length());
-	}
+    static StringBase fromValue(const T1& value)
+    {
+        OutputStringStreamBase<T> ss;
+        ss << value;
+        return ss.str();
+    }
 
-    /** \brief Trys to transform this string to the given value */
+    static StringBase fromValue(const StringBase& value)
+    {
+        return value;
+    }
+
+    /** \brief Trys to transform this string to value of the given type */
     template<typename T1>
-    T toValue() const
+    T1 toValue() const
     {
         T1 res;
-        std::istringstream ss(this->c_str());
+        InputStringStreamBase<T> ss(*this);
         ss.exceptions(std::ios::failbit | std::ios::badbit);
         ss >> res;
         return res;

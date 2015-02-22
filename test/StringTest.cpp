@@ -154,7 +154,7 @@ TEST_F(StringTest, TestAssign)
     testAssign(nullptr);
 }
 
-void StringTest::testStreams(const char *str)
+void StringTest::testStreamOperators(const char *str)
 {
     std::ostringstream oss;
     oss << String(str);
@@ -164,11 +164,54 @@ void StringTest::testStreams(const char *str)
     ASSERT_EQ(s, str);
 }
 
+TEST_F(StringTest, testStreamOperators)
+{
+    testStreamOperators(nullptr);
+    testStreamOperators("");
+    testStreamOperators("asdlaasd");
+}
+
+void StringTest::testStreams()
+{
+    {
+        metacpp::StringStream ss1("TestString", std::ios_base::out | std::ios_base::ate);
+        ss1 << 123;
+        ASSERT_EQ(ss1.str(), "TestString123");
+    }
+    {
+        metacpp::StringStream ss2("TestString");
+        ss2 << 123;
+        ASSERT_EQ(ss2.str(), "123tString");
+    }
+    {
+        metacpp::StringStream ss3("123 456", std::ios_base::in | std::ios_base::out | std::ios_base::ate);
+        ss3 << " " << 789;
+        int n1, n2, n3;
+        ss3 >> n1 >> n2 >> n3;
+        EXPECT_EQ(n1, 123);
+        EXPECT_EQ(n2, 456);
+        EXPECT_EQ(n3, 789);
+    }
+}
+
 TEST_F(StringTest, testStreams)
 {
-    testStreams(nullptr);
-    testStreams("");
-    testStreams("asdlaasd");
+    testStreams();
+}
+
+int StringTest::testToValue(const String& s)
+{
+    return s.toValue<int>();
+}
+
+TEST_F(StringTest, testToValue)
+{
+    EXPECT_EQ(12, testToValue("12"));
+    EXPECT_EQ(-12, testToValue("-12"));
+    EXPECT_EQ(12, testToValue(" 12"));
+    EXPECT_EQ(12, testToValue(" 12asd"));
+    EXPECT_ANY_THROW(testToValue("abc"));
+    EXPECT_ANY_THROW(testToValue(String()));
 }
 
 void StringTest::testJoin()
@@ -181,7 +224,6 @@ TEST_F(StringTest, testJoin)
 {
     testJoin();
 }
-
 void StringTest::testReplace(const String &inStr, const String &from, const String &to, const String &outStr)
 {
     String str(inStr);

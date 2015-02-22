@@ -16,7 +16,9 @@ public:
 	void testSubStr2();
 	void testStringBuilder();
     void testAssign(const char *v);
-    void testStreams(const char *str);
+    void testStreamOperators(const char *str);
+    int testToValue(const metacpp::String &s);
+    void testStreams();
     void testJoin();
     void testReplace(const metacpp::String& inStr, const metacpp::String& from, const metacpp::String& to, const metacpp::String& outStr);
     void testUri(const metacpp::String &uri, const metacpp::String& schema, const metacpp::String& hierarchy,
