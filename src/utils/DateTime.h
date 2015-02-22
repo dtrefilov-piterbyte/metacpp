@@ -81,7 +81,6 @@ namespace detail
 
         void fromString(const char *isoString);
         void fromString(const char *str, const char *format);
-
     private:
         struct tm m_tm;
     };
@@ -118,9 +117,9 @@ public:
     EDayOfWeek dayOfWeek() const;
     /** \brief Gets an hour part (from 0 to 23) */
     int hours() const;
-    /** \brief Gets an minute part (from 0 to 59) */
+    /** \brief Gets a minute part (from 0 to 59) */
     int minutes() const;
-    /** \brief Gets an second part (from 0 to 59) */
+    /** \brief Gets a second part (from 0 to 59) */
     int seconds() const;
 
     /** \brief Adds given number of years to the value stored in this instance of DateTime and returns a reference to it */
@@ -135,6 +134,23 @@ public:
     DateTime& addMinutes(int minutes);
     /** \brief Adds given number of seconds to the value stored in this instance of DateTime and returns a reference to it */
     DateTime& addSeconds(int seconds);
+    
+    /** \brief Sets year part */
+    DateTime& setYear(int year);
+    /** \brief Sets month part */
+    DateTime& setMonth(EMonth month);
+    /** \brief Sets a day of the month part */
+    DateTime& setDay(int day);
+    /** \brief Sets date in a form of year, month, day */
+    DateTime& setYMD(int year, EMonth month, int day);
+    /** \brief Sets an hour part (from 0 to 23) */
+    DateTime& setHours(int hours);
+    /** \brief Sets a minute part (from 0 to 59) */
+    DateTime& setMinutes(int minutes);
+    /** \brief Sets a second part (from 0 to 59) */
+    DateTime& setSeconds(int seconds);
+    /** \brief Sets time in a form of hour, minute, second */
+    DateTime& setHMS(int hour, int minute, int second);
 
     /** \brief Converts stored date and time value to the Unix time */
     time_t toStdTime() const;

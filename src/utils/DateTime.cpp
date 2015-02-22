@@ -148,13 +148,15 @@ namespace detail
 
     void DateTimeData::fromString(const char *isoString)
     {
-        if (NULL == strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm))
+        const char *res = strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm);
+        if (NULL == res || *res)
             throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
     }
 
     void DateTimeData::fromString(const char *str, const char *format)
     {
-        if (NULL == strptime(str, format, &m_tm))
+        const char *res = strptime(str, format, &m_tm);
+        if (NULL == res || *res)
             throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
     }
 
@@ -234,20 +236,42 @@ int DateTime::seconds() const
 
 DateTime &DateTime::addYears(int years)
 {
-    struct tm tm = getData()->toTm();
-    tm.tm_year += years;
-    this->m_d->deref();
-    this->m_d = new detail::DateTimeData(tm);
-    return *this;
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year() + years,
+            static_cast<int>(getData()->month()) + 1,
+            getData()->day(),
+            getData()->hours(),
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
 }
 
 DateTime &DateTime::addMonths(int months)
 {
-    struct tm tm = getData()->toTm();
-    tm.tm_mon += months;
-    this->m_d->deref();
-    this->m_d = new detail::DateTimeData(tm);
-    return *this;
+    char buf[50];
+    int m = static_cast<int>(getData()->month()) + months;
+    int y = getData()->year();
+    if (m < 0)
+    {
+        y -= m / 12 + 1;
+        m = 12 + (m % 12);
+    }
+    else
+    {
+        y += m / 12;
+        m %= 12;
+    }
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            y,
+            m + 1,
+            getData()->day(),
+            getData()->hours(),
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
 }
 
 DateTime &DateTime::addDays(int days)
@@ -272,6 +296,127 @@ DateTime &DateTime::addSeconds(int seconds)
     this->m_d->deref();
     this->m_d = new detail::DateTimeData(time);
     return *this;
+}
+
+DateTime &DateTime::setYear(int year)
+{
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            year,
+            static_cast<int>(getData()->month()) + 1,
+            getData()->day(),
+            getData()->hours(),
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setMonth(EMonth month)
+{
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year(),
+            static_cast<int>(month) + 1,
+            getData()->day(),
+            getData()->hours(),
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setDay(int day)
+{
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year(),
+            static_cast<int>(getData()->month()) + 1,
+            day,
+            getData()->hours(),
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setYMD(int year, EMonth month, int day)
+{
+    if (day < 1 || day > 31)
+        throw std::invalid_argument("Incorrect day of month");
+    int h = 0, m = 0, s = 0;
+    if (m_d)
+    {
+        h = m_d->hours();
+        m = m_d->minutes();
+        s = m_d->seconds();
+    }
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", year, static_cast<int>(month) + 1, day, h, m, s);
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setHours(int hours)
+{
+    if (hours < 0 || hours > 23)
+        throw std::invalid_argument("Incorrect hours");
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year(),
+            static_cast<int>(getData()->month()) + 1,
+            getData()->day(),
+            hours,
+            getData()->minutes(),
+            getData()->seconds());
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setMinutes(int minutes)
+{
+    if (minutes < 0 || minutes > 59)
+        throw std::invalid_argument("Incorrect minutes");
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year(),
+            static_cast<int>(getData()->month()) + 1,
+            getData()->day(),
+            getData()->hours(),
+            minutes,
+            getData()->seconds());
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setSeconds(int seconds)
+{
+    if (seconds < 0 || seconds > 60) // leap second
+        throw std::invalid_argument("Incorrect minutes");
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d",
+            getData()->year(),
+            static_cast<int>(getData()->month()) + 1,
+            getData()->day(),
+            getData()->hours(),
+            getData()->minutes(),
+            seconds);
+
+    return *this = fromString(buf);
+}
+
+DateTime &DateTime::setHMS(int hour, int minute, int second)
+{
+    if (hour < 0 || hour > 23)
+        throw std::invalid_argument("Incorrect hours");
+    if (minute < 0 || minute > 59)
+        throw std::invalid_argument("Incorrect minutes");
+    if (second < 0 || second > 60) // leap second
+        throw std::invalid_argument("Incorrect minutes");
+    int y = getData()->year(), m = static_cast<int>(getData()->month()) + 1, d = getData()->day();
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", y, m, d, hour, minute, second);
+    return *this = fromString(buf);
+
 }
 
 detail::DateTimeData *DateTime::getData() const
