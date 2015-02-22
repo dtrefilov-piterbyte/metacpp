@@ -526,13 +526,13 @@ inline SqlColumnMatcherDirectExpression<uint64_t> length(const SqlColumnMatcherB
 /*** Arihmetic functions  ***/
 
 template<typename TField, typename = typename std::enable_if<std::is_arithmetic<TField>::value>::type >
-inline SqlColumnMatcherDirectExpression<TField> abs(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<TField> abs(const SqlColumnMatcherBase<TField>& column)
 {
     return SqlColumnMatcherDirectExpression<TField>("abs(" + column.expression() + ")");
 }
 
 template<typename TField, typename = typename std::enable_if<std::is_floating_point<TField>::value>::type >
-inline SqlColumnMatcherDirectExpression<TField> round(const SqlColumnMatcherBase<String>& column)
+inline SqlColumnMatcherDirectExpression<TField> round(const SqlColumnMatcherBase<TField>& column)
 {
     return SqlColumnMatcherDirectExpression<TField>("round(" + column.expression() + ")");
 }
