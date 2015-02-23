@@ -311,6 +311,11 @@ namespace
             return String::fromValue(v);
         }
 
+        static String objName(const Object *obj)
+        {
+            return obj->metaObject()->name();
+        }
+
         int x() const { return m_x; }
 
         META_INFO_DECLARE(MyObject)
@@ -324,6 +329,7 @@ namespace
         SIGNATURE_METHOD(MyObject, bar, void (MyObject::*)(int))
         SIGNATURE_METHOD(MyObject, bar, String (MyObject::*)(const String&))
         METHOD(MyObject, test)
+        METHOD(MyObject, objName)
     METHOD_INFO_END(MyObject)
 
     REFLECTIBLE_DERIVED_M(MyObject, Object)
@@ -373,6 +379,12 @@ namespace
     TEST_F(ObjectTest, invokeSuccessByConstness)
     {
         MyObject obj(2);
-        ASSERT_EQ(obj.invoke<String>("test", Variant(123)), "123");
+        ASSERT_EQ(obj.invoke<String>("test", 123), "123");
+    }
+
+    TEST_F(ObjectTest, invokeSuccessWithObjectParam)
+    {
+        MyObject obj;
+        ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", &obj));
     }
 }

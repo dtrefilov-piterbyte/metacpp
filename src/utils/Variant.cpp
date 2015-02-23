@@ -81,6 +81,18 @@ namespace detail
     {
     }
 
+    VariantData::VariantData(const Object *o)
+        : m_type(eFieldObject)
+    {
+        m_storage.m_object = o;
+    }
+
+    VariantData::VariantData(const Array<Variant> &a)
+        : m_type(eFieldArray)
+    {
+        m_array = a;
+    }
+
     EFieldType VariantData::type() const
     {
         return m_type;
@@ -113,6 +125,9 @@ namespace detail
             break;
         case eFieldDouble:
             copy->m_storage.m_double = m_storage.m_double;
+            break;
+        case eFieldObject:
+            copy->m_storage.m_object = m_storage.m_object;
             break;
         default:
             break;
@@ -221,6 +236,30 @@ namespace detail
     }
 
     template<>
+    Object *VariantData::value<Object *>() const
+    {
+        switch (m_type)
+        {
+        case eFieldObject:
+            return const_cast<Object *>(m_storage.m_object);
+        default:
+            throw std::invalid_argument("Variant is not of Object type");
+        }
+    }
+
+    template<>
+    VariantArray VariantData::value<VariantArray>() const
+    {
+        switch (m_type)
+        {
+        case eFieldArray:
+            return m_array;
+        default:
+            throw std::invalid_argument("Variant is not of Array type");
+        }
+    }
+
+    template<>
     void VariantData::value<void>() const
     {
         switch (m_type)
@@ -287,6 +326,20 @@ bool Variant::isDateTime() const
     detail::VariantData *data = this->data();
     if (!data) return false;
     return data->type() == eFieldString;
+}
+
+bool Variant::isObject() const
+{
+    detail::VariantData *data = this->data();
+    if (!data) return false;
+    return data->type() == eFieldObject;
+}
+
+bool Variant::isArray() const
+{
+    detail::VariantData *data = this->data();
+    if (!data) return false;
+    return data->type() == eFieldArray;
 }
 
 detail::VariantData *Variant::getData() const
@@ -360,6 +413,18 @@ Variant::Variant(const String& v)
 }
 Variant::Variant(const DateTime &v)
     : SharedDataPointer(new detail::VariantData(v))
+{
+
+}
+
+Variant::Variant(Object *o)
+    : SharedDataPointer(new detail::VariantData(o))
+{
+
+}
+
+Variant::Variant(const Array<Variant> &a)
+    : SharedDataPointer(new detail::VariantData(a))
 {
 
 }

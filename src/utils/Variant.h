@@ -26,8 +26,24 @@ enum EFieldType;
 namespace metacpp
 {
 
+class Object;
+class Variant;
+
 namespace detail
 {
+
+    template<typename TObj>
+    struct IsObjectPtr : std::false_type
+    {
+    };
+
+    template<typename TObj>
+    struct IsObjectPtr<TObj *> : std::integral_constant<bool,
+               std::is_same<typename std::remove_cv<TObj>::type, Object>::value ||
+               std::is_base_of<Object, typename std::remove_cv<TObj>::type>::value>
+    {
+    };
+
     class VariantData : public SharedDataBase
     {
     public:
@@ -43,6 +59,8 @@ namespace detail
         explicit VariantData(const double& v);
         explicit VariantData(const String& v);
         explicit VariantData(const DateTime& v);
+        explicit VariantData(const Object *o);
+        explicit VariantData(const Array<Variant>& a);
 
         EFieldType type() const;
         template<typename T>
@@ -64,9 +82,11 @@ namespace detail
             uint64_t m_uint64;
             float m_float;
             double m_double;
+            const Object *m_object;
         } m_storage;
         String m_string;
         DateTime m_datetime;
+        Array<Variant> m_array;
     };
 } // namespace detail
 
@@ -84,6 +104,8 @@ namespace detail
     - double (eFieldDouble)
     - metacpp::String (eFieldString)
     - metacpp::DateTime (eFieldDateTime)
+    - metacpp::Object * (eFieldObject)
+    - metacpp::Array<metacpp::Variant> (eFieldArray)
 */
 class Variant final : SharedDataPointer<detail::VariantData>
 {
@@ -112,6 +134,10 @@ public:
     Variant(const String& v);
     /** \brief Constructs a new instance of the metacpp::DateTime variant */
     Variant(const DateTime& v);
+    /** \brief Constructs a new instance of the metacpp::Object * variant */
+    Variant(Object *o);
+    /** \brief Constructs a new instance of the VariantArray variant */
+    Variant(const Array<Variant>& a);
 
     /** \brief Gets a type of the stored value */
     inline EFieldType type() const { return getData()->type(); }
@@ -121,9 +147,24 @@ public:
      * \see variant_cast
     */
     template<typename T>
-    typename std::enable_if<!std::is_void<T>::value && !std::is_same<Variant, T>::value, T>::type value() const
+    typename std::enable_if<!std::is_void<T>::value &&
+                            !std::is_same<Variant, T>::value &&
+                            !detail::IsObjectPtr<T>::value, T>::type value() const
     {
         return getData()->value<T>();
+    }
+
+    template<typename T>
+    typename std::enable_if<detail::IsObjectPtr<T>::value, T>::type value() const
+    {
+        Object *o = getData()->value<Object *>();
+        if (o)
+        {
+            T derived = dynamic_cast<T>(o);
+            if (!derived) throw std::bad_cast();
+            return derived;
+        }
+        return nullptr;
     }
 
     /** \brief Ensures that this variant is invalid (i.e. of the void type) */
@@ -154,6 +195,10 @@ public:
     bool isString() const;
     /** \brief Checks if this variant stores a metacpp::DateTime */
     bool isDateTime() const;
+    /** \brief Checks if this variant stores a metacpp::Object * */
+    bool isObject() const;
+    /** \brief Checks if this variant stores a VariantArray * */
+    bool isArray() const;
 private:
     detail::VariantData *getData() const;
 };
