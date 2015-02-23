@@ -118,7 +118,7 @@ namespace metacpp
 
     /** \brief Template class holding a shared reference to T */
     template<typename T>
-    class SharedPointer final : public SharedDataPointer<SharedData<T> >
+    class SharedPointer final : private SharedDataPointer<SharedData<T> >
     {
     public:
         SharedPointer()
@@ -135,6 +135,9 @@ namespace metacpp
             : SharedDataPointer<SharedData<T> >(new SharedData<T>(args...))
         {
         }
+
+        T *operator*() const { return &this->m_d->m_data; }
+        T *operator->() const { return &this->m_d->m_data; }
     };
 
     template<typename T, typename... TArgs>

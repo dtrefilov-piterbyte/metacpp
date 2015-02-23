@@ -376,13 +376,39 @@ namespace
         }
     };
 
+    template<typename THead, typename TTail>
+    struct argtuple_impl;
 
-    template<size_t N, bool Done, typename... TArgs>
-    struct unpack_impl
+    template<template<typename... > class THead, typename...THeadArgs,
+        template<typename... > class TTail, typename TCurrent, typename...TTailArgs>
+    struct argtuple_impl<THead<THeadArgs...>, TTail<TCurrent, TTailArgs...> >
     {
-        static void unpack_arguments(std::tuple<TArgs...>& t, const metacpp::Array<metacpp::Variant>& argList)
+        typedef typename argtuple_impl<THead<THeadArgs..., typename std::remove_cv<typename std::remove_reference<TCurrent>::type>::type>, TTail<TTailArgs...> >::type type;
+    };
+
+    template<template<typename... > class THead, typename...THeadArgs,
+             template<typename... > class TTail>
+    struct argtuple_impl<THead<THeadArgs...>, TTail<> >
+    {
+        typedef THead<THeadArgs...> type;
+    };
+
+    template<typename... TArgs>
+    struct argtuple
+    {
+        typedef typename argtuple_impl<std::tuple<>, std::tuple<TArgs...> >::type type;
+    };
+
+    template<size_t N, bool Done, typename TType>
+    struct unpack_impl;
+
+
+    template<size_t N, bool Done, template<typename... > class TType, typename...TArgs>
+    struct unpack_impl<N, Done, TType<TArgs...> >
+    {
+        static void unpack_arguments(TType<TArgs...>& t, const metacpp::Array<metacpp::Variant>& argList)
         {
-            typedef typename std::tuple_element<N, std::tuple<TArgs...>>::type ArgType;
+            typedef typename std::tuple_element<N, TType<TArgs...> >::type ArgType;
             try
             {
                 std::get<N>(t) = metacpp::variant_cast<ArgType>(argList[N]);
@@ -391,14 +417,14 @@ namespace
             {
                 throw BindArgumentException(e.what());
             }
-            unpack_impl<N + 1, N + 1 == sizeof...(TArgs), TArgs...>::unpack_arguments(t, argList);
+            unpack_impl<N + 1, N + 1 == sizeof...(TArgs), TType<TArgs...> >::unpack_arguments(t, argList);
         }
     };
 
-    template<size_t N, typename... TArgs>
-    struct unpack_impl<N, true, TArgs...>
+    template<size_t N, template<typename... > class TType, typename...TArgs>
+    struct unpack_impl<N, true, TType<TArgs...> >
     {
-        static void unpack_arguments(std::tuple<TArgs...>&, const metacpp::Array<metacpp::Variant>&)
+        static void unpack_arguments(TType<TArgs...>&, const metacpp::Array<metacpp::Variant>&)
         {
         }
     };
@@ -436,12 +462,12 @@ private:
 
     TRes invokeImpl(const metacpp::Array<metacpp::Variant>& argList) const
     {
-        typedef std::tuple<TArgs...> ttype;
+        typedef typename argtuple<TArgs...>::type ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        unpack_impl<0, 0 == sizeof...(TArgs), ttype>::unpack_arguments(args, argList);
         return fcall_impl<TFunction, TRes, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_function, std::forward<ttype>(args));
     }
@@ -488,12 +514,12 @@ private:
 
     TRes invokeImpl(TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
-        typedef std::tuple<TArgs...> ttype;
+        typedef typename argtuple<TArgs...>::type ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        unpack_impl<0, 0 == sizeof...(TArgs), ttype>::unpack_arguments(args, argList);
         return mcall_impl<TFunction, TRes, TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_method, obj, std::forward<ttype>(args));
     }
@@ -540,12 +566,12 @@ private:
 
     TRes invokeImpl(const TObj *obj, const metacpp::Array<metacpp::Variant>& argList) const
     {
-        typedef std::tuple<TArgs...> ttype;
+        typedef typename argtuple<TArgs...>::type ttype;
         ttype args;
         if (sizeof...(TArgs) != argList.size())
             throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
                                                metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
-        unpack_impl<0, 0 == sizeof...(TArgs), TArgs...>::unpack_arguments(args, argList);
+        unpack_impl<0, 0 == sizeof...(TArgs), ttype>::unpack_arguments(args, argList);
         return mcall_impl<TFunction, TRes, const TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
                 ::call(m_method, obj, std::forward<ttype>(args));
     }

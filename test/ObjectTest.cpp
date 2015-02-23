@@ -282,7 +282,7 @@ namespace
 
         }
 
-        static int foo(int a, float b)
+        static int foo(int a, const float& b)
         {
             return a * b;
         }
@@ -291,7 +291,7 @@ namespace
         {
         }
 
-        float bar(int a, double b) const
+        float bar(int a, const double& b) const
         {
             return m_x * a * b;
         }
@@ -301,12 +301,12 @@ namespace
             m_x = newX;
         }
 
-        String bar(String arg)
+        String bar(const String& arg)
         {
             return arg + String::fromValue(m_x);
         }
 
-        void test(Variant)
+        void test(const Variant&)
         {
         }
 
@@ -317,11 +317,11 @@ namespace
     };
 
     METHOD_INFO_BEGIN(MyObject)
-        SIGNATURE_METHOD(MyObject, foo, int (*)(int, float))
+        SIGNATURE_METHOD(MyObject, foo, int (*)(int, const float&))
         SIGNATURE_METHOD(MyObject, foo, void (*)(void))
-        SIGNATURE_METHOD(MyObject, bar, float (MyObject::*)(int, double) const)
+        SIGNATURE_METHOD(MyObject, bar, float (MyObject::*)(int, const double&) const)
         SIGNATURE_METHOD(MyObject, bar, void (MyObject::*)(int))
-        SIGNATURE_METHOD(MyObject, bar, String (MyObject::*)(String))
+        SIGNATURE_METHOD(MyObject, bar, String (MyObject::*)(const String&))
         METHOD(MyObject, test)
     METHOD_INFO_END(MyObject)
 

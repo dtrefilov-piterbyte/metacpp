@@ -52,7 +52,7 @@ private:
     String escape(const String& s) const
     {
         String s1 = s;
-        s1.replace("'", "");
+        s1.replace("'", "\'\'");
         return s1;
     }
 };
