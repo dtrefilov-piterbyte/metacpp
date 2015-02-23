@@ -171,6 +171,9 @@ T variant_cast(const Variant& v)
 
 typedef Array<Variant> VariantArray;
 
+std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, const Variant& v);
+std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& stream, const Variant& v);
+
 } // namespace metacpp
 
 #endif // VARIANT_H

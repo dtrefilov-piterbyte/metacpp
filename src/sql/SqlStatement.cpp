@@ -70,7 +70,7 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
     StringArray columns;
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
         columns.push_back(tblName + "." + m_storable->record()->metaObject()->field(i)->name());
-    res = "SELECT " + columns.join(", ") + " FROM " + tblName;
+    res = "SELECT " + join(columns, ", ") + " FROM " + tblName;
     if (m_whereClause.size())
     {
         if (m_joins.size())
@@ -99,7 +99,7 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
             res += " WHERE " + m_whereClause;
         }
     }
-    if (m_order.size()) res += " ORDER BY " + m_order.join(", ");
+    if (m_order.size()) res += " ORDER BY " + join(m_order, ", ");
     if (m_limit) res += " LIMIT " + String::fromValue(*m_limit);
     if (m_offset) res += " OFFSET " + String::fromValue(*m_offset);
     return res;
@@ -165,7 +165,7 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
             values.push_back(m_storable->fieldValue(field));
         }
     }
-    res += "(" + columns.join(", ") + ") VALUES (" + values.join(", ") + ")";
+    res += "(" + join(columns, ", ") + ") VALUES (" + join(values, ", ") + ")";
     return res;
 }
 
@@ -229,28 +229,28 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
 
         if (SqlSyntaxSqlite == syntax)
         {
-            res += " SET " + sets.join(", ") +
+            res += " SET " + join(sets, ", ") +
                    " WHERE EXISTS (SELECT 1 FROM " + joins;
 
             if (m_whereClause.size()) res += " WHERE " + m_whereClause + ")";
         }
         else if (SqlSyntaxPostgreSQL == syntax)
         {
-            res += " SET " + sets.join(", ") +
+            res += " SET " + join(sets, ", ") +
                    " FROM " + joins;
             if (m_whereClause.size()) res += " WHERE " + m_whereClause;
         }
         else if (SqlSyntaxMysql == syntax)
         {
             // TODO: untested
-            res += ", " + joins + " SET " + sets.join(", ");
+            res += ", " + joins + " SET " + join(sets, ", ");
             if (m_whereClause.size()) res += " WHERE " + m_whereClause;
         }
         else
             throw std::runtime_error("Unimplemented syntax");
     }
     else
-        res += " SET " + sets.join(", ") + " WHERE " + m_whereClause;
+        res += " SET " + join(sets, ", ") + " WHERE " + m_whereClause;
     return res;
 }
 

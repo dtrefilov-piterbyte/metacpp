@@ -364,4 +364,14 @@ Variant::Variant(const DateTime &v)
 
 }
 
+std::basic_ostream<char> &operator<<(std::basic_ostream<char> &stream, const Variant &v)
+{
+    return stream << variant_cast<String>(v);
+}
+
+std::basic_ostream<char16_t> &operator<<(std::basic_ostream<char16_t> &stream, const Variant &v)
+{
+    return stream << variant_cast<String>(v);
+}
+
 } // namespace metacpp

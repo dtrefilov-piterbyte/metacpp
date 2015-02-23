@@ -287,10 +287,10 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
                                   + ")");
         }
 
-        String column = name + " " + typeName + (constraints.size() ? " " : "") + constraints.join(" ");
+        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
         columns.push_back(column);
     }
-    queryStr += columns.join(", ") + ")";
+    queryStr += join(columns, ", ") + ")";
 
     // main statement CREATE TABLE
     SqlStatementCustom statement(queryStr);
@@ -455,10 +455,10 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
                                   + ")");
         }
 
-        String column = name + " " + typeName + (constraints.size() ? " " : "") + constraints.join(" ");
+        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
         columns.push_back(column);
     }
-    queryStr += columns.join(", ") + ")";
+    queryStr += join(columns, ", ") + ")";
 
     // main statement CREATE TABLE
     SqlStatementCustom statement(queryStr);

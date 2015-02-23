@@ -252,7 +252,7 @@ std::unique_ptr<SqlConnectorBase> SqliteConnectorFactory::createInstance(const U
     traverseParam("nolock");
     traverseParam("immutable");
     String connStr = "file:" + dbFile;
-    if (params.size()) connStr += "?" + params.join("&");
+    if (params.size()) connStr += "?" + join(params, "&");
 
     return std::unique_ptr<SqlConnectorBase>(new SqliteConnector(connStr));
 }

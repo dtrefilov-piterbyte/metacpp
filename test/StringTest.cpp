@@ -223,7 +223,7 @@ TEST_F(StringTest, testToValue)
 void StringTest::testJoin()
 {
     StringArray strArr = { "lorem", "ipsum", "dolor", "sit", "amet" };
-    ASSERT_EQ(strArr.join(" "), "lorem ipsum dolor sit amet");
+    ASSERT_EQ(join(strArr, " "), "lorem ipsum dolor sit amet");
 }
 
 TEST_F(StringTest, testJoin)

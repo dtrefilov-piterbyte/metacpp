@@ -28,9 +28,6 @@ namespace metacpp
 template<typename T>
 class StringBase;
 
-template<typename T>
-class StringArrayBase;
-
 /** \brief String in native system encoding (ANSI on Windows platforms and UTF-8 on linux)
  * \relates metacpp::StringBase
  */
@@ -602,9 +599,9 @@ public:
     }
 
     /** \brief Returns array of substring in this instance delimited by given seperator */
-    StringArrayBase<T> split(T separator, bool keepEmptyElements = false) const
+    Array<StringBase<T> > split(T separator, bool keepEmptyElements = false) const
 	{
-        StringArrayBase<T> result;
+        Array<StringBase<T> > result;
 		result.reserve(20);
 		auto b = begin(), e = end();
 		while (true)
@@ -671,54 +668,33 @@ inline bool operator==(const T *lhs, const StringBase<T>& rhs) { return rhs.equa
 template<typename T>
 inline bool operator!=(const T *lhs, const StringBase<T>& rhs) { return !rhs.equals(lhs); }
 
-/** \brief An array of strings */
+/** \brief Combines strings in this array into one string delimiting them with given string */
 template<typename T>
-class StringArrayBase : public Array<StringBase<T> >
+StringBase<T> join(const Array<StringBase<T> >& arr, const T *delim = "", size_t delimSize = (size_t)-1)
 {
-public:
-    /** \brief Constructs new empty array of strings */
-    StringArrayBase()
+    StringBase<T> res;
+    size_t reserveSize = 0;
+    if ((size_t)-1 == delimSize) delimSize = detail::StringHelper<T>::strlen(delim);
+    for (size_t i = 0; i < arr.size(); ++i)
+        reserveSize += arr[i].size() + delimSize;
+    if (arr.size()) reserveSize -= delimSize;
+    res.reserve(reserveSize);
+    for (size_t i = 0; i < arr.size(); ++i)
     {
-
+        res += arr[i];
+        if (i != arr.size() - 1) res += delim;
     }
+    return res;
+}
 
-    /** \brief Constructs new instance of StringArrayBase from another array of strings */
-    StringArrayBase(const Array<StringBase<T> >& o) : Array<StringBase<T> >(o)
-    {
-    }
+template<typename T>
+StringBase<T> join(const Array<StringBase<T> >& arr, const StringBase<T>& delim)
+{
+    return join(arr, delim.c_str(), delim.size());
+}
 
-    /** \brief Constructs new instance of StringArrayBase from an array of strings */
-    StringArrayBase(const StringBase<T> *data, size_t size)
-        : Array<StringBase<T> >(data, size)
-    {
-    }
-
-    /** \brief Constructs new instance of StringArrayBase from braced initializer list */
-    StringArrayBase(const std::initializer_list<StringBase<T> >& init)
-        : Array<StringBase<T> >(init)
-    {
-    }
-
-    /** \brief Combines strings in this array into one string delimiting them with given string */
-    StringBase<T> join(const StringBase<T> delim = StringBase<T>()) const
-    {
-        StringBase<T> res;
-        size_t reserveSize = 0;
-        for (size_t i = 0; i < this->size(); ++i)
-            reserveSize += (*this)[i].size() + delim.size();
-        if (this->size()) reserveSize -= delim.size();
-        res.reserve(reserveSize);
-        for (size_t i = 0; i < this->size(); ++i)
-        {
-            res += (*this)[i];
-            if (i != this->size() - 1) res += delim;
-        }
-        return res;
-    }
-};
-
-typedef StringArrayBase<char> StringArray;
-typedef StringArrayBase<char16_t> WStringArray;
+typedef Array<String> StringArray;
+typedef Array<WString> WStringArray;
 
 template<typename T1, typename T2>
 class StringBuilder;
@@ -950,6 +926,22 @@ std::basic_istream<char>& operator>>(std::basic_istream<char>& is, WString& wstr
 std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, WString& wstr);
 /** \relates metacpp::StringBase */
 std::basic_istream<char16_t>& operator>>(std::basic_istream<char16_t>& is, String& str);
+
+/** \relates metacpp::Array */
+template<typename T>
+std::basic_ostream<char>& operator<<(std::basic_ostream<char>& stream, const Array<T>& a)
+{
+    Array<String> serialized = a.map([](const T& v) { return String::fromValue(v); });
+    return stream << "[ " << join(serialized, ", ") << " ]";
+}
+
+/** \relates metacpp::Array */
+template<typename T>
+std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& stream, const Array<T>& a)
+{
+    Array<WString> serialized = a.map([](const T& v) { return WString::fromValue(v); });
+    return stream << "[ " << join(serialized, u", ") + u" ]";
+}
 
 } // namespace metacpp
 #endif // STRING_H

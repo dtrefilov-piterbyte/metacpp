@@ -177,7 +177,7 @@ std::unique_ptr<SqlConnectorBase> PostgresConnectorFactory::createInstance(const
     traverseParam("krbsrvname");
     traverseParam("service");
 
-    return std::unique_ptr<SqlConnectorBase>(new PostgresConnector(params.join(" ")));
+    return std::unique_ptr<SqlConnectorBase>(new PostgresConnector(join(params, " ")));
 }
 
 } // namespace postgres

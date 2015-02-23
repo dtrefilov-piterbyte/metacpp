@@ -306,8 +306,9 @@ namespace
             return arg + String::fromValue(m_x);
         }
 
-        void test(const Variant&)
+        String test(const Variant& v)
         {
+            return String::fromValue(v);
         }
 
         int x() const { return m_x; }
@@ -366,6 +367,12 @@ namespace
     TEST_F(ObjectTest, invokeFailureByConstness)
     {
         const MyObject obj(2);
-        ASSERT_THROW(obj.invoke<void>("test", Variant()), MethodNotFoundException);
+        ASSERT_THROW(obj.invoke<String>("test", Variant()), MethodNotFoundException);
+    }
+
+    TEST_F(ObjectTest, invokeSuccessByConstness)
+    {
+        MyObject obj(2);
+        ASSERT_EQ(obj.invoke<String>("test", Variant(123)), "123");
     }
 }
