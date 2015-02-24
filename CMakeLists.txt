@@ -89,7 +89,7 @@ IF(GTEST_FOUND)
     ADD_TEST("ObjectTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=ObjectTest*")
     ADD_TEST("SqlTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=SqlTest*")
     ADD_TEST("VariantTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=*VariantTest*")
-    ADD_TEST("DateTimeTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=DateTime*")
+    ADD_TEST("DateTimeTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=DateTimeTest*")
 ENDIF(GTEST_FOUND)
 
 FIND_PACKAGE(Doxygen)
