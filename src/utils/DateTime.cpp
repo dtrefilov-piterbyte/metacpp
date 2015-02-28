@@ -156,24 +156,24 @@ namespace detail
 
     void DateTimeData::fromString(const char *str, const char *format)
     {
-		try
-		{
 #ifdef _MSC_VER
+		try
+        {
 			InputStringStream ss(str);
 			ss.exceptions(std::ios::failbit | std::ios::badbit);
 			ss >> std::get_time(&m_tm, format);
             if (!ss.eof())
                 throw std::invalid_argument("Found extra characters at end of DateTime string");
+        }
+        catch (const std::exception& ex)
+        {
+            throw std::invalid_argument("Invalid DateTime string");
+        }
 #else
-            const char *res = strptime(str, format, &m_tm);
-            if (NULL == res || *res)
-                throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
+        const char *res = strptime(str, format, &m_tm);
+        if (NULL == res || *res)
+            throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
 #endif
-		}
-		catch (const std::exception& ex)
-		{
-			throw std::invalid_argument("Invalid DateTime string");
-		}
     }
 
     SharedDataBase *DateTimeData::clone() const
