@@ -149,20 +149,26 @@ namespace detail
         }
     }
 
-    void DateTimeData::fromString(const String& isoString)
+    void DateTimeData::fromString(const char *isoString)
     {
 		return fromString(isoString, "%Y-%m-%d %H:%M:%S");
     }
 
-    void DateTimeData::fromString(const String& str, const char *format)
+    void DateTimeData::fromString(const char *str, const char *format)
     {
 		try
 		{
+#ifdef _MSC_VER
 			InputStringStream ss(str);
 			ss.exceptions(std::ios::failbit | std::ios::badbit);
 			ss >> std::get_time(&m_tm, format);
-			//if (!ss.eof())
-			//	throw std::invalid_argument("Found extra characters at end of DateTime string");
+            if (!ss.eof())
+                throw std::invalid_argument("Found extra characters at end of DateTime string");
+#else
+            const char *res = strptime(str, format, &m_tm);
+            if (NULL == res || *res)
+                throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
+#endif
 		}
 		catch (const std::exception& ex)
 		{

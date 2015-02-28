@@ -25,7 +25,7 @@
 #include <ctime>
 #include <memory>
 #include "Array.h"
-#include "String.h"
+#include "StringBase.h"
 #include "Nullable.h"
 #include "Variant.h"
 #include "DateTime.h"

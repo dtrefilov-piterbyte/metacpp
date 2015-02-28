@@ -17,7 +17,7 @@
 #define SQLSTATEMENTIMPL_H
 #include <iostream>
 #include <memory>
-#include "String.h"
+#include "StringBase.h"
 #include "Utils.h"
 #include "SqlStatement.h"
 

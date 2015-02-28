@@ -16,6 +16,7 @@
 #ifndef ARRAY_H
 #define ARRAY_H
 #include <algorithm>
+#include <string.h>
 #include "SharedDataBase.h"
 #include "SharedDataPointer.h"
 #include <type_traits>

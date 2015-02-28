@@ -79,8 +79,8 @@ namespace detail
 
         SharedDataBase *clone() const override;
 
-        void fromString(const String& isoString);
-        void fromString(const String& str, const char *format);
+        void fromString(const char *isoString);
+        void fromString(const char *str, const char *format);
     private:
         struct tm m_tm;
     };

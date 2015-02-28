@@ -15,7 +15,7 @@
 ****************************************************************************/
 #ifndef SQLCOLUMNMATCHER
 #define SQLCOLUMNMATCHER
-#include "String.h"
+#include "StringBase.h"
 #include "SqlWhereClause.h"
 
 namespace metacpp

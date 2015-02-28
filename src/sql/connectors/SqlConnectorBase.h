@@ -21,7 +21,7 @@
 #include "SqlStorable.h"
 #include <atomic>
 #include <map>
-#include "String.h"
+#include "StringBase.h"
 #include "Uri.h"
 
 namespace metacpp

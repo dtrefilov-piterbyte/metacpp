@@ -16,7 +16,7 @@
 #ifndef VARIANT_H
 #define VARIANT_H
 #include "DateTime.h"
-#include "String.h"
+#include "StringBase.h"
 #include "Array.h"
 #include "SharedDataBase.h"
 #include "MetaType.h"

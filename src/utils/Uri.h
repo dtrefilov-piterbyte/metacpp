@@ -16,7 +16,7 @@
 #ifndef URI_H
 #define URI_H
 #include "Array.h"
-#include "String.h"
+#include "StringBase.h"
 #include <map>
 
 namespace metacpp

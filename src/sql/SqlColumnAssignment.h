@@ -15,7 +15,7 @@
 ****************************************************************************/
 #ifndef SQLCOLUMNASSIGNMENT_H
 #define SQLCOLUMNASSIGNMENT_H
-#include "String.h"
+#include "StringBase.h"
 #include "Array.h"
 #include "SqlColumnMatcher.h"
 
