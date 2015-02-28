@@ -13,7 +13,7 @@
 #endif
 
 using namespace ::metacpp;
-using namespace ::metacpp::sql;
+using namespace ::metacpp::db::sql;
 
 class City : public Object
 {

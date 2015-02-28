@@ -10,10 +10,11 @@ SET(SRC_DIRS
     "${CMAKE_SOURCE_DIR}/src"
     "${CMAKE_SOURCE_DIR}/src/utils"
     "${CMAKE_SOURCE_DIR}/src/core"
-    "${CMAKE_SOURCE_DIR}/src/sql"
-    "${CMAKE_SOURCE_DIR}/src/sql/connectors"
-    "${CMAKE_SOURCE_DIR}/src/nosql"
-    "${CMAKE_SOURCE_DIR}/src/nosql/connectors"
+    "${CMAKE_SOURCE_DIR}/src/db"
+    "${CMAKE_SOURCE_DIR}/src/db/sql"
+    "${CMAKE_SOURCE_DIR}/src/db/sql/connectors"
+    "${CMAKE_SOURCE_DIR}/src/db/nosql"
+    "${CMAKE_SOURCE_DIR}/src/db/nosql/connectors"
 )
 
 FIND_PACKAGE(JsonCpp)
@@ -28,7 +29,7 @@ FIND_PACKAGE(Sqlite3)
 IF(SQLITE3_FOUND)
     LIST(APPEND LIBS ${SQLITE3_LIBRARIES})
     LIST(APPEND INCLUDE_DIRS ${SQLITE3_INCLUDE_DIR})
-    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/sql/connectors/sqlite3")
+    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/db/sql/connectors/sqlite3")
     ADD_DEFINITIONS(-DHAVE_SQLITE3)
 ENDIF(SQLITE3_FOUND)
 
@@ -36,7 +37,7 @@ FIND_PACKAGE(PostgreSQL)
 IF(PostgreSQL_FOUND)
     LIST(APPEND LIBS ${PostgreSQL_LIBRARIES})
     LIST(APPEND INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIRS})
-    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/sql/connectors/postgres")
+    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/db/sql/connectors/postgres")
     ADD_DEFINITIONS(-DHAVE_POSTGRES)
 ENDIF(PostgreSQL_FOUND)
 
@@ -45,7 +46,7 @@ IF(MongoDB_FOUND)
     LIST(APPEND LIBS ${MongoDB_LIBRARIES})
     LIST(APPEND INCLUDE_DIRS ${MongoDB_INCLUDE_DIR})
     LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/serialization/bson")
-    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/nosql/connectors/mongodb")
+    LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/db/nosql/connectors/mongodb")
     ADD_DEFINITIONS(-DHAVE_MONGODB)
 ENDIF(MongoDB_FOUND)
 
