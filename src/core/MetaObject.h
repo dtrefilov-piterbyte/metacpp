@@ -341,13 +341,13 @@ public:
     }
 
     /** \brief Overriden from MetaFieldBase::getValue, throws std::runtime_error */
-    Variant getValue(const Object */*obj*/) const override
+    Variant getValue(const Object *) const override
     {
         throw std::runtime_error("MetaFieldObject::getValue() not implemented");
     }
 
     /** \brief Overriden from MetaFieldBase::setValue, throws std::runtime_error */
-    void setValue(const Variant& /*val*/, Object */*obj*/) const override
+    void setValue(const Variant&, Object *) const override
     {
         throw std::runtime_error("MetaFieldObject::setValue() not implemented");
     }
@@ -367,13 +367,13 @@ public:
     }
 
     /** \brief Overriden from MetaFieldBase::getValue, throws std::runtime_error */
-    Variant getValue(const Object */*obj*/) const override
+    Variant getValue(const Object *) const override
     {
         throw std::runtime_error("MetaFieldArray::getValue() not implemented");
     }
 
     /** \brief Overriden from MetaFieldBase::setValue, throws std::runtime_error */
-    void setValue(const Variant& /*val*/, Object */*obj*/) const override
+    void setValue(const Variant&, Object *) const override
     {
         throw std::runtime_error("MetaFieldArray::setValue() not implemented");
     }

@@ -299,62 +299,62 @@ namespace detail
     template<>
     struct TypePromotionPriorityHelper<long double>
     {
-        static constexpr int priority() { return 0; }
+		static const int priority = 0;
     };
 
     template<>
     struct TypePromotionPriorityHelper<double>
     {
-        static constexpr int priority() { return 1; }
+		static const int priority = 1;
     };
 
     template<>
     struct TypePromotionPriorityHelper<float>
-    {
-        static constexpr int priority() { return 2; }
+	{
+		static const int priority = 2;
     };
 
     template<>
     struct TypePromotionPriorityHelper<long long unsigned int>
-    {
-        static constexpr int priority() { return 3; }
+	{
+		static const int priority = 3;
     };
 
     template<>
     struct TypePromotionPriorityHelper<long long int>
-    {
-        static constexpr int priority() { return 4; }
+	{
+		static const int priority = 4;
     };
 
     template<>
     struct TypePromotionPriorityHelper<long unsigned int>
-    {
-        static constexpr int priority() { return 5; }
+	{
+		static const int priority = 5;
     };
 
     template<>
     struct TypePromotionPriorityHelper<long int>
-    {
-        static constexpr int priority() { return 6; }
+	{
+		static const int priority = 6;
     };
 
     template<>
     struct TypePromotionPriorityHelper<unsigned int>
-    {
-        static constexpr int priority() { return 7; }
+	{
+		static const int priority = 7;
     };
 
     template<>
     struct TypePromotionPriorityHelper<int>
-    {
-        static constexpr int priority() { return 8; }
+	{
+		static const int priority = 8;
     };
 
     // all others are promoted to int
     template<typename T>
     struct TypePromotionPriorityHelper<T, typename std::enable_if<std::is_arithmetic<T>::value>::type>
-    {
-        static constexpr int priority() { return 1000; }
+	{
+		static const int priority = 1000;
     };
 
     enum _PromotionType
@@ -389,10 +389,10 @@ namespace detail
     struct TypePromotion
     {
         typedef typename TypePromotionHelper<TField1, TField2,
-        TypePromotionPriorityHelper<TField1>::priority() >= 1000 &&
-        TypePromotionPriorityHelper<TField2>::priority() >= 1000 ? _PromoteToInt :
-        (TypePromotionPriorityHelper<TField1>::priority() <
-         TypePromotionPriorityHelper<TField2>::priority() ?
+        TypePromotionPriorityHelper<TField1>::priority >= 1000 &&
+        TypePromotionPriorityHelper<TField2>::priority >= 1000 ? _PromoteToInt :
+        (TypePromotionPriorityHelper<TField1>::priority <
+         TypePromotionPriorityHelper<TField2>::priority ?
              _PromoteToFirst : _PromoteToSecond)>::PromotionType Type;
     };
 

@@ -16,11 +16,16 @@
 #ifndef STRING_H
 #define STRING_H
 #include <string>
-#include <string.h>
 #include <stdio.h>
 #include <wchar.h>
 #include <sstream>
 #include "Array.h"
+
+#ifdef _MSC_VER
+#define U16(str) reinterpret_cast<const char16_t *>(L##str)
+#else
+#define U16(str) u##str
+#endif
 
 namespace metacpp
 {
@@ -213,7 +218,7 @@ private:
 
     std::streamsize showmanyc() override
     {
-        return std::distance(this->gptr(), this->egptr());
+        return std::distance(this->gptr(), this->egptr()) - 1;
     }
 
     // output overrides
@@ -257,7 +262,7 @@ private:
         update_ptrs(nInputCurrent, nOutputBase, nOutputCurrent);
     }
 
-    void update_ptrs(int nInput, int nBase, int nOutputCurrent)
+	void update_ptrs(size_t nInput, size_t nBase, size_t nOutputCurrent)
     {
         // avoid detach
         char_type *beg = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).begin());
@@ -267,7 +272,7 @@ private:
         this->setg(beg, beg + nInput, end);
         // set output pointers
         this->setp(beg + nBase, beg + m_str.capacity());
-        this->pbump(nOutputCurrent - nBase);
+        this->pbump((int)(nOutputCurrent - nBase));
     }
 
 private:
@@ -940,7 +945,7 @@ template<typename T>
 std::basic_ostream<char16_t>& operator<<(std::basic_ostream<char16_t>& stream, const Array<T>& a)
 {
     Array<WString> serialized = a.map([](const T& v) { return WString::fromValue(v); });
-    return stream << "[ " << join(serialized, u", ") + u" ]";
+    return stream << U16("[ ") << join(serialized, U16(", ")) + U16(" ]");
 }
 
 } // namespace metacpp

@@ -150,19 +150,19 @@ namespace detail
         switch (m_type)
         {
         case eFieldBool:
-            return m_storage.m_bool;
+            return static_cast<T>(m_storage.m_bool);
         case eFieldInt:
-            return m_storage.m_int;
+            return static_cast<T>(m_storage.m_int);
         case eFieldUint:
-            return m_storage.m_uint;
+            return static_cast<T>(m_storage.m_uint);
         case eFieldInt64:
-            return m_storage.m_int64;
+            return static_cast<T>(m_storage.m_int64);
         case eFieldUint64:
-            return m_storage.m_uint64;
+            return static_cast<T>(m_storage.m_uint64);
         case eFieldFloat:
-            return m_storage.m_float;
+            return static_cast<T>(m_storage.m_float);
         case eFieldDouble:
-            return m_storage.m_double;
+            return static_cast<T>(m_storage.m_double);
         default:
             throw std::invalid_argument("Variant does not contain arithmetic type");
         }

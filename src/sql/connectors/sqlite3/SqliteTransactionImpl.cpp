@@ -89,7 +89,7 @@ bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
 {
     const String& query = statement->queryText();
     sqlite3_stmt *stmt;
-    int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), query.size() + 1,
+    int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), (int)query.size() + 1,
         &stmt, nullptr);
     if (SQLITE_OK != error)
     {
@@ -152,8 +152,8 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
     }
     if (SQLITE_ROW == error)
     {
-        size_t columnCount = sqlite3_data_count(stmt);
-        for (size_t i = 0; i < columnCount; ++i)
+        int columnCount = sqlite3_data_count(stmt);
+        for (int i = 0; i < columnCount; ++i)
         {
             String name = sqlite3_column_name(stmt, i);
             auto field = storable->record()->metaObject()->fieldByName(name, false);
@@ -174,7 +174,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
                 break;
             case eFieldEnum:
             case eFieldUint:
-                assignField<uint32_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
+                assignField<uint32_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), (uint32_t)sqlite3_column_int64(stmt, i));
                 break;
             case eFieldUint64:
                 assignField<uint64_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
@@ -183,7 +183,7 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
                 assignField<int64_t>(field, sqliteType, SQLITE_INTEGER, storable->record(), sqlite3_column_int64(stmt, i));
                 break;
             case eFieldFloat:
-                assignField<float>(field, sqliteType, SQLITE_FLOAT, storable->record(), sqlite3_column_double(stmt, i));
+                assignField<float>(field, sqliteType, SQLITE_FLOAT, storable->record(), (float)sqlite3_column_double(stmt, i));
                 break;
             case eFieldDouble:
                 assignField<double>(field, sqliteType, SQLITE_FLOAT, storable->record(), sqlite3_column_double(stmt, i));
@@ -217,11 +217,11 @@ bool SqliteTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStor
         {
         case eFieldInt:
             assignField<int32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          sqlite3_last_insert_rowid(m_dbHandle));
+                          (int32_t)sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         case eFieldUint:
             assignField<uint32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          sqlite3_last_insert_rowid(m_dbHandle));
+                          (uint32_t)sqlite3_last_insert_rowid(m_dbHandle));
             return true;
         case eFieldInt64:
             assignField<int64_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),

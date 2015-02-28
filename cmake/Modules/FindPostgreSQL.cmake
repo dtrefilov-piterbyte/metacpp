@@ -83,12 +83,12 @@ set(PostgreSQL_ROOT_DIR_MESSAGE "Set the PostgreSQL_ROOT system variable to wher
 
 
 set(PostgreSQL_KNOWN_VERSIONS ${PostgreSQL_ADDITIONAL_VERSIONS}
-    "9.1" "9.0" "8.4" "8.3" "8.2" "8.1" "8.0")
+    "9.4" "9.3" "9.2" "9.1" "9.0" "8.4" "8.3" "8.2" "8.1" "8.0")
 
 # Define additional search paths for root directories.
 if ( WIN32 )
   foreach (suffix ${PostgreSQL_KNOWN_VERSIONS} )
-    set(PostgreSQL_ADDITIONAL_SEARCH_PATHS ${PostgreSQL_ADDITIONAL_SEARCH_PATHS} "C:/Program Files/PostgreSQL/${suffix}" )
+    set(PostgreSQL_ADDITIONAL_SEARCH_PATHS ${PostgreSQL_ADDITIONAL_SEARCH_PATHS} "C:/Program Files/PostgreSQL/${suffix}" "C:/Program Files (x86)/PostgreSQL/${suffix}" )
   endforeach()
 endif()
 set( PostgreSQL_ROOT_DIRECTORIES
@@ -100,99 +100,84 @@ set( PostgreSQL_ROOT_DIRECTORIES
 #
 # Look for an installation.
 #
-find_path(PostgreSQL_CONFIG_DIR
-  NAMES pg_config
+find_path(PostgreSQL_INCLUDE_DIR
+  NAMES libpq-fe.h
   PATHS
    # Look in other places.
    ${PostgreSQL_ROOT_DIRECTORIES}
   PATH_SUFFIXES
-    ""
-    bin
+    pgsql
+    postgresql
+    include
   # Help the user find it if we cannot.
-  DOC "The ${PostgreSQL_ROOT_DIR_MESSAGE}"
+  DOC "The ${PostgreSQL_INCLUDE_DIR_MESSAGE}"
 )
 
-macro (fail_if)
-  if (${ARGV})
-    message (WARNING "Couldn't determine PostgreSQL configuration.")
-    unset (PostgreSQL_CONFIG_DIR)
-    break ()
-  endif ()
-endmacro ()
-
-macro (run_pg_config arg var)
-  execute_process(COMMAND ${PostgreSQL_CONFIG_DIR}/pg_config ${arg}
-                  RESULT_VARIABLE pgsql_config_result
-                  OUTPUT_VARIABLE ${var}
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  fail_if (NOT ${pgsql_config_result} EQUAL 0 OR NOT ${var})
-endmacro ()
-
-foreach (once only)
-  fail_if (NOT PostgreSQL_CONFIG_DIR)
-
-  run_pg_config (--version PostgreSQL_VERSION_STRING)
-  string (REGEX REPLACE "^PostgreSQL (.*)$" "\\1"
-          PostgreSQL_VERSION_STRING "${PostgreSQL_VERSION_STRING}")
-  fail_if (NOT PostgreSQL_VERSION_STRING)
-
-  run_pg_config (--includedir PostgreSQL_INCLUDE_DIR)
-  fail_if (NOT EXISTS "${PostgreSQL_INCLUDE_DIR}/libpq-fe.h")
-
-  find_path(PostgreSQL_TYPE_INCLUDE_DIR
-    NAMES catalog/pg_type.h
-    PATHS ${PostgreSQL_INCLUDE_DIR}
-    PATH_SUFFIXES
-      pgsql/server
-      postgresql/server
-      include/server
-    # Help the user find it if we cannot.
-    DOC "The ${PostgreSQL_INCLUDE_DIR_MESSAGE}"
-  )
-  fail_if (NOT PostgreSQL_TYPE_INCLUDE_DIR)
-
-  set (PostgreSQL_INCLUDE_DIRS
-       ${PostgreSQL_INCLUDE_DIR} ${PostgreSQL_TYPE_INCLUDE_DIR})
-
-  run_pg_config (--libdir PostgreSQL_LIBRARY_DIRS)
-
-  # The PostgreSQL library.
-  set (PostgreSQL_LIBRARY_TO_FIND pq)
-  # Setting some more prefixes for the library
-  set (PostgreSQL_LIB_PREFIX "")
-  if (WIN32)
-    set (PostgreSQL_LIB_PREFIX ${PostgreSQL_LIB_PREFIX} "lib")
-    set (PostgreSQL_LIBRARY_TO_FIND ${PostgreSQL_LIB_PREFIX}${PostgreSQL_LIBRARY_TO_FIND})
-  endif()
-
-  find_library (PostgreSQL_LIBRARY
-    NAMES ${PostgreSQL_LIBRARY_TO_FIND}
-    PATHS ${PostgreSQL_LIBRARY_DIRS}
-    PATH_SUFFIXES lib
-  )
-  fail_if (NOT PostgreSQL_LIBRARY)
-  set (PostgreSQL_LIBRARIES ${PostgreSQL_LIBRARY_TO_FIND})
-
-endforeach()
-
-# Did we find anything?
-include (FindPackageHandleStandardArgs)
-find_package_handle_standard_args (PostgreSQL
-  REQUIRED_VARS
-    PostgreSQL_LIBRARY_DIRS
-    PostgreSQL_CONFIG_DIR
-    PostgreSQL_INCLUDE_DIRS
-    PostgreSQL_LIBRARIES
-  VERSION_VAR
-    PostgreSQL_VERSION_STRING
+find_path(PostgreSQL_TYPE_INCLUDE_DIR
+  NAMES catalog/pg_type.h
+  PATHS
+   # Look in other places.
+   ${PostgreSQL_ROOT_DIRECTORIES}
+  PATH_SUFFIXES
+    postgresql
+    pgsql/server
+    postgresql/server
+    include/server
+  # Help the user find it if we cannot.
+  DOC "The ${PostgreSQL_INCLUDE_DIR_MESSAGE}"
 )
-set (PostgreSQL_FOUND ${POSTGRESQL_FOUND})
 
-# Now try to get the include and library path.
-if (PostgreSQL_FOUND)
-  message (STATUS "PostgreSQL include dirs: ${PostgreSQL_INCLUDE_DIRS}")
-  message (STATUS "PostgreSQL library dirs: ${PostgreSQL_LIBRARY_DIRS}")
-  message (STATUS "PostgreSQL libraries:    ${PostgreSQL_LIBRARIES}")
+# The PostgreSQL library.
+set (PostgreSQL_LIBRARY_TO_FIND pq)
+# Setting some more prefixes for the library
+set (PostgreSQL_LIB_PREFIX "")
+
+find_library( PostgreSQL_LIBRARY
+ NAMES ${PostgreSQL_LIBRARY_TO_FIND}
+ PATHS
+   ${PostgreSQL_ROOT_DIRECTORIES}
+ PATH_SUFFIXES
+   lib
+)
+get_filename_component(PostgreSQL_LIBRARY_DIR ${PostgreSQL_LIBRARY} PATH)
+
+if (PostgreSQL_INCLUDE_DIR)
+  # Some platforms include multiple pg_config.hs for multi-lib configurations
+  # This is a temporary workaround.  A better solution would be to compile
+  # a dummy c file and extract the value of the symbol.
+  file(GLOB _PG_CONFIG_HEADERS "${PostgreSQL_INCLUDE_DIR}/pg_config*.h")
+  foreach(_PG_CONFIG_HEADER ${_PG_CONFIG_HEADERS})
+    if(EXISTS "${_PG_CONFIG_HEADER}")
+      file(STRINGS "${_PG_CONFIG_HEADER}" pgsql_version_str
+           REGEX "^#define[\t ]+PG_VERSION[\t ]+\".*\"")
+      if(pgsql_version_str)
+        string(REGEX REPLACE "^#define[\t ]+PG_VERSION[\t ]+\"([^\"]*)\".*"
+               "\\1" PostgreSQL_VERSION_STRING "${pgsql_version_str}")
+        break()
+      endif()
+    endif()
+  endforeach()
+  unset(pgsql_version_str)
 endif()
 
+# Did we find anything?
+include(${CMAKE_CURRENT_LIST_DIR}/FindPackageHandleStandardArgs.cmake)
+find_package_handle_standard_args(PostgreSQL
+                                  REQUIRED_VARS PostgreSQL_LIBRARY PostgreSQL_INCLUDE_DIR PostgreSQL_TYPE_INCLUDE_DIR
+                                  VERSION_VAR PostgreSQL_VERSION_STRING)
+set( PostgreSQL_FOUND  ${POSTGRESQL_FOUND})
+
+# Now try to get the include and library path.
+if(PostgreSQL_FOUND)
+
+  set(PostgreSQL_INCLUDE_DIRS ${PostgreSQL_INCLUDE_DIR} ${PostgreSQL_TYPE_INCLUDE_DIR} )
+  set(PostgreSQL_LIBRARY_DIRS ${PostgreSQL_LIBRARY_DIR} )
+  find_library(PostgreSQL_LIBRARY ${PostgreSQL_LIBRARY_DIRS} ${PostgreSQL_LIBRARY_TO_FIND})
+  set(PostgreSQL_LIBRARIES ${PostgreSQL_LIBRARY})
+
+  #message("Final PostgreSQL include dir: ${PostgreSQL_INCLUDE_DIRS}")
+  #message("Final PostgreSQL library dir: ${PostgreSQL_LIBRARY_DIRS}")
+  #message("Final PostgreSQL libraries:   ${PostgreSQL_LIBRARIES}")
+endif()
+
+mark_as_advanced(PostgreSQL_INCLUDE_DIR PostgreSQL_TYPE_INCLUDE_DIR PostgreSQL_LIBRARY )

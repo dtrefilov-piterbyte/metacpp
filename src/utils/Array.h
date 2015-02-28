@@ -19,7 +19,6 @@
 #include "SharedDataBase.h"
 #include "SharedDataPointer.h"
 #include <type_traits>
-#include <string.h>
 #include <cassert>
 #include <functional>
 
