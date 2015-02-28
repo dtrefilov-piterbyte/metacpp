@@ -16,7 +16,7 @@
 #ifndef METACPP_DATETIME_H
 #define METACPP_DATETIME_H
 #include <time.h>
-#include "String.h"
+#include "StringBase.h"
 #include "SharedDataPointer.h"
 
 namespace metacpp {
@@ -79,8 +79,8 @@ namespace detail
 
         SharedDataBase *clone() const override;
 
-        void fromString(const char *isoString);
-        void fromString(const char *str, const char *format);
+        void fromString(const String& isoString);
+        void fromString(const String& str, const char *format);
     private:
         struct tm m_tm;
     };

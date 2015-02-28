@@ -37,6 +37,10 @@ class Object;
 class MetaObject;
 }
 
+#ifdef _MSC_VER
+#define constexpr
+#endif
+
 /** \brief A structure describing enumeration element */
 struct EnumValueInfoDescriptor
 {
@@ -379,24 +383,23 @@ namespace
     template<typename THead, typename TTail>
     struct argtuple_impl;
 
+	template<typename...THeadArgs>
+	struct argtuple_impl<std::tuple<THeadArgs...>, std::tuple<> >
+	{
+		typedef std::tuple<THeadArgs...> type;
+	};
+
+	template<typename... TArgs>
+	struct argtuple
+	{
+		typedef typename argtuple_impl<std::tuple<>, std::tuple<TArgs...> >::type type;
+	};
+
     template<template<typename... > class THead, typename...THeadArgs,
         template<typename... > class TTail, typename TCurrent, typename...TTailArgs>
     struct argtuple_impl<THead<THeadArgs...>, TTail<TCurrent, TTailArgs...> >
     {
         typedef typename argtuple_impl<THead<THeadArgs..., typename std::remove_cv<typename std::remove_reference<TCurrent>::type>::type>, TTail<TTailArgs...> >::type type;
-    };
-
-    template<template<typename... > class THead, typename...THeadArgs,
-             template<typename... > class TTail>
-    struct argtuple_impl<THead<THeadArgs...>, TTail<> >
-    {
-        typedef THead<THeadArgs...> type;
-    };
-
-    template<typename... TArgs>
-    struct argtuple
-    {
-        typedef typename argtuple_impl<std::tuple<>, std::tuple<TArgs...> >::type type;
     };
 
     template<size_t N, bool Done, typename TType>

@@ -1,6 +1,6 @@
 #ifndef STRINGTEST_H
 #define STRINGTEST_H
-#include "String.h"
+#include "StringBase.h"
 #include <gtest/gtest.h>
 
 class StringTest : public testing::Test

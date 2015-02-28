@@ -275,14 +275,14 @@ TEST_F(StringTest, testUri)
 
 TEST_F(StringTest, TestAWConversion)
 {
-    ASSERT_EQ(string_cast<WString>("test"), u"test");
-    ASSERT_EQ(string_cast<WString>("Hello, world!"), u"Hello, world!");
-    ASSERT_EQ(string_cast<WString>("кирилица"), u"кирилица");
+    ASSERT_EQ(string_cast<WString>("test"), U16("test"));
+    ASSERT_EQ(string_cast<WString>("Hello, world!"), U16("Hello, world!"));
+    ASSERT_EQ(string_cast<WString>("кирилица"), U16("кирилица"));
 }
 
 TEST_F(StringTest, TestWAConversion)
 {
-    ASSERT_EQ(string_cast<String>(u"test"), "test");
-    ASSERT_EQ(string_cast<String>(u"Hello, world!"), "Hello, world!");
-    ASSERT_EQ(string_cast<String>(u"кирилица"), "кирилица");
+    ASSERT_EQ(string_cast<String>(U16("test")), "test");
+    ASSERT_EQ(string_cast<String>(U16("Hello, world!")), "Hello, world!");
+	ASSERT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
 }

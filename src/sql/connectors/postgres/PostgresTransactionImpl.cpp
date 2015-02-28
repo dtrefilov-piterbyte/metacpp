@@ -160,7 +160,7 @@ bool PostgresTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable
             assignField<int64_t>(field, !pVal, String(pVal).toValue<int64_t>(), storable->record());
             break;
         case eFieldUint64:
-            assignField<uint32_t>(field, !pVal, String(pVal).toValue<uint64_t>(), storable->record());
+            assignField<uint64_t>(field, !pVal, String(pVal).toValue<uint64_t>(), storable->record());
             break;
         case eFieldFloat:
             assignField<float>(field, !pVal, String(pVal).toValue<float>(), storable->record());
@@ -216,10 +216,10 @@ bool PostgresTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlSt
     switch (pkey->type())
     {
     case eFieldInt:
-        pkey->access<int32_t>(storable->record()) = lastId;
+        pkey->access<int32_t>(storable->record()) = (int32_t)lastId;
         break;
     case eFieldUint:
-        pkey->access<uint32_t>(storable->record()) = lastId;
+        pkey->access<uint32_t>(storable->record()) = (uint32_t)lastId;
         break;
     case eFieldInt64:
         pkey->access<int64_t>(storable->record()) = lastId;

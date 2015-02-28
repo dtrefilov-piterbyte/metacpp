@@ -13,8 +13,9 @@
 * See the License for the specific language governing permissions and       *
 * limitations under the License.                                            *
 ****************************************************************************/
-#include "String.h"
+#include "StringBase.h"
 #include <climits>
+#include <locale>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -86,56 +87,6 @@ namespace detail
     }
 
 
-#ifdef _WIN32
-    template<>
-    size_t StringHelper<char16_t>::strlen(const char16_t *str) {
-        return ::wcslen(str);
-    }
-
-    template<>
-    int StringHelper<char16_t>::strcmp(const char16_t *a, const char16_t *b) {
-        return ::wcscmp(a, b);
-    }
-
-    template<>
-    int StringHelper<char16_t>::strcasecmp(const char16_t *a, const char16_t *b) {
-#ifdef _MSC_VER
-        return ::wcsicmp(a, b);
-#else
-        return ::wcscasecmp(a, b);
-#endif
-    }
-
-    template<>
-    int StringHelper<char16_t>::strncmp(const char16_t *a, const char16_t *b, size_t size) {
-        return ::wcsncmp(a, b, size);
-    }
-
-    template<>
-    int StringHelper<char16_t>::strnicmp(const char16_t *a, const char16_t *b, size_t size) {
-#ifdef _MSC_VER
-        return ::wcsnicmp(a, b, size);
-#else
-        return ::wcsncasecmp(a, b, size);
-#endif
-    }
-
-    template<>
-    char16_t *StringHelper<char16_t>::strcpy(char16_t *dest, const char16_t *source) {
-        return ::wcscpy(dest, source);
-    }
-
-    template<>
-    char16_t *StringHelper<char16_t>::strncpy(char16_t *dest, const char16_t *source, size_t n) {
-        return ::wcsncpy(dest, source, n);
-    }
-
-    template<>
-    const char16_t *StringHelper<char16_t>::strstr(const char16_t *haystack, const char16_t *needle)
-    {
-        return ::wcsstr(haystack, needle);
-    }
-#else
     template<>
     size_t StringHelper<char16_t>::strlen(const char16_t *str)
     {
@@ -236,7 +187,6 @@ namespace detail
         return nullptr;
     }
 
-#endif
 } // namespace detail
 
     template<> const size_t detail::StringData<char>::npos = std::numeric_limits<size_t>::max();
@@ -246,10 +196,10 @@ namespace detail
     template<> const size_t StringBase<char16_t>::npos = std::numeric_limits<size_t>::max();
 
     template<>
-    StringBase<char> StringBase<char>::ms_empty("");
+    StringBase<char> StringBase<char>::ms_empty = "";
 
     template<>
-    StringBase<char16_t> StringBase<char16_t>::ms_empty(u"");
+    StringBase<char16_t> StringBase<char16_t>::ms_empty = U16("");
 
 	template<>
     String string_cast<String>(const char *aString, size_t length) {
@@ -265,9 +215,9 @@ namespace detail
 	template<>
     WString string_cast<WString>(const char *aString, size_t length) {
 #ifdef _WIN32
-        size_t resultLength = MultiByteToWideChar(CP_ACP, 0, aString, length, NULL, 0) - 1;
+        int resultLength = MultiByteToWideChar(CP_ACP, 0, aString, (int)length, NULL, 0) - 1;
         WString result(nullptr, resultLength);
-        MultiByteToWideChar(CP_ACP, 0, aString, length, const_cast<char16_t *>(result.data()), resultLength + 1);
+        MultiByteToWideChar(CP_ACP, 0, aString, (int)length, LPWSTR(result.begin()), resultLength + 1);
         return result;
 #else
         WString result;
@@ -312,9 +262,9 @@ namespace detail
 	template<>
     String string_cast<String>(const char16_t *wString, size_t length) {
 #ifdef _WIN32
-        size_t resultLength = WideCharToMultiByte(CP_ACP, 0, wString, length, NULL, 0, NULL, NULL) - 1;
-        String result(nullptr, resultLength)
-        WideCharToMultiByte(CP_ACP, 0, wString, -1,  const_cast<char *>(result.data()), resultLength + 1, NULL, NULL);
+        int resultLength = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wString, (int)length, NULL, 0, NULL, NULL) - 1;
+		String result(nullptr, resultLength);
+		WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wString, (int)length, const_cast<char *>(result.data()), resultLength + 1, NULL, NULL);
         return result;
 #else
 

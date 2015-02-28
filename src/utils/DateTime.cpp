@@ -16,6 +16,9 @@
 #include "DateTime.h"
 #include <mutex>
 #include <stdio.h>
+#include <locale>
+#include <ctime>
+#include <iomanip>
 
 namespace metacpp {
 
@@ -138,7 +141,7 @@ namespace detail
 
     String DateTimeData::toString(const char *format) const
     {
-        for (size_t bufSize = 50; ; bufSize += 0.3 * bufSize)
+        for (size_t bufSize = 50; ; bufSize += (size_t)(0.3 * bufSize))
         {
             char *buf = reinterpret_cast<char *>(alloca(bufSize));
             size_t size = strftime(buf, bufSize, format, &m_tm);
@@ -146,18 +149,25 @@ namespace detail
         }
     }
 
-    void DateTimeData::fromString(const char *isoString)
+    void DateTimeData::fromString(const String& isoString)
     {
-        const char *res = strptime(isoString, "%Y-%m-%d %H:%M:%S", &m_tm);
-        if (NULL == res || *res)
-            throw std::invalid_argument(String(String(isoString) + " is not a datetime in ISO format").c_str());
+		return fromString(isoString, "%Y-%m-%d %H:%M:%S");
     }
 
-    void DateTimeData::fromString(const char *str, const char *format)
+    void DateTimeData::fromString(const String& str, const char *format)
     {
-        const char *res = strptime(str, format, &m_tm);
-        if (NULL == res || *res)
-            throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
+		try
+		{
+			InputStringStream ss(str);
+			ss.exceptions(std::ios::failbit | std::ios::badbit);
+			ss >> std::get_time(&m_tm, format);
+			//if (!ss.eof())
+			//	throw std::invalid_argument("Found extra characters at end of DateTime string");
+		}
+		catch (const std::exception& ex)
+		{
+			throw std::invalid_argument("Invalid DateTime string");
+		}
     }
 
     SharedDataBase *DateTimeData::clone() const
@@ -184,7 +194,7 @@ DateTime::~DateTime()
 
 bool DateTime::valid() const
 {
-    return m_d;
+    return m_d != nullptr;
 }
 
 bool DateTime::operator==(const DateTime& rhs) const
