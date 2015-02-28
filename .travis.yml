@@ -22,4 +22,4 @@ before_script:
 
 script:
   - make
-  - if [ $? ]; then make test && cat Testing/Temporary/LastTest.log; fi
+  - if [ $? -eq 0 ]; then make test && cat Testing/Temporary/LastTest.log; fi
