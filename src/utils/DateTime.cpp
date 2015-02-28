@@ -156,19 +156,21 @@ namespace detail
 
     void DateTimeData::fromString(const char *str, const char *format)
     {
-#ifdef _MSC_VER
+#ifdef _MSC_VER	  
+		StringStream ss(str);
 		try
         {
-			InputStringStream ss(str);
-			ss.exceptions(std::ios::failbit | std::ios::badbit);
-			ss >> std::get_time(&m_tm, format);
-            if (!ss.eof())
-                throw std::invalid_argument("Found extra characters at end of DateTime string");
+			ss.exceptions(std::ios_base::failbit | std::ios_base::badbit);
+			ss >> std::get_time(&m_tm, format);	 // TODO: seems to be buggy in MSVC 2013
         }
         catch (const std::exception& ex)
         {
             throw std::invalid_argument("Invalid DateTime string");
-        }
+		}
+		ss.exceptions(std::ios_base::goodbit);
+		char ch; ss.get();
+		if (!ss.eof())
+			throw std::invalid_argument("Found extra characters at end of DateTime string");
 #else
         const char *res = strptime(str, format, &m_tm);
         if (NULL == res || *res)
