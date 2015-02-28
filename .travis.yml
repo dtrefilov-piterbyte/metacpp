@@ -21,5 +21,5 @@ before_script:
   - cmake ..
 
 script:
-  - make
-  - if [ $? -eq 0 ]; then make test && cat Testing/Temporary/LastTest.log; fi
+  - make && make test && cat Testing/Temporary/LastTest.log
+  - sudo make install
