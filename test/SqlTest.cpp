@@ -71,6 +71,12 @@ DEFINE_STORABLE(Person,
                  CHECK(COL(Person::age), COL(Person::age) < 120)    // humans do not live so much
                  )
 
+// User-defined SQL function now() for Postgresql
+inline ExpressionNodeFunctionCall<DateTime> db_now()
+{
+    return ExpressionNodeFunctionCall<DateTime>("now");
+}
+
 void SqlTest::SetUp()
 {
 #ifdef HAVE_SQLITE3
