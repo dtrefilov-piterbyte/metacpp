@@ -60,7 +60,7 @@ namespace sql
         static void createSchema(SqlTransaction& transaction, const MetaObject *metaObject,
                                  const Array<SqlConstraintBasePtr>& constraints);
     private:
-        String whereId();
+        ExpressionWhereClause whereId();
         static void createSchemaSqlite(SqlTransaction& transaction, const MetaObject *metaObject,
                                        const Array<SqlConstraintBasePtr>& constraints);
         static void createSchemaPostgreSQL(SqlTransaction &transaction, const MetaObject *metaObject,

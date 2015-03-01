@@ -119,9 +119,9 @@ SqlStatementSelect &SqlStatementSelect::offset(size_t off)
     return *this;
 }
 
-SqlStatementSelect &SqlStatementSelect::where(const WhereClauseBuilder &whereClause)
+SqlStatementSelect &SqlStatementSelect::where(const ExpressionWhereClause &whereClause)
 {
-    m_whereClause = whereClause.expression();
+    m_whereClause = whereClause.impl()->sqlExpression();
     return *this;
 }
 
@@ -256,9 +256,9 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
     return res;
 }
 
-SqlStatementUpdate &SqlStatementUpdate::where(const WhereClauseBuilder &whereClause)
+SqlStatementUpdate &SqlStatementUpdate::where(const ExpressionWhereClause &whereClause)
 {
-    m_whereClause = whereClause.expression();
+    m_whereClause = whereClause.impl()->sqlExpression();
     return *this;
 }
 
@@ -320,9 +320,9 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
 
 }
 
-SqlStatementDelete &SqlStatementDelete::where(const WhereClauseBuilder &whereClause)
+SqlStatementDelete &SqlStatementDelete::where(const ExpressionWhereClause &whereClause)
 {
-    m_whereClause = whereClause.expression();
+    m_whereClause = whereClause.impl()->sqlExpression();
     return *this;
 }
 

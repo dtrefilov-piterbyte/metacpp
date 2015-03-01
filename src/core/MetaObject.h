@@ -97,7 +97,7 @@ class MetaFieldBase
 {
 protected:
     /** \brief Constructs new instance of MetaFieldBase with given fieldDescriptor */
-    explicit MetaFieldBase(const FieldInfoDescriptor *fieldDescriptor);
+    explicit MetaFieldBase(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
 public:
     virtual ~MetaFieldBase();
 
@@ -134,8 +134,11 @@ public:
     const T& access(const Object *obj) const {
         return *reinterpret_cast<const T *>(reinterpret_cast<const char *>(obj) + offset());
     }
+
+    const MetaObject *metaObject() const;
 protected:
     const FieldInfoDescriptor *m_descriptor;
+    const MetaObject *m_metaObject;
 };
 
 /** \brief Base clas for property reflection info of scalar types */
@@ -144,8 +147,8 @@ class MetaField : public MetaFieldBase
 {
 protected:
     /** \brief Constructs new instance of MetaField using given fieldDescriptor */
-    explicit MetaField(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaFieldBase(fieldDescriptor)
+    explicit MetaField(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+        : MetaFieldBase(fieldDescriptor, metaObject)
     {
     }
 
@@ -181,13 +184,9 @@ class MetaFieldBool : public MetaField<bool>
 {
 public:
     /** \brief Constructs new instance of MetaFieldBool using given fieldDescriptor */
-    MetaFieldBool(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldBool(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline bool defaultValue() const { return m_descriptor->valueInfo.ext.m_bool.defaultValue; }
+    bool defaultValue() const;
 };
 
 /** \brief Represents int32_t property reflection info */
@@ -195,13 +194,9 @@ class MetaFieldInt : public MetaField<int32_t>
 {
 public:
     /** \brief Constructs new instance of MetaFieldInt using given fieldDescriptor */
-    MetaFieldInt(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldInt(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline int32_t defaultValue() const { return m_descriptor->valueInfo.ext.m_int.defaultValue; }
+    int32_t defaultValue() const;
 };
 
 /** \brief Represents uint32_t property reflection info */
@@ -209,13 +204,9 @@ class MetaFieldUint : public MetaField<uint32_t>
 {
 public:
     /** \brief Constructs new instance of MetaFieldUint using given fieldDescriptor */
-    MetaFieldUint(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldUint(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline uint32_t defaultValue() const { return m_descriptor->valueInfo.ext.m_uint.defaultValue; }
+    uint32_t defaultValue() const;
 };
 
 /** \brief Represents int64_t property reflection info */
@@ -223,13 +214,9 @@ class MetaFieldInt64 : public MetaField<int64_t>
 {
 public:
     /** \brief Constructs new instance of MetaFieldInt64 using given fieldDescriptor */
-    MetaFieldInt64(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldInt64(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline int64_t defaultValue() const { return m_descriptor->valueInfo.ext.m_int64.defaultValue; }
+    int64_t defaultValue() const;
 };
 
 /** \brief Represents uint64_t property reflection info */
@@ -237,13 +224,9 @@ class MetaFieldUint64 : public MetaField<uint64_t>
 {
 public:
     /** \brief Constructs new instance of MetaFieldUint64 using given fieldDescriptor */
-    MetaFieldUint64(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldUint64(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline uint64_t defaultValue() const { return m_descriptor->valueInfo.ext.m_uint64.defaultValue; }
+    uint64_t defaultValue() const;
 };
 
 /** \brief Represents float property reflection info */
@@ -251,13 +234,9 @@ class MetaFieldFloat : public MetaField<float>
 {
 public:
     /** \brief Constructs new instance of MetaFieldFloat using given fieldDescriptor */
-    MetaFieldFloat(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldFloat(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline float defaultValue() const { return m_descriptor->valueInfo.ext.m_float.defaultValue; }
+    float defaultValue() const;
 };
 
 /** \brief Represents double property reflection info */
@@ -265,13 +244,10 @@ class MetaFieldDouble : public MetaField<double>
 {
 public:
     /** \brief Constructs new instance of MetaFieldDouble using given fieldDescriptor */
-    MetaFieldDouble(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
+    MetaFieldDouble(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
 
     /** \brief Gets the default value of this field */
-    inline double defaultValue() const { return m_descriptor->valueInfo.ext.m_double.defaultValue; }
+    double defaultValue() const;
 };
 
 /** \brief Represents metacpp::String property reflection info */
@@ -279,13 +255,9 @@ class MetaFieldString : public MetaField<String>
 {
 public:
     /** \brief Constructs new instance of MetaFieldString using given fieldDescriptor */
-    MetaFieldString(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldString(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline const char *defaultValue() const { return m_descriptor->valueInfo.ext.m_string.defaultValue; }
+    const char *defaultValue() const;
 };
 
 /** \brief Represents enum property reflection info */
@@ -293,41 +265,25 @@ class MetaFieldEnum : public MetaField<uint32_t>
 {
 public:
     /** \brief Constructs new instance of MetaFieldEnum using given fieldDescriptor */
-    MetaFieldEnum(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldEnum(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline uint32_t defaultValue() const { return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_defaultValue; }
-
+    uint32_t defaultValue() const;
     /** \brief Gets the enum type of this field */
-    inline EEnumType enumType() const { return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_type; }
+    EEnumType enumType() const;
     /** \brief Gets the enumeration name of this field */
-    inline const char *enumName() const { return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_enumName; }
+    const char *enumName() const;
 
     /** \brief Trys to resolve uint32_t value of enumeration as it's name
      *
      * \returns nullptr if failed
      */
-    inline const char *toString(uint32_t value) const
-    {
-        for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
-            if (desc->m_uValue == value) return desc->m_pszValue;
-        return nullptr;
-    }
+    const char *toString(uint32_t value) const;
 
     /** \brief Trys to resolve named value of enumeration as uint32_t
      *
      * \returns nullptr if failed
      */
-    inline uint32_t fromString(const char *strValue) const
-    {
-        String s(strValue);
-        for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
-            if (s == desc->m_pszValue) return desc->m_uValue;
-        return defaultValue();
-    }
+    uint32_t fromString(const char *strValue) const;
 };
 
 /** \brief Represents metacpp::Object property reflection info */
@@ -335,25 +291,13 @@ class MetaFieldObject : public MetaFieldBase
 {
 public:
     /** \brief Constructs new instance of MetaFieldObject using given fieldDescriptor */
-    MetaFieldObject(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaFieldBase(fieldDescriptor)
-    {
-    }
-
+    MetaFieldObject(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Overriden from MetaFieldBase::getValue, throws std::runtime_error */
-    Variant getValue(const Object *) const override
-    {
-        throw std::runtime_error("MetaFieldObject::getValue() not implemented");
-    }
-
+    Variant getValue(const Object *) const override;
     /** \brief Overriden from MetaFieldBase::setValue, throws std::runtime_error */
-    void setValue(const Variant&, Object *) const override
-    {
-        throw std::runtime_error("MetaFieldObject::setValue() not implemented");
-    }
-
+    void setValue(const Variant&, Object *) const override;
     /** \brief Gets a metacpp::MetaObject for this object field */
-    const MetaObject *metaObject() const { return m_descriptor->valueInfo.ext.m_obj.metaObject; }
+    const MetaObject *fieldMetaObject() const;
 };
 
 /** \brief Represents metacpp::Array property reflection info */
@@ -361,27 +305,15 @@ class MetaFieldArray : public MetaFieldBase
 {
 public:
     /** \brief Constructs new instance of MetaFieldArray using given fieldDescriptor */
-    MetaFieldArray(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaFieldBase(fieldDescriptor)
-    {
-    }
-
+    MetaFieldArray(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Overriden from MetaFieldBase::getValue, throws std::runtime_error */
-    Variant getValue(const Object *) const override
-    {
-        throw std::runtime_error("MetaFieldArray::getValue() not implemented");
-    }
-
+    Variant getValue(const Object *) const override;
     /** \brief Overriden from MetaFieldBase::setValue, throws std::runtime_error */
-    void setValue(const Variant&, Object *) const override
-    {
-        throw std::runtime_error("MetaFieldArray::setValue() not implemented");
-    }
-
+    void setValue(const Variant&, Object *) const override;
     /** \brief Gets a type of the element of this array field */
-    inline EFieldType arrayElementType() const { return m_descriptor->valueInfo.ext.m_array.elemType; }
+    EFieldType arrayElementType() const;
     /** \brief Gets a size of the element of this array field */
-    inline size_t arrayElementSize() const { return m_descriptor->valueInfo.ext.m_array.elemSize; }
+    size_t arrayElementSize() const;
 };
 
 /** \brief Represents metacpp::DateTime property reflection info */
@@ -389,21 +321,17 @@ class MetaFieldDateTime : public MetaField<DateTime>
 {
 public:
     /** \brief Constructs new instance of MetaFieldDateTime using given fieldDescriptor */
-    MetaFieldDateTime(const FieldInfoDescriptor *fieldDescriptor)
-        : MetaField(fieldDescriptor)
-    {
-    }
-
+    MetaFieldDateTime(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
     /** \brief Gets the default value of this field */
-    inline DateTime defaultValue() const { return DateTime(m_descriptor->valueInfo.ext.m_datetime.defaultValue); }
+    DateTime defaultValue() const;
 };
 
 /** \brief Factory class for the property reflection infos */
-class MetaFieldFactory : public FactoryBase<std::unique_ptr<MetaFieldBase>, const FieldInfoDescriptor *>
+class MetaFieldFactory : public FactoryBase<std::unique_ptr<MetaFieldBase>, const FieldInfoDescriptor *, const MetaObject *>
 {
 public:
     /** \brief Creates an instance of reflection info using given fieldDescriptor */
-    std::unique_ptr<MetaFieldBase> createInstance(const FieldInfoDescriptor *fieldDescriptor) override;
+    std::unique_ptr<MetaFieldBase> createInstance(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject) override;
 };
 
 /** \brief Base abstract class representing method reflection info */

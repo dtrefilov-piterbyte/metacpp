@@ -15,7 +15,7 @@
 ****************************************************************************/
 #ifndef SQLCOLUMNCONSTRAINT_H
 #define SQLCOLUMNCONSTRAINT_H
-#include "SqlColumnMatcher.h"
+#include "ExpressionNode.h"
 #include <memory>
 
 namespace metacpp
@@ -42,7 +42,7 @@ class SqlConstraintBase
 protected:
     /** \brief Constructs a new instance of SqlConstraintBase with given column */
     template<typename TObj, typename TField>
-    SqlConstraintBase(const SqlColumnMatcherFieldBase<TObj, TField>& column)
+    SqlConstraintBase(const ExpressionNodeColumn<TObj, TField>& column)
         : m_metaField(column.metaField()), m_metaObject(TObj::staticMetaObject())
     {
     }
@@ -74,7 +74,7 @@ class SqlConstraintPrimaryKey : public SqlConstraintBase
 public:
     /** \brief Constructs a new instance of SqlConstraintPrimaryKey with given column */
     template<typename TObj, typename TField>
-    SqlConstraintPrimaryKey(const SqlColumnMatcherFieldBase<TObj, TField>& column)
+    SqlConstraintPrimaryKey(const ExpressionNodeColumn<TObj, TField>& column)
         : SqlConstraintBase(column)
     {
     }
@@ -98,8 +98,8 @@ public:
     template<typename TObj, typename TField,
              typename TObj1, typename TField1,
              typename = typename std::enable_if<!std::is_same<TObj, TObj1>::value>::type>
-    SqlConstraintForeignKey(const SqlColumnMatcherFieldBase<TObj, TField>& column,
-                                  const SqlColumnMatcherFieldBase<TObj1, TField1>& refColumn) :
+    SqlConstraintForeignKey(const ExpressionNodeColumn<TObj, TField>& column,
+                                  const ExpressionNodeColumn<TObj1, TField1>& refColumn) :
           SqlConstraintBase(column),
           m_refMetaField(refColumn.metaField()),
           m_refMetaObject(TObj1::staticMetaObject())
@@ -134,7 +134,7 @@ public:
 
     /** \brief Constructs a new instance of SqlConstraintIndex with given column and uniqueness flag */
     template<typename TObj, typename TField>
-    SqlConstraintIndex(const SqlColumnMatcherFieldBase<TObj, TField>& matcher, bool unique)
+    SqlConstraintIndex(const ExpressionNodeColumn<TObj, TField>& matcher, bool unique)
         : SqlConstraintBase(matcher), m_unique(unique)
     {
     }
@@ -164,9 +164,9 @@ class SqlConstraintCheck : public SqlConstraintBase
 public:
     /** \brief Constructs a new instance of SqlConstraintCheck with given column and check condition */
     template<typename TObj, typename TField>
-    SqlConstraintCheck(const SqlColumnMatcherFieldBase<TObj, TField>& matcher,
-                       const WhereClauseBuilder& check)
-        : SqlConstraintBase(matcher), m_checkExpression(check.expression())
+    SqlConstraintCheck(const ExpressionNodeColumn<TObj, TField>& matcher,
+                       const ExpressionWhereClause& check)
+        : SqlConstraintBase(matcher), m_checkExpression(check.impl()->sqlExpression())
     {
     }
 

@@ -159,7 +159,7 @@ void MetaObject::prepare() const
             {
                 for (size_t i = 0; desc->m_fieldDescriptors[i].m_pszName; ++i)
                 {
-                    m_fields.push_back(std::move(fieldFactory.createInstance(desc->m_fieldDescriptors + i)));
+                    m_fields.push_back(std::move(fieldFactory.createInstance(desc->m_fieldDescriptors + i, this)));
                 }
             }
             if (desc->m_methodDescriptors)
@@ -177,8 +177,8 @@ void MetaObject::prepare() const
 }
 
 
-MetaFieldBase::MetaFieldBase(const FieldInfoDescriptor *fieldDescriptor)
-    : m_descriptor(fieldDescriptor)
+MetaFieldBase::MetaFieldBase(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : m_descriptor(fieldDescriptor), m_metaObject(metaObject)
 {
 
 }
@@ -217,46 +217,221 @@ EMandatoriness MetaFieldBase::mandatoriness() const
     return m_descriptor->valueInfo.mandatoriness;
 }
 
-std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *fieldDescriptor)
+const MetaObject *MetaFieldBase::metaObject() const
+{
+    return m_metaObject;
+}
+
+MetaFieldBool::MetaFieldBool(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<bool>(fieldDescriptor, metaObject)
+{
+}
+
+bool MetaFieldBool::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_bool.defaultValue;
+}
+
+MetaFieldInt::MetaFieldInt(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<int32_t>(fieldDescriptor, metaObject)
+{
+}
+
+int32_t MetaFieldInt::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_int.defaultValue;
+}
+
+MetaFieldUint::MetaFieldUint(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<uint32_t>(fieldDescriptor, metaObject)
+{
+}
+
+uint32_t MetaFieldUint::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_uint.defaultValue;
+}
+
+MetaFieldInt64::MetaFieldInt64(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<int64_t>(fieldDescriptor, metaObject)
+{
+}
+
+int64_t MetaFieldInt64::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_int64.defaultValue;
+}
+
+MetaFieldUint64::MetaFieldUint64(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<uint64_t>(fieldDescriptor, metaObject)
+{
+}
+
+uint64_t MetaFieldUint64::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_uint64.defaultValue;
+}
+
+MetaFieldFloat::MetaFieldFloat(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<float>(fieldDescriptor, metaObject)
+{
+}
+
+float MetaFieldFloat::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_float.defaultValue;
+}
+
+MetaFieldDouble::MetaFieldDouble(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<double>(fieldDescriptor, metaObject)
+{
+}
+
+double MetaFieldDouble::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_double.defaultValue;
+}
+
+MetaFieldString::MetaFieldString(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<String>(fieldDescriptor, metaObject)
+{
+}
+
+const char *MetaFieldString::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_string.defaultValue;
+}
+
+MetaFieldEnum::MetaFieldEnum(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<uint32_t>(fieldDescriptor, metaObject)
+{
+}
+
+uint32_t MetaFieldEnum::defaultValue() const
+{
+    return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_defaultValue;
+}
+
+EEnumType MetaFieldEnum::enumType() const
+{
+    return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_type;
+}
+
+const char *MetaFieldEnum::enumName() const
+{
+    return m_descriptor->valueInfo.ext.m_enum.enumInfo->m_enumName;
+}
+
+const char *MetaFieldEnum::toString(uint32_t value) const
+{
+    for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
+        if (desc->m_uValue == value) return desc->m_pszValue;
+    return nullptr;
+}
+
+uint32_t MetaFieldEnum::fromString(const char *strValue) const
+{
+    String s(strValue);
+    for (const EnumValueInfoDescriptor *desc = m_descriptor->valueInfo.ext.m_enum.enumInfo->m_valueDescriptors; desc->m_pszValue; ++desc)
+        if (s == desc->m_pszValue) return desc->m_uValue;
+    return defaultValue();
+}
+
+MetaFieldObject::MetaFieldObject(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaFieldBase(fieldDescriptor, metaObject)
+{
+}
+
+Variant MetaFieldObject::getValue(const Object *) const
+{
+    throw std::runtime_error("MetaFieldObject::getValue() not implemented");
+}
+
+void MetaFieldObject::setValue(const Variant &, Object *) const
+{
+    throw std::runtime_error("MetaFieldObject::setValue() not implemented");
+}
+
+const MetaObject *MetaFieldObject::fieldMetaObject() const
+{
+    return m_descriptor->valueInfo.ext.m_obj.metaObject;
+}
+
+MetaFieldArray::MetaFieldArray(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaFieldBase(fieldDescriptor, metaObject)
+{
+}
+
+Variant MetaFieldArray::getValue(const Object *) const
+{
+    throw std::runtime_error("MetaFieldArray::getValue() not implemented");
+}
+
+void MetaFieldArray::setValue(const Variant &, Object *) const
+{
+    throw std::runtime_error("MetaFieldArray::setValue() not implemented");
+}
+
+EFieldType MetaFieldArray::arrayElementType() const
+{
+    return m_descriptor->valueInfo.ext.m_array.elemType;
+}
+
+size_t MetaFieldArray::arrayElementSize() const
+{
+    return m_descriptor->valueInfo.ext.m_array.elemSize;
+}
+
+MetaFieldDateTime::MetaFieldDateTime(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<DateTime>(fieldDescriptor, metaObject)
+{
+}
+
+DateTime MetaFieldDateTime::defaultValue() const
+{
+    return DateTime(m_descriptor->valueInfo.ext.m_datetime.defaultValue);
+}
+
+std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
 {
     std::unique_ptr<MetaFieldBase> result;
     switch (fieldDescriptor->m_eType)
     {
     case eFieldBool:
-        result.reset(new MetaFieldBool(fieldDescriptor));
+        result.reset(new MetaFieldBool(fieldDescriptor, metaObject));
         break;
     case eFieldInt:
-        result.reset(new MetaFieldInt(fieldDescriptor));
+        result.reset(new MetaFieldInt(fieldDescriptor, metaObject));
         break;
     case eFieldUint:
-        result.reset(new MetaFieldUint(fieldDescriptor));
+        result.reset(new MetaFieldUint(fieldDescriptor, metaObject));
         break;
     case eFieldInt64:
-        result.reset(new MetaFieldInt64(fieldDescriptor));
+        result.reset(new MetaFieldInt64(fieldDescriptor, metaObject));
         break;
     case eFieldUint64:
-        result.reset(new MetaFieldUint64(fieldDescriptor));
+        result.reset(new MetaFieldUint64(fieldDescriptor, metaObject));
         break;
     case eFieldFloat:
-        result.reset(new MetaFieldFloat(fieldDescriptor));
+        result.reset(new MetaFieldFloat(fieldDescriptor, metaObject));
         break;
     case eFieldDouble:
-        result.reset(new MetaFieldDouble(fieldDescriptor));
+        result.reset(new MetaFieldDouble(fieldDescriptor, metaObject));
         break;
     case eFieldString:
-        result.reset(new MetaFieldString(fieldDescriptor));
+        result.reset(new MetaFieldString(fieldDescriptor, metaObject));
         break;
     case eFieldEnum:
-        result.reset(new MetaFieldEnum(fieldDescriptor));
+        result.reset(new MetaFieldEnum(fieldDescriptor, metaObject));
         break;
     case eFieldObject:
-        result.reset(new MetaFieldObject(fieldDescriptor));
+        result.reset(new MetaFieldObject(fieldDescriptor, metaObject));
         break;
     case eFieldArray:
-        result.reset(new MetaFieldArray(fieldDescriptor));
+        result.reset(new MetaFieldArray(fieldDescriptor, metaObject));
         break;
     case eFieldDateTime:
-        result.reset(new MetaFieldDateTime(fieldDescriptor));
+        result.reset(new MetaFieldDateTime(fieldDescriptor, metaObject));
         break;
     default:
         break;

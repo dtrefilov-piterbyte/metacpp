@@ -57,14 +57,14 @@ bool SqlStorable::insertOne(SqlTransaction& transaction)
 bool SqlStorable::updateOne(SqlTransaction &transaction)
 {
     SqlStatementUpdate statement(this);
-    int nRows = statement.where(DirectWhereClauseBuilder(whereId())).exec(transaction);
+    int nRows = statement.where(whereId()).exec(transaction);
     return nRows < 0 || nRows == 1;
 }
 
 bool SqlStorable::removeOne(SqlTransaction &transaction)
 {
     SqlStatementDelete statement(this);
-    int nRows = statement.where(DirectWhereClauseBuilder(whereId())).exec(transaction);
+    int nRows = statement.where(whereId()).exec(transaction);
     return nRows < 0 || nRows == 1;
 }
 
@@ -140,15 +140,14 @@ void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *me
     throw std::runtime_error("SqlStorable::createSchema(): syntax not implemented");
 }
 
-String SqlStorable::whereId()
+ExpressionWhereClause SqlStorable::whereId()
 {
     auto pkey = primaryKey();
     if (!pkey)
         throw std::runtime_error(std::string("Table ") + record()->metaObject()->name() +
                                  " has no primary key");
-    String res = String(record()->metaObject()->name()) + "." + pkey->name() + " = " +
-            fieldValue(pkey);
-    return res;
+    return ExpressionWhereClause(std::make_shared<::metacpp::db::detail::ExpressionWhereClauseImplRelational>(eRelationalOperatorEqual,
+        ExpressionNodeColumnBase(pkey), ExpressionNodeLiteral<Variant>(pkey->getValue(record()))));
 }
 
 void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObject *metaObject, const Array<SqlConstraintBasePtr> &constraints)

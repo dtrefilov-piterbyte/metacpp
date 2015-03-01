@@ -15,10 +15,11 @@
 ****************************************************************************/
 #ifndef SQLSTATEMENT_H
 #define SQLSTATEMENT_H
-#include "SqlWhereClause.h"
 #include "SqlResultSet.h"
-#include "SqlColumnAssignment.h"
 #include "SharedDataPointer.h"
+#include "ExpressionAssignment.h"
+#include "ExpressionNode.h"
+#include "ExpressionWhereClause.h"
 #include <memory>
 
 namespace metacpp
@@ -142,20 +143,20 @@ public:
     /** \brief Specifies number of skipped rows in result set */
     SqlStatementSelect& offset(size_t off);
     /** \brief Specifies where clause for this statement */
-    SqlStatementSelect& where(const WhereClauseBuilder& whereClause);
+    SqlStatementSelect& where(const ExpressionWhereClause& whereClause);
     /** \brief Executes statement and returns result set */
     SqlResultSet exec(SqlTransaction& transaction);
 
     /** \brief Specifies columns to be used for sorting in ascending order of result set */
     template<typename TObj1, typename TField1, typename... TOthers>
-    SqlStatementSelect& orderAsc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    SqlStatementSelect& orderAsc(const ExpressionNodeColumn<TObj1, TField1>& column, TOthers... others)
     {
         return orderByHelper(true, column, others...);
     }
 
     /** \brief Specifies columns to be used for sorting in descending order of result set */
     template<typename TObj1, typename TField1, typename... TOthers>
-    SqlStatementSelect& orderDesc(const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    SqlStatementSelect& orderDesc(const ExpressionNodeColumn<TObj1, TField1>& column, TOthers... others)
     {
         return orderByHelper(false, column, others...);
     }
@@ -166,11 +167,11 @@ private:
     }
 
     template<typename TObj1, typename TField1, typename... TOthers>
-    SqlStatementSelect& orderByHelper(bool asc, const SqlColumnMatcherFieldBase<TObj1, TField1>& column, TOthers... others)
+    SqlStatementSelect& orderByHelper(bool asc, const ExpressionNodeColumn<TObj1, TField1>& column, TOthers... others)
     {
         m_orderAsc = true;
         m_order.reserve(m_order.size() + 1 + sizeof...(others));
-        m_order.push_back(column.expression() + (asc ? " ASC" : " DESC"));
+        m_order.push_back(column.impl()->sqlExpression() + (asc ? " ASC" : " DESC"));
         return orderByHelper(asc, others...);
     }
 private:
@@ -241,32 +242,32 @@ public:
 
     /** \brief Specifies a set clause with a given assignment */
     template<typename TObj>
-    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment)
+    SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment)
     {
-        m_sets.push_back(assignment.expression());
+        m_sets.push_back(assignment.lhs()->sqlExpression(false) + " = " + assignment.rhs()->sqlExpression(false));
         return *this;
     }
 
     /** \brief Specifies a set clause with a given assignments */
     template<typename TObj>
-    SqlStatementUpdate& set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2)
+    SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment1, const ExpressionAssignmentBase<TObj>& assignment2)
     {
-        m_sets.push_back(assignment1.expression());
-        m_sets.push_back(assignment2.expression());
+        m_sets.push_back(assignment1.lhs()->sqlExpression(false) + " = " + assignment1.rhs()->sqlExpression(false));
+        m_sets.push_back(assignment2.lhs()->sqlExpression(false) + " = " + assignment2.rhs()->sqlExpression(false));
         return *this;
     }
 
     /** \brief Specifies a set clause with a given assignments */
     template<typename TObj, typename... TRest>
     typename std::enable_if<sizeof...(TRest) != 0, SqlStatementUpdate>::type&
-        set(const SqlColumnAssignmentBase<TObj>& assignment1, const SqlColumnAssignmentBase<TObj>& assignment2, TRest... rest)
+        set(const ExpressionAssignmentBase<TObj>& assignment1, const ExpressionAssignmentBase<TObj>& assignment2, TRest... rest)
     {
-        m_sets.push_back(assignment1.expression());
+        m_sets.push_back(assignment1.lhs()->sqlExpression(false) + " = " + assignment1.rhs()->sqlExpression(false));
         return set(assignment2, rest...);
     }
 
     /** \brief Specifies a where clause */
-    SqlStatementUpdate& where(const WhereClauseBuilder& whereClause);
+    SqlStatementUpdate& where(const ExpressionWhereClause& whereClause);
     /** \brief Executes statement using given transaction and returns number of rows updated */
     int exec(SqlTransaction& transaction);
 private:
@@ -306,7 +307,7 @@ public:
     }
 
     /** \brief Specifies a where clause */
-    SqlStatementDelete &where(const WhereClauseBuilder& whereClause);
+    SqlStatementDelete &where(const ExpressionWhereClause& whereClause);
     /** \brief Executes statement using given transaction and returns number of rows deleted */
     int exec(SqlTransaction& transaction);
 private:

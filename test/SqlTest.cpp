@@ -1,6 +1,4 @@
 #include "SqlTest.h"
-#include "SqlColumnMatcher.h"
-#include "SqlColumnAssignment.h"
 #include "SqlStorable.h"
 #include "SqlStatement.h"
 #include "SqlTransaction.h"
@@ -13,6 +11,7 @@
 #endif
 
 using namespace ::metacpp;
+using namespace ::metacpp::db;
 using namespace ::metacpp::db::sql;
 
 class City : public Object

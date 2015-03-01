@@ -231,11 +231,24 @@ namespace detail
             *(m_data + m_dwSize - 1) = v;
         }
 
+        void _push_back(T&& v)
+        {
+            _resize(m_dwSize + 1);
+            *(m_data + m_dwSize - 1) = std::move(v);
+        }
+
         void _push_front(const T& v)
         {
             _resize(m_dwSize + 1);
             std::copy(m_data, m_data + m_dwSize - 1, m_data + 1);
             *m_data = v;
+        }
+
+        void _push_front(T&& v)
+        {
+            _resize(m_dwSize + 1);
+            std::copy(m_data, m_data + m_dwSize - 1, m_data + 1);
+            *m_data = std::move(v);
         }
 
         void _pop_back()
@@ -392,7 +405,7 @@ public:
 
     /** \brief Applies functor to each element in this array and returns a new array of results */
     template<typename TRes>
-    Array<TRes> map(const std::function<TRes (const T&)>& functor)
+    Array<TRes> map(const std::function<TRes (const T&)>& functor) const
     {
         Array<TRes> res;
         res.reserve(size());
