@@ -91,7 +91,7 @@ bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
 {
     const String& query = statement->queryText();
     sqlite3_stmt *stmt;
-    std::cout << query << std::endl;
+//    std::cout << query << std::endl;
     int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), (int)query.size() + 1,
         &stmt, nullptr);
     if (SQLITE_OK != error)
