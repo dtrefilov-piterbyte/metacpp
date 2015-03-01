@@ -68,13 +68,16 @@ DEFINE_STORABLE(Person,
                  REFERENCES(COL(Person::cityId), COL(City::id)),
                  UNIQUE_INDEX(COL(Person::id)),
                  INDEX(COL(Person::cityId)),
-                 CHECK(COL(Person::age), COL(Person::age) < 120)    // people do not live so much
+                 CHECK(COL(Person::age), COL(Person::age) < 120)    // humans do not live so much
                  )
 
 void SqlTest::SetUp()
 {
+#ifdef HAVE_SQLITE3
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://memdb?mode=memory&cache=shared")));
-    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
+#elif defined(HAVE_POSTGRES)
+    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
+#endif
     ASSERT_TRUE(m_conn.get()) << "Sql connector unavailable";
     m_conn->setConnectionPooling(3);
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
@@ -201,10 +204,10 @@ TEST_F(SqlTest, selectTest)
         Storable<Person> person;
         Storable<City> city;
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
-                (COL(Person::age) + 2.5  * COL(Person::cat_weight)) > 250) &&
+                (coalesce(COL(Person::age), db::random()) + 2.5  * COL(Person::cat_weight)) > 250) &&
                 COL(Person::cityId) == COL(City::id) &&
                 !lower(COL(Person::name)).like("invalid_%") &&
-                COL(Person::birthday) > DateTime::fromString("2000-01-01 00:00:00"))
+                coalesce(COL(Person::birthday), DateTime::fromString("2000-01-01 00:00:00")) >= DateTime::fromString("2000-01-01 00:00:00"))
                 .limit(10).orderAsc(COL(Person::name), COL(City::name)).orderDesc(COL(Person::age)).exec(transaction);
 
         StringArray persons;

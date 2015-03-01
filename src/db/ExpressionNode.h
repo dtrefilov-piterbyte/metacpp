@@ -266,8 +266,10 @@ template<typename T>
 class ExpressionNode : public ExpressionNodeBase
 {
 public:
+    typedef T Type;
+
     /** \brief Constructs new instance with given private implementation */
-    ExpressionNode(detail::ExpressionNodeImplPtr impl)
+    explicit ExpressionNode(detail::ExpressionNodeImplPtr impl)
         : ExpressionNodeBase(impl)
     {
     }
@@ -290,6 +292,8 @@ template<>
 class ExpressionNodeLiteral<Variant> : public ExpressionNodeBase
 {
 public:
+    typedef Variant Type;
+
     explicit ExpressionNodeLiteral(const Variant& value)
         : ExpressionNodeBase(std::make_shared<detail::ExpressionNodeImplLiteral<Variant> >(value))
     {
@@ -300,8 +304,10 @@ template<>
 class ExpressionNode<String> : public ExpressionNodeBase
 {
 public:
+    typedef String Type;
+
     /** \brief Constructs new instance with given private implementation */
-    ExpressionNode(detail::ExpressionNodeImplPtr impl)
+    explicit ExpressionNode(detail::ExpressionNodeImplPtr impl)
         : ExpressionNodeBase(impl)
     {
     }
@@ -514,7 +520,20 @@ public:
     {
     }
 private:
-    static detail::ExpressionNodeImplPtr getImplHelper(const ExpressionNodeBase& node) { return node.impl(); }
+    static detail::ExpressionNodeImplPtr getImplHelper(const ExpressionNodeBase& node)
+    {
+        return node.impl();
+    }
+    static detail::ExpressionNodeImplPtr getImplHelper(const null_t&)
+    {
+        return std::make_shared<detail::ExpressionNodeImplNull>();
+    }
+    template<typename TField>
+    static typename std::enable_if<MayBeField<TField>::value, detail::ExpressionNodeImplPtr>::type
+        getImplHelper(const TField& value)
+    {
+        return std::make_shared<detail::ExpressionNodeImplLiteral<TField> >(value);
+    }
 };
 
 template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::value>::type>
@@ -664,13 +683,13 @@ inline ExpressionNodeFunctionCall<uint64_t> length(const ExpressionNode<String>&
 
 /*** Arihmetic functions  ***/
 
-template<typename TField, typename = typename std::enable_if<std::is_arithmetic<TField>::value>::type >
+template<typename TField, typename = typename std::enable_if<std::is_arithmetic<TField>::value>::type>
 inline ExpressionNodeFunctionCall<TField> abs(const ExpressionNode<TField>& column)
 {
     return ExpressionNodeFunctionCall<TField>("abs", column);
 }
 
-template<typename TField, typename = typename std::enable_if<std::is_floating_point<TField>::value>::type >
+template<typename TField, typename = typename std::enable_if<std::is_floating_point<TField>::value>::type>
 inline ExpressionNodeFunctionCall<TField> round(const ExpressionNode<TField>& column)
 {
     return ExpressionNodeFunctionCall<TField>("round", column);
@@ -679,6 +698,47 @@ inline ExpressionNodeFunctionCall<TField> round(const ExpressionNode<TField>& co
 inline ExpressionNodeFunctionCall<int64_t> random()
 {
     return ExpressionNodeFunctionCall<int64_t>("random");
+}
+
+/*** Miscellaneous functions ***/
+namespace detail
+{
+    template<typename T, bool IsNode = std::is_base_of<ExpressionNodeBase, T>::value>
+    struct TypeDeductorHelper;
+
+    template<typename TField>
+    struct TypeDeductorHelper<TField, false>
+    {
+        typedef typename std::remove_reference<TField>::type Type;
+    };
+
+    template<typename TNode>
+    struct TypeDeductorHelper<TNode, true>
+    {
+        typedef typename TNode::Type Type;
+    };
+
+    /** Helper type used for retrieval of the result type of coalesce function */
+    template<typename... TFields>
+    struct CoalesceHelper;
+
+    template<typename T1, typename T2>
+    struct CoalesceHelper<T1, T2>
+    {
+        typedef typename TypePromotion<typename TypeDeductorHelper<T1>::Type, typename TypeDeductorHelper<T2>::Type>::Type TRes;
+    };
+
+    template<typename T1, typename T2, typename T3, typename... TRest>
+    struct CoalesceHelper<T1, T2, T3, TRest...>
+    {
+        typedef typename TypePromotion<typename CoalesceHelper<T1, T2>::TRes, typename TypeDeductorHelper<T3>::Type, TRest...>::Type TRes;
+    };
+}
+
+template<typename... TArgs>
+ExpressionNodeFunctionCall<typename detail::CoalesceHelper<TArgs...>::TRes> coalesce(TArgs... args)
+{
+    return ExpressionNodeFunctionCall<typename detail::CoalesceHelper<TArgs...>::TRes>("coalesce", args...);
 }
 
 } // namespace db

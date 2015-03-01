@@ -101,15 +101,38 @@ struct TypePromotionHelper<T1, T2, _PromoteToInt>
     typedef int PromotionType;
 };
 
-template<typename TField1, typename TField2>
-struct TypePromotion
+template<typename... TFields>
+struct TypePromotion;
+
+template<typename TField>
+struct TypePromotion<TField>
 {
+    typedef TField Type;
+};
+
+template<typename TField1, typename TField2>
+struct TypePromotion<TField1, TField2>
+{
+    static_assert(std::is_arithmetic<TField1>::value && std::is_arithmetic<TField2>::value,
+                  "Should only be used with arithmetic types");
     typedef typename TypePromotionHelper<TField1, TField2,
     TypePromotionPriorityHelper<TField1>::priority >= 1000 &&
     TypePromotionPriorityHelper<TField2>::priority >= 1000 ? _PromoteToInt :
     (TypePromotionPriorityHelper<TField1>::priority <
      TypePromotionPriorityHelper<TField2>::priority ?
          _PromoteToFirst : _PromoteToSecond)>::PromotionType Type;
+};
+
+template<typename TField>
+struct TypePromotion<TField, TField>
+{
+    typedef TField Type;
+};
+
+template<typename TField1, typename TField2, typename... TRest>
+struct TypePromotion<TField1, TField2, TRest...>
+{
+    typedef TypePromotion<TField1, typename TypePromotion<TField2, TRest...>::Type> Type;
 };
 
 } // namespace detail

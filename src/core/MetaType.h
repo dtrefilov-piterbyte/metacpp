@@ -1,5 +1,7 @@
 #ifndef METATYPE
 #define METATYPE
+#include <type_traits>
+#include <cstdint>
 
 /** \brief Type of the fields
  * \relates metacpp::FieldInfoDescriptor
@@ -15,8 +17,8 @@ enum EFieldType
     eFieldFloat		= 'f',                              /** \brief float type */
     eFieldDouble    = 'd',                              /** \brief double type */
     eFieldString	= 's',                              /** \brief metacpp::String type */
-    eFieldEnum		= 'e',                              /** \brief enum type */
     eFieldDateTime  = 't',                              /** \brief metacpp::DateTime type */
+    eFieldEnum		= 'e',                              /** \brief enum type */
     eFieldObject	= 'o',                              /** \brief metacpp::Object type */
     eFieldArray		= 'a',                              /** \brief metacpp::Array type */
 };
@@ -40,6 +42,36 @@ enum EEnumType
     eEnumSimple,      /** \brief Simple enumeration type */
     eEnumBitset       /** \brief Enumeration defines a set of bits (bitmask) */
 };
+
+namespace metacpp
+{
+    template<typename T>
+    class Array;
+
+    template<typename T>
+    class StringBase;
+
+    class Object;
+    class DateTime;
+    class Variant;
+}
+
+template<typename T>
+struct MayBeField : std::false_type { };
+
+template<> struct MayBeField<bool> : std::true_type { };
+template<> struct MayBeField<int32_t> : std::true_type { };
+template<> struct MayBeField<uint32_t> : std::true_type { };
+template<> struct MayBeField<int64_t> : std::true_type { };
+template<> struct MayBeField<uint64_t> : std::true_type { };
+template<> struct MayBeField<float> : std::true_type { };
+template<> struct MayBeField<double> : std::true_type { };
+template<> struct MayBeField<metacpp::StringBase<char> > : std::true_type { };
+template<> struct MayBeField<metacpp::DateTime> : std::true_type { };
+template<typename TElem>
+struct MayBeField<metacpp::Array<TElem> > : std::true_type { };
+
+
 
 #endif // METATYPE
 
