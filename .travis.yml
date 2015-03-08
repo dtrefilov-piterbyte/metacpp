@@ -44,5 +44,5 @@ before_script:
   - cmake ..
 
 script:
-  - make && make test && cat Testing/Temporary/LastTest.log
+  - make VERBOSE=1 && make test && cat Testing/Temporary/LastTest.log
   - sudo make install
