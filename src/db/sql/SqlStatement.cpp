@@ -290,31 +290,33 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
 {
     String res;
     String tblName = m_storable->record()->metaObject()->name();
-    res = "DELETE FROM " + tblName;
 
     if (m_joins.size())
     {
-        String refs;
-        for (size_t i = 0; i < m_joins.size(); ++i)
-        {
-            refs += m_joins[i]->name();
-            if (i != m_joins.size() - 1)
-                refs += ", ";
-        }
+        StringArray joins = m_joins.template map<String>([](const MetaObject * mo) { return mo->name(); });
         if (SqlSyntaxSqlite == syntax)
         {
-            res += " WHERE EXISTS (SELECT 1 FROM " + refs;
-            if (!m_whereClause.empty()) " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            res = "DELETE FROM " + tblName + " WHERE EXISTS (SELECT 1 FROM " + join(joins, ", ");
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
             res += ")";
         }
-        else
+        else if (SqlSyntaxPostgreSQL == syntax)
         {
-            res += " USING " + refs;
+            res = "DELETE FROM " + tblName + " USING " + join(joins, ", ");
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+        }
+        else // MySql
+        {
+            res = "DELETE " + tblName + " FROM " + tblName + " JOIN " + join(joins, " JOIN ");
             if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
     }
-    else if (!m_whereClause.empty())
-        res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+    else
+    {
+        res = "DELETE FROM " + tblName;
+        if (!m_whereClause.empty())
+            res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+    }
     return res;
 
 }

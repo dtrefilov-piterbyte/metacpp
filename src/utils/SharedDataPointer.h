@@ -38,6 +38,18 @@ namespace metacpp
 			if (m_d) m_d->ref();
 		}
 
+        SharedDataPointer(SharedDataPointer&& other)
+        {
+            *this = std::move(other);
+        }
+
+        SharedDataPointer& operator=(SharedDataPointer&& rhs)
+        {
+            clear();
+            m_d = rhs.m_d;
+            return *this;
+        }
+
         virtual ~SharedDataPointer()
         {
             clear();

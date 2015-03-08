@@ -154,6 +154,8 @@ public:
         if (!m_username.isNullOrEmpty()) os << m_username;
         if (!m_password.isNullOrEmpty()) os << ":" << m_password;
         if (!m_username.isNullOrEmpty() || m_username.isNullOrEmpty()) os << "@";
+        if (!m_host.isNullOrEmpty()) os << m_host;
+        if (!m_port.isNullOrEmpty()) os << ":" << m_port;
         if (!m_path.isNullOrEmpty()) os << "/" << m_path;
         if (m_params.size())
         {

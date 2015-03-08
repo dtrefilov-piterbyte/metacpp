@@ -133,11 +133,17 @@ void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *me
                                const Array<SqlConstraintBasePtr> &constraints)
 {
     SqlSyntax syntax = transaction.connector()->sqlSyntax();
-    if (SqlSyntaxSqlite == syntax)
+    switch (syntax)
+    {
+    case SqlSyntaxSqlite:
         return createSchemaSqlite(transaction, metaObject, constraints);
-    else if (SqlSyntaxPostgreSQL == syntax)
+    case SqlSyntaxPostgreSQL:
         return createSchemaPostgreSQL(transaction, metaObject, constraints);
-    throw std::runtime_error("SqlStorable::createSchema(): syntax not implemented");
+    case SqlSyntaxMySql:
+        return createSchemaMySql(transaction, metaObject, constraints);
+    default:
+        throw std::runtime_error("SqlStorable::createSchema(): syntax not implemented");
+    }
 }
 
 ExpressionNodeWhereClause SqlStorable::whereId()
@@ -608,7 +614,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
          if (primaryKey)
          {
              if (field->isIntegral())
-                 typeName += "PRIMARY KEY AUTO_INCREMENT";
+                 typeName += " PRIMARY KEY AUTO_INCREMENT";
              else
                  throw std::runtime_error("Primary keys are only allowed on integral types");
          }
