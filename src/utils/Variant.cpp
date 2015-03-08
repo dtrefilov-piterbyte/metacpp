@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "Variant.h"
+#include <stdexcept>
 
 namespace metacpp
 {
