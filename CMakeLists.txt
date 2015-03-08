@@ -66,7 +66,7 @@ IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-private-field -std=c++11")
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     # using GNUCXX
-    LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -std=c++11")
+    LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -std=c++11 -stdlib=libc++")
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     # using Intel C++
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
