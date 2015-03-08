@@ -57,7 +57,7 @@ namespace detail
 
     /** \brief Array traits specialization for non-movable types */
     template<typename T>
-    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && !std::is_move_assignable<T>::value>::type>
+    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && !std::is_constructible<T, T&&>::value>::type>
     {
         static T *Allocate(size_t size, const T *initialData = nullptr)
         {
@@ -85,7 +85,7 @@ namespace detail
 
     /** \brief Array traits specialization for movable types */
     template<typename T>
-    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && std::is_move_assignable<T>::value>::type>
+    struct TypeTraits<T, typename std::enable_if<!std::is_pod<T>::value && std::is_constructible<T, T&&>::value>::type>
     {
         static T *Allocate(size_t size, const T *initialData = nullptr)
         {
