@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "SqlColumnConstraint.h"
+#include "SqlExpressionTreeWalker.h"
 
 namespace metacpp
 {
@@ -90,7 +91,7 @@ SqlConstraintType SqlConstraintCheck::type()
 
 String SqlConstraintCheck::checkExpression() const
 {
-    return m_checkExpression;
+    return detail::SqlExpressionTreeWalker(m_checkExpression.impl(), false).doWalk();
 }
 
 } // namespace sql

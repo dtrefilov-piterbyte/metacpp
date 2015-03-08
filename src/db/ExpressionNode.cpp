@@ -50,15 +50,9 @@ ExpressionNodeType ExpressionNodeImplColumn::nodeType() const
     return eNodeColumn;
 }
 
-String ExpressionNodeImplColumn::sqlExpression(bool fullQualified) const
+bool ExpressionNodeImplColumn::isLeaf() const
 {
-    if (!fullQualified) return m_metaField->name();
-    return String(m_metaField->metaObject()->name()) + "." + m_metaField->name();
-}
-
-bool ExpressionNodeImplColumn::complex() const
-{
-    return false;
+    return true;
 }
 
 const MetaFieldBase *ExpressionNodeImplColumn::metaField() const
@@ -85,33 +79,19 @@ ExpressionNodeType ExpressionNodeImplUnaryOperator::nodeType() const
     return eNodeUnaryOperator;
 }
 
-String ExpressionNodeImplUnaryOperator::sqlExpression(bool fullQualified) const
+bool ExpressionNodeImplUnaryOperator::isLeaf() const
 {
-    switch (m_operator)
-    {
-    case eUnaryOperatorPlus:
-        return m_innerNode->sqlExpression(fullQualified);
-    case eUnaryOperatorMinus:
-        return "-" + ((m_innerNode->complex() ? "(" : "" ) +
-                m_innerNode->sqlExpression(fullQualified) +
-                (m_innerNode->complex() ? ")" : ""));
-    case eUnaryOperatorNegation:
-        return "~" + ((m_innerNode->complex() ? "(" : "" ) +
-                m_innerNode->sqlExpression(fullQualified) +
-                (m_innerNode->complex() ? ")" : ""));
-    default:
-        throw std::invalid_argument("Unknown unary operator");
-    }
-}
-
-bool ExpressionNodeImplUnaryOperator::complex() const
-{
-    return operatorType() == eUnaryOperatorPlus && m_innerNode->complex();
+    return operatorType() == eUnaryOperatorPlus;
 }
 
 UnaryOperatorType ExpressionNodeImplUnaryOperator::operatorType() const
 {
     return m_operator;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplUnaryOperator::innerNode() const
+{
+    return m_innerNode;
 }
 
 ExpressionNodeImplBinaryOperator::ExpressionNodeImplBinaryOperator(EFieldType type, BinaryOperatorType op,
@@ -134,35 +114,24 @@ ExpressionNodeType ExpressionNodeImplBinaryOperator::nodeType() const
     return eNodeBinaryOperator;
 }
 
-String ExpressionNodeImplBinaryOperator::sqlExpression(bool fullQualified) const
+bool ExpressionNodeImplBinaryOperator::isLeaf() const
 {
-    String l = (m_lhs->complex() ? "(" : "") + m_lhs->sqlExpression(fullQualified) + (m_lhs->complex() ? ")" : "");
-    String r = (m_rhs->complex() ? "(" : "") + m_rhs->sqlExpression(fullQualified) + (m_rhs->complex() ? ")" : "");
-    switch (operatorType())
-    {
-    case eBinaryOperatorPlus: return l + " + " + r;
-    case eBinaryOperatorConcatenate: return l + " || " + r;
-    case eBinaryOperatorMinus: return l + " - " + r;
-    case eBinaryOperatorMultiply: return l + " * " + r;
-    case eBinaryOperatorDivide: return l + " / " + r;
-    case eBinaryOperatorReminder: return l + " % " + r;
-    case eBinaryOperatorAnd: return l + " & " + r;
-    case eBinaryOperatorOr: return l + " | " + r;
-    case eBinaryOperatorShiftLeft: return l + " << " + r;
-    case eBinaryOperatorShiftRight: return l + " >> " + r;
-    case eBinaryOperatorXor: return "(" + l + " & ~" + r + ") | (~" + l + " & " + r + ")";
-    }
-    throw std::invalid_argument("Unknown operator type");
-}
-
-bool ExpressionNodeImplBinaryOperator::complex() const
-{
-    return true;
+    return false;
 }
 
 BinaryOperatorType ExpressionNodeImplBinaryOperator::operatorType() const
 {
     return m_operator;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplBinaryOperator::leftNode() const
+{
+    return m_lhs;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplBinaryOperator::rightNode() const
+{
+    return m_rhs;
 }
 
 ExpressionNodeImplFunctionCall::ExpressionNodeImplFunctionCall(EFieldType type, const char *funcName, std::initializer_list<ExpressionNodeImplPtr> &&argumentNodes)
@@ -184,15 +153,19 @@ ExpressionNodeType ExpressionNodeImplFunctionCall::nodeType() const
     return eNodeFunctionCall;
 }
 
-String ExpressionNodeImplFunctionCall::sqlExpression(bool fullQualified) const
-{
-    StringArray args = m_argumentNodes.map<String>([fullQualified](const ExpressionNodeImplPtr& node) { return node->sqlExpression(fullQualified); });
-    return m_functionName + "(" + join(args, ", ") + ")";
-}
-
-bool ExpressionNodeImplFunctionCall::complex() const
+bool ExpressionNodeImplFunctionCall::isLeaf() const
 {
     return false;
+}
+
+const String &ExpressionNodeImplFunctionCall::functionName() const
+{
+    return m_functionName;
+}
+
+const Array<ExpressionNodeImplPtr> &ExpressionNodeImplFunctionCall::argumentNodes() const
+{
+    return m_argumentNodes;
 }
 
 ExpressionNodeImplNull::ExpressionNodeImplNull(EFieldType inferType)
@@ -215,34 +188,170 @@ ExpressionNodeType ExpressionNodeImplNull::nodeType() const
     return eNodeNull;
 }
 
-String ExpressionNodeImplNull::sqlExpression(bool fullQualified) const
+bool ExpressionNodeImplNull::isLeaf() const
 {
-    (void)fullQualified;
-    return "NULL";
+    return true;
 }
 
-bool ExpressionNodeImplNull::complex() const
+EFieldType ExpressionNodeImplWhereClauseBase::type() const
+{
+    return eFieldVoid;
+}
+
+bool ExpressionNodeImplWhereClauseBase::isLeaf() const
 {
     return false;
 }
 
+ExpressionNodeImplWhereClauseRelational::ExpressionNodeImplWhereClauseRelational(RelationOperatorType op, const ExpressionNodeImplPtr &lhs, const ExpressionNodeImplPtr &rhs)
+    : m_operator(op), m_lhs(lhs), m_rhs(rhs)
+{
+
 }
+
+ExpressionNodeImplWhereClauseRelational::~ExpressionNodeImplWhereClauseRelational()
+{
+}
+
+bool ExpressionNodeImplWhereClauseRelational::complex() const
+{
+    return false;
+}
+
+ExpressionNodeType ExpressionNodeImplWhereClauseRelational::nodeType() const
+{
+    return eNodeWhereClauseRelational;
+}
+
+RelationOperatorType ExpressionNodeImplWhereClauseRelational::operatorType() const
+{
+    return m_operator;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::left() const
+{
+    return m_lhs;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::right() const
+{
+    return m_rhs;
+}
+
+ExpressionNodeImplWhereClauseLogical::ExpressionNodeImplWhereClauseLogical(UnaryLogicalOperatorType op, const ExpressionNodeImplWhereClausePtr &inner)
+    : m_operator(op), m_inner(inner)
+{
+
+}
+
+ExpressionNodeImplWhereClauseLogical::~ExpressionNodeImplWhereClauseLogical()
+{
+}
+
+bool ExpressionNodeImplWhereClauseLogical::complex() const
+{
+    return false;
+}
+
+ExpressionNodeType ExpressionNodeImplWhereClauseLogical::nodeType() const
+{
+    return eNodeWhereClauseLogical;
+}
+
+UnaryLogicalOperatorType ExpressionNodeImplWhereClauseLogical::operatorType() const
+{
+    return m_operator;
+}
+
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseLogical::inner() const
+{
+    return m_inner;
+}
+
+ExpressionNodeImplWhereClauseConditional::ExpressionNodeImplWhereClauseConditional(ConditionalOperatorType op, const ExpressionNodeImplWhereClausePtr &lhs,
+                                                                           const ExpressionNodeImplWhereClausePtr &rhs)
+    : m_operator(op), m_lhs(lhs), m_rhs(rhs)
+{
+}
+
+ExpressionNodeImplWhereClauseConditional::~ExpressionNodeImplWhereClauseConditional()
+{
+}
+
+bool ExpressionNodeImplWhereClauseConditional::complex() const
+{
+    return true;
+}
+
+ExpressionNodeType ExpressionNodeImplWhereClauseConditional::nodeType() const
+{
+    return eNodeWhereClauseComplex;
+}
+
+ConditionalOperatorType ExpressionNodeImplWhereClauseConditional::operatorType() const
+{
+    return m_operator;
+}
+
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::left() const
+{
+    return m_lhs;
+}
+
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::right() const
+{
+    return m_rhs;
+}
+
+} // namespace detail
+
 
 ExpressionNodeBase::ExpressionNodeBase(detail::ExpressionNodeImplPtr impl)
     : m_impl(impl)
 {
 }
 
-detail::ExpressionNodeImplPtr ExpressionNodeBase::impl() const
-{
-    return m_impl;
-}
-
 ExpressionNodeBase::~ExpressionNodeBase()
 {
 }
 
-// namespace detail
+detail::ExpressionNodeImplPtr ExpressionNodeBase::impl() const { return m_impl; }
+bool ExpressionNodeBase::empty() const { return !m_impl; }
+EFieldType ExpressionNodeBase::type() const { return impl()->type(); }
+ExpressionNodeType ExpressionNodeBase::nodeType() const { return impl()->nodeType(); }
+bool ExpressionNodeBase::isLeaf() const { return impl()->isLeaf(); }
+
+ExpressionNodeWhereClause operator&&(const ExpressionNodeWhereClause &lhs, const ExpressionNodeWhereClause &rhs)
+{
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseConditional>(eConditionalOperatorAnd,
+        std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseBase>(lhs.impl()),
+        std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseBase>(rhs.impl())));
+}
+
+ExpressionNodeWhereClause operator||(const ExpressionNodeWhereClause &lhs, const ExpressionNodeWhereClause &rhs)
+{
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseConditional>(eConditionalOperatorOr,
+        std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseBase>(lhs.impl()),
+        std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseBase>(rhs.impl())));
+}
+
+ExpressionNodeWhereClause operator!(const ExpressionNodeWhereClause &inner)
+{
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseLogical>(eLogicalOperatorNot,
+                                                                                                    std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseBase>(inner.impl())));
+}
+
+ExpressionNodeWhereClause metacpp::db::ExpressionNode<String>::like(const String &val)
+{
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>
+                                     (eRelationalOperatorLike, this->impl(), std::make_shared<detail::ExpressionNodeImplLiteral>(val)));
+}
+
+ExpressionNodeWhereClause metacpp::db::ExpressionNode<String>::like(const ExpressionNode<String> &other)
+{
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>
+                                 (eRelationalOperatorLike, this->impl(), other.impl()));
+}
 
 
 

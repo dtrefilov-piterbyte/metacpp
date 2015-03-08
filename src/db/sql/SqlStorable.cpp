@@ -140,14 +140,15 @@ void SqlStorable::createSchema(SqlTransaction &transaction, const MetaObject *me
     throw std::runtime_error("SqlStorable::createSchema(): syntax not implemented");
 }
 
-ExpressionWhereClause SqlStorable::whereId()
+ExpressionNodeWhereClause SqlStorable::whereId()
 {
     auto pkey = primaryKey();
     if (!pkey)
         throw std::runtime_error(std::string("Table ") + record()->metaObject()->name() +
                                  " has no primary key");
-    return ExpressionWhereClause(std::make_shared<::metacpp::db::detail::ExpressionWhereClauseImplRelational>(eRelationalOperatorEqual,
-        ExpressionNodeColumnBase(pkey), ExpressionNodeLiteral<Variant>(pkey->getValue(record()))));
+    return ExpressionNodeWhereClause(std::make_shared<::metacpp::db::detail::ExpressionNodeImplWhereClauseRelational>(eRelationalOperatorEqual,
+        std::make_shared<db::detail::ExpressionNodeImplColumn>(pkey),
+        std::make_shared<db::detail::ExpressionNodeImplLiteral>(pkey->getValue(record()))));
 }
 
 void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObject *metaObject, const Array<SqlConstraintBasePtr> &constraints)
@@ -186,80 +187,80 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<bool> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldInt:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<int32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldEnum:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldUint:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldInt64:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<int64_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldUint64:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint64_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldFloat:
             typeName = "REAL";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<float> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldDouble:
             typeName = "REAL";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<double> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldString:
             typeName = "TEXT";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<String> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldString *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldDateTime:
             typeName = "DATETIME";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<DateTime> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         default:
@@ -349,80 +350,80 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             typeName = "SMALLINT";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<bool> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldInt:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<int32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldEnum:
             typeName = "INTEGER";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldUint:
             typeName = "BIGINT";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint32_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldInt64:
             typeName = "BIGINT";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<int64_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldUint64:
             typeName = "BIGINT";    // NUMERIC?
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<uint64_t> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldFloat:
             typeName = "REAL";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<float> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldDouble:
             typeName = "DOUBLE PRECISION";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<double> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldString:
             typeName = "TEXT";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<String> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldString *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         case eFieldDateTime:
             typeName = "TIMESTAMP";
             if (field->mandatoriness() == eDefaultable)
             {
-                ValueEvaluator<DateTime> eval;
-                constraints.push_back("DEFAULT " + eval(reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()));
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
             }
             break;
         default:

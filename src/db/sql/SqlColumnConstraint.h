@@ -73,7 +73,7 @@ class SqlConstraintPrimaryKey : public SqlConstraintBase
 {
 public:
     /** \brief Constructs a new instance of SqlConstraintPrimaryKey with given column */
-    template<typename TObj, typename TField>
+    template<typename TObj, typename TField, typename = typename std::enable_if<std::is_integral<TField>::value>::type>
     SqlConstraintPrimaryKey(const ExpressionNodeColumn<TObj, TField>& column)
         : SqlConstraintBase(column)
     {
@@ -165,8 +165,8 @@ public:
     /** \brief Constructs a new instance of SqlConstraintCheck with given column and check condition */
     template<typename TObj, typename TField>
     SqlConstraintCheck(const ExpressionNodeColumn<TObj, TField>& matcher,
-                       const ExpressionWhereClause& check)
-        : SqlConstraintBase(matcher), m_checkExpression(check.impl()->sqlExpression())
+                       const ExpressionNodeWhereClause& check)
+        : SqlConstraintBase(matcher), m_checkExpression(check)
     {
     }
 
@@ -178,7 +178,7 @@ public:
     /** Returns check expression in Sql form */
     String checkExpression() const;
 private:
-    String m_checkExpression;
+    ExpressionNodeWhereClause m_checkExpression;
 };
 
 /** \brief Creates shared instance of SqlConstraintCheck with given column and check condition */

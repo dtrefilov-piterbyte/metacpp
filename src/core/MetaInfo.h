@@ -286,7 +286,7 @@ namespace detail
     struct PartialFieldInfoHelper<metacpp::Array<T> >
     {
         static constexpr EFieldType type() { return eFieldArray; }
-        static constexpr FieldInfoDescriptor::Extension extension()
+        static FieldInfoDescriptor::Extension extension()
         {
             return FieldInfoDescriptor::Extension(FullFieldInfoHelper<T>::type(), sizeof(T));
         }
@@ -296,7 +296,7 @@ namespace detail
     struct FullFieldInfoHelper<T, true, false>
     {
         static constexpr EFieldType type() { return eFieldEnum; }
-        static constexpr FieldInfoDescriptor::Extension extension(const EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
+        static FieldInfoDescriptor::Extension extension(const EnumInfoDescriptor *enumInfo) { return FieldInfoDescriptor::Extension(enumInfo); }
         static constexpr bool nullable() { return false; }
     };
 
@@ -311,7 +311,7 @@ namespace detail
     struct FullFieldInfoHelper<T, false, true>
     {
         static constexpr EFieldType type() { return eFieldObject; }
-        static constexpr FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(T::staticMetaObject()); }
+        static FieldInfoDescriptor::Extension extension() { return FieldInfoDescriptor::Extension(T::staticMetaObject()); }
         static constexpr bool nullable() { return false; }
     };
 

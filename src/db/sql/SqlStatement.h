@@ -19,8 +19,7 @@
 #include "SharedDataPointer.h"
 #include "ExpressionAssignment.h"
 #include "ExpressionNode.h"
-#include "ExpressionWhereClause.h"
-#include <memory>
+#include "SqlExpressionTreeWalker.h"
 
 namespace metacpp
 {
@@ -51,19 +50,6 @@ namespace connectors
 {
     class SqlStatementImpl;
 }
-
-/** \brief Type of the sql syntax used by SqlStatementBase
- * \relates SqlStatementBase */
-enum SqlSyntax
-{
-    SqlSyntaxUnknown,       /**< Invalid syntax type */
-    SqlSyntaxSqlite,        /**< Sqlite syntax */
-    SqlSyntaxPostgreSQL,    /**< Postgresql syntax */
-    SqlSyntaxMysql,         /**< Mysql syntax */
-    SqlSyntaxMssql,         /**< Microsoft SQL Server syntax */
-    SqlSyntaxFirebird,      /**< Firebird/Interbase syntax */
-    SqlSyntaxOracle         /**< Oracle RDBMS syntax */
-};
 
 /** \brief Base class for all types of SQL statements */
 class SqlStatementBase
@@ -143,7 +129,7 @@ public:
     /** \brief Specifies number of skipped rows in result set */
     SqlStatementSelect& offset(size_t off);
     /** \brief Specifies where clause for this statement */
-    SqlStatementSelect& where(const ExpressionWhereClause& whereClause);
+    SqlStatementSelect& where(const ExpressionNodeWhereClause& whereClause);
     /** \brief Executes statement and returns result set */
     SqlResultSet exec(SqlTransaction& transaction);
 
@@ -171,7 +157,7 @@ private:
     {
         m_orderAsc = true;
         m_order.reserve(m_order.size() + 1 + sizeof...(others));
-        m_order.push_back(column.impl()->sqlExpression() + (asc ? " ASC" : " DESC"));
+        m_order.push_back(detail::SqlExpressionTreeWalker(column.impl()).doWalk() + (asc ? " ASC" : " DESC"));
         return orderByHelper(asc, others...);
     }
 private:
@@ -182,7 +168,7 @@ private:
         JoinTypeLeftOuter
     };
 
-    String m_whereClause;
+    ExpressionNodeWhereClause m_whereClause;
     JoinType m_joinType;
     Nullable<size_t> m_limit;
     Nullable<size_t> m_offset;
@@ -244,35 +230,28 @@ public:
     template<typename TObj>
     SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment)
     {
-        m_sets.push_back(assignment.lhs()->sqlExpression(false) + " = " + assignment.rhs()->sqlExpression(false));
-        return *this;
-    }
-
-    /** \brief Specifies a set clause with a given assignments */
-    template<typename TObj>
-    SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment1, const ExpressionAssignmentBase<TObj>& assignment2)
-    {
-        m_sets.push_back(assignment1.lhs()->sqlExpression(false) + " = " + assignment1.rhs()->sqlExpression(false));
-        m_sets.push_back(assignment2.lhs()->sqlExpression(false) + " = " + assignment2.rhs()->sqlExpression(false));
+        m_sets.push_back(detail::SqlExpressionTreeWalker(assignment.lhs(), false).doWalk() + " = " +
+                         detail::SqlExpressionTreeWalker(assignment.rhs(), false).doWalk());
         return *this;
     }
 
     /** \brief Specifies a set clause with a given assignments */
     template<typename TObj, typename... TRest>
-    typename std::enable_if<sizeof...(TRest) != 0, SqlStatementUpdate>::type&
+    SqlStatementUpdate&
         set(const ExpressionAssignmentBase<TObj>& assignment1, const ExpressionAssignmentBase<TObj>& assignment2, TRest... rest)
     {
-        m_sets.push_back(assignment1.lhs()->sqlExpression(false) + " = " + assignment1.rhs()->sqlExpression(false));
+        m_sets.push_back(detail::SqlExpressionTreeWalker(assignment1.lhs(), false).doWalk() + " = " +
+                         detail::SqlExpressionTreeWalker(assignment1.rhs(), false).doWalk());
         return set(assignment2, rest...);
     }
 
     /** \brief Specifies a where clause */
-    SqlStatementUpdate& where(const ExpressionWhereClause& whereClause);
+    SqlStatementUpdate& where(const ExpressionNodeWhereClause& whereClause);
     /** \brief Executes statement using given transaction and returns number of rows updated */
     int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
-    String m_whereClause;
+    ExpressionNodeWhereClause m_whereClause;
     StringArray m_sets;
     SqlStorable *m_storable;
 };
@@ -307,12 +286,12 @@ public:
     }
 
     /** \brief Specifies a where clause */
-    SqlStatementDelete &where(const ExpressionWhereClause& whereClause);
+    SqlStatementDelete &where(const ExpressionNodeWhereClause& whereClause);
     /** \brief Executes statement using given transaction and returns number of rows deleted */
     int exec(SqlTransaction& transaction);
 private:
     Array<const MetaObject *> m_joins;
-    String m_whereClause;
+    ExpressionNodeWhereClause m_whereClause;
     SqlStorable *m_storable;
 };
 

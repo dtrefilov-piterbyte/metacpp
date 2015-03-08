@@ -20,9 +20,7 @@
 #include "StringBase.h"
 #include "MetaObject.h"
 #include "TypePromotion.h"
-#include "ValueEvaluator.h"
 #include "ExpressionAssignment.h"
-#include "ExpressionWhereClause.h"
 
 namespace metacpp {
 namespace db {
@@ -30,12 +28,15 @@ namespace db {
 /** \brief Type of the AST node of a query expression */
 enum ExpressionNodeType
 {
-    eNodeColumn,            /**< \brief Node reffered to column */
-    eNodeLiteral,           /**< \brief SQL-literal (computed from C++ expression) */
-    eNodeNull,              /**< \brief Null-valued node */
-    eNodeUnaryOperator,     /**< \brief Unary operator */
-    eNodeBinaryOperator,    /**< \brief Binary operator */
-    eNodeFunctionCall       /**< \brief Function call */
+    eNodeColumn,                    /**< \brief Node reffered to column */
+    eNodeLiteral,                   /**< \brief SQL-literal (computed from C++ expression) */
+    eNodeNull,                      /**< \brief Null-valued node */
+    eNodeUnaryOperator,             /**< \brief Unary operator */
+    eNodeBinaryOperator,            /**< \brief Binary operator */
+    eNodeFunctionCall,              /**< \brief Function call */
+    eNodeWhereClauseRelational,
+    eNodeWhereClauseLogical,
+    eNodeWhereClauseComplex
 };
 
 /** \brief Types of binary operator nodes */
@@ -62,12 +63,65 @@ enum UnaryOperatorType
     eUnaryOperatorNegation      /**< \brief Unary bitwise negation operator (taking of ones complement) */
 };
 
+/** \brief Types of binary relational operators used for building where clauses from two ExpressionNode objects */
+enum RelationOperatorType
+{
+    eRelationalOperatorEqual,
+    eRelationalOperatorNotEqual,
+    eRelationalOperatorLess,
+    eRelationalOperatorLessOrEqual,
+    eRelationalOperatorGreater,
+    eRelationalOperatorGreaterOrEqual,
+    eRelationalOperatorLike,
+    eRelationalOperatorIsNull,
+    eRelationalOperatorIsNotNull
+};
+
+/** \brief Types of binary operators acting on where clause subexpressions */
+enum UnaryLogicalOperatorType
+{
+    eLogicalOperatorNot,
+};
+
+/** \brief Types of binary operators used for combination of two ExpressionWhereClause objects */
+enum ConditionalOperatorType
+{
+    eConditionalOperatorAnd,
+    eConditionalOperatorOr
+};
+
 /** \brief Type represeting a null value in query expressions */
 typedef struct
 {
 } null_t;
 
-static const null_t null;
+static const null_t null = null_t();
+
+namespace detail
+{
+    class ExpressionNodeImplBase;
+    typedef std::shared_ptr<ExpressionNodeImplBase> ExpressionNodeImplPtr;
+} // namespace detail
+
+/** \brief Base class representing query expression node */
+class ExpressionNodeBase
+{
+protected:
+    /** \brief Constructs new instance with given private implementation */
+    ExpressionNodeBase(detail::ExpressionNodeImplPtr impl);
+public:
+    /** \brief Gets the private implementation of this node */
+    detail::ExpressionNodeImplPtr impl() const;
+    bool empty() const;
+    virtual ~ExpressionNodeBase();
+
+    EFieldType type() const;
+    ExpressionNodeType nodeType() const;
+    String sqlExpression(bool fullQualified = true) const;
+    bool isLeaf() const;
+private:
+    detail::ExpressionNodeImplPtr m_impl;
+};
 
 namespace detail
 {
@@ -79,11 +133,8 @@ public:
     virtual ~ExpressionNodeImplBase();
     virtual EFieldType type() const = 0;
     virtual ExpressionNodeType nodeType() const = 0;
-    virtual String sqlExpression(bool fullQualified = true) const = 0;   // TODO: shouldn't be there? Implement via AST visitors?
-    virtual bool complex() const = 0;
+    virtual bool isLeaf() const = 0;
 };
-
-typedef std::shared_ptr<ExpressionNodeImplBase> ExpressionNodeImplPtr;
 
 class ExpressionNodeImplColumn : public ExpressionNodeImplBase
 {
@@ -92,56 +143,17 @@ public:
     ~ExpressionNodeImplColumn();
     EFieldType type() const override;
     ExpressionNodeType nodeType() const override;
-    String sqlExpression(bool fullQualified = true) const override;
-    bool complex() const override;
+    bool isLeaf() const override;
     const MetaFieldBase *metaField() const;
 private:
     const MetaFieldBase *m_metaField;
 };
 
-template<typename T>
 class ExpressionNodeImplLiteral : public ExpressionNodeImplBase
 {
 public:
+    template<typename T>
     explicit ExpressionNodeImplLiteral(const T& value)
-        : m_value(value)
-    {
-    }
-
-    ~ExpressionNodeImplLiteral()
-    {
-    }
-
-    EFieldType type() const override
-    {
-        return ::detail::FullFieldInfoHelper<T>::type();
-    }
-
-    ExpressionNodeType nodeType() const override
-    {
-        return eNodeLiteral;
-    }
-
-    String sqlExpression(bool fullQualified = true) const override
-    {
-        (void)fullQualified;
-        sql::ValueEvaluator<T> eval;
-        return eval(m_value);
-    }
-
-    bool complex() const override
-    {
-        return false;
-    }
-private:
-    T m_value;
-};
-
-template<>
-class ExpressionNodeImplLiteral<Variant> : public ExpressionNodeImplBase
-{
-public:
-    explicit ExpressionNodeImplLiteral(const Variant& value)
         : m_value(value)
     {
     }
@@ -160,17 +172,12 @@ public:
         return eNodeLiteral;
     }
 
-    String sqlExpression(bool fullQualified = true) const override
+    bool isLeaf() const override
     {
-        (void)fullQualified;
-        sql::ValueEvaluator<Variant> eval;
-        return eval(m_value);
+        return true;
     }
 
-    bool complex() const override
-    {
-        return false;
-    }
+    const Variant& value() const { return m_value; }
 private:
     Variant m_value;
 };
@@ -183,8 +190,7 @@ public:
 
     EFieldType type() const override;
     ExpressionNodeType nodeType() const override;
-    String sqlExpression(bool fullQualified = true) const override;
-    bool complex() const override;
+    bool isLeaf() const override;
 private:
     EFieldType m_type;
 };
@@ -196,9 +202,9 @@ public:
     ~ExpressionNodeImplUnaryOperator();
     EFieldType type() const override;
     ExpressionNodeType nodeType() const override;
-    String sqlExpression(bool fullQualified = true) const override;
-    bool complex() const override;
+    bool isLeaf() const override;
     UnaryOperatorType operatorType() const;
+    ExpressionNodeImplPtr innerNode() const;
 private:
     UnaryOperatorType m_operator;
     ExpressionNodeImplPtr m_innerNode;
@@ -212,9 +218,10 @@ public:
     ~ExpressionNodeImplBinaryOperator();
     EFieldType type() const override;
     ExpressionNodeType nodeType() const override;
-    String sqlExpression(bool fullQualified = true) const override;
-    bool complex() const override;
+    bool isLeaf() const override;
     BinaryOperatorType operatorType() const;
+    ExpressionNodeImplPtr leftNode() const;
+    ExpressionNodeImplPtr rightNode() const;
 private:
     EFieldType m_type;
     BinaryOperatorType m_operator;
@@ -236,29 +243,90 @@ public:
 
     EFieldType type() const override;
     ExpressionNodeType nodeType() const override;
-    String sqlExpression(bool fullQualified = true) const override;
-    bool complex() const override;
-
+    bool isLeaf() const override;
+    const String& functionName() const;
+    const Array<ExpressionNodeImplPtr>& argumentNodes() const;
 private:
     EFieldType m_type;
     String m_functionName;
     Array<ExpressionNodeImplPtr> m_argumentNodes;
 };
 
+class ExpressionNodeImplWhereClauseBase : public ExpressionNodeImplBase
+{
+public:
+    EFieldType type() const override;
+    bool isLeaf() const override;
+    virtual bool complex() const = 0;
+};
+typedef std::shared_ptr<ExpressionNodeImplWhereClauseBase> ExpressionNodeImplWhereClausePtr;
+
+class ExpressionNodeImplWhereClauseRelational : public ExpressionNodeImplWhereClauseBase
+{
+public:
+     ExpressionNodeImplWhereClauseRelational(RelationOperatorType op, const ExpressionNodeImplPtr& lhs, const ExpressionNodeImplPtr& rhs);
+     ExpressionNodeImplWhereClauseRelational(const ExpressionNodeImplWhereClauseRelational&)=default;
+    ~ExpressionNodeImplWhereClauseRelational();
+
+    bool complex() const override;
+    ExpressionNodeType nodeType() const override;
+
+    RelationOperatorType operatorType() const;
+    ExpressionNodeImplPtr left() const;
+    ExpressionNodeImplPtr right() const;
+private:
+    RelationOperatorType m_operator;
+    ExpressionNodeImplPtr m_lhs, m_rhs;
+};
+
+class ExpressionNodeImplWhereClauseLogical : public ExpressionNodeImplWhereClauseBase
+{
+public:
+    ExpressionNodeImplWhereClauseLogical(UnaryLogicalOperatorType op, const ExpressionNodeImplWhereClausePtr& inner);
+    ~ExpressionNodeImplWhereClauseLogical();
+
+    bool complex() const override;
+    ExpressionNodeType nodeType() const override;
+
+    UnaryLogicalOperatorType operatorType() const;
+    ExpressionNodeImplWhereClausePtr inner() const;
+private:
+    UnaryLogicalOperatorType m_operator;
+    ExpressionNodeImplWhereClausePtr m_inner;
+};
+
+class ExpressionNodeImplWhereClauseConditional : public ExpressionNodeImplWhereClauseBase
+{
+public:
+    ExpressionNodeImplWhereClauseConditional(ConditionalOperatorType op, const ExpressionNodeImplWhereClausePtr& lhs, const ExpressionNodeImplWhereClausePtr& rhs);
+    ~ExpressionNodeImplWhereClauseConditional();
+
+    bool complex() const override;
+    ExpressionNodeType nodeType() const override;
+
+    ConditionalOperatorType operatorType() const;
+    ExpressionNodeImplWhereClausePtr left() const;
+    ExpressionNodeImplWhereClausePtr right() const;
+private:
+    ConditionalOperatorType m_operator;
+    ExpressionNodeImplWhereClausePtr m_lhs, m_rhs;
+};
 } // namespace detail
 
-/** \brief Base class representing query expression node */
-class ExpressionNodeBase
+/** \brief Class representing final conditional expression which usually appears in where clause part of an SQL statement */
+class ExpressionNodeWhereClause final : public ExpressionNodeBase
 {
-protected:
-    /** \brief Constructs new instance with given private implementation */
-    ExpressionNodeBase(detail::ExpressionNodeImplPtr impl);
 public:
-    /** \brief Gets the private implementation of this node */
-    detail::ExpressionNodeImplPtr impl() const;
-    virtual ~ExpressionNodeBase();
-private:
-    detail::ExpressionNodeImplPtr m_impl;
+    ExpressionNodeWhereClause()
+        : ExpressionNodeBase(detail::ExpressionNodeImplPtr())
+    {
+    }
+
+    /** \brief Constructs new instance of ExpressionWhereClause with given private implementation */
+    explicit ExpressionNodeWhereClause(const detail::ExpressionNodeImplWhereClausePtr& impl)
+        : ExpressionNodeBase(impl)
+    {
+    }
 };
 
 /** \brief Typed expression node */
@@ -283,19 +351,7 @@ class ExpressionNodeLiteral : public ExpressionNode<T>
 public:
     /** \brief Constructs new instance from given value */
     explicit ExpressionNodeLiteral(const T& value)
-        : ExpressionNode<T>(std::make_shared<detail::ExpressionNodeImplLiteral<T> >(value))
-    {
-    }
-};
-
-template<>
-class ExpressionNodeLiteral<Variant> : public ExpressionNodeBase
-{
-public:
-    typedef Variant Type;
-
-    explicit ExpressionNodeLiteral(const Variant& value)
-        : ExpressionNodeBase(std::make_shared<detail::ExpressionNodeImplLiteral<Variant> >(value))
+        : ExpressionNode<T>(std::make_shared<detail::ExpressionNodeImplLiteral>(value))
     {
     }
 };
@@ -313,17 +369,8 @@ public:
     }
     ~ExpressionNode() { }
 
-    ExpressionWhereClause like(const String& val)
-    {
-        return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>
-                                     (eRelationalOperatorLike, *this, ExpressionNodeLiteral<String>(val)));
-    }
-
-    ExpressionWhereClause like(const ExpressionNode<String>& other)
-    {
-        return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>
-                                     (eRelationalOperatorLike, *this, other));
-    }
+    ExpressionNodeWhereClause like(const String& val);
+    ExpressionNodeWhereClause like(const ExpressionNode<String>& other);
 };
 
 template<typename T>
@@ -447,24 +494,26 @@ public:
     {
     }
 
-    ExpressionWhereClause isNull() const
+    ExpressionNodeWhereClause isNull() const
     {
-        return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>
-                                     (eRelationalOperatorIsNull, *this, ExpressionNodeNull<TField>()));
+        return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>
+                                         (eRelationalOperatorIsNull, this->impl(),
+                                          std::make_shared<detail::ExpressionNodeImplNull>(::detail::FullFieldInfoHelper<TField>::type())));
     }
 
-    ExpressionWhereClause isNotNull() const
+    ExpressionNodeWhereClause isNotNull() const
     {
-        return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>
-                                     (eRelationalOperatorIsNotNull, *this, ExpressionNodeNull<TField>()));
+        return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>
+                                         (eRelationalOperatorIsNotNull, this->impl(),
+                                          std::make_shared<detail::ExpressionNodeImplNull>(::detail::FullFieldInfoHelper<TField>::type())));
     }
 
-    ExpressionWhereClause operator==(const null_t&) const
+    ExpressionNodeWhereClause operator==(const null_t&) const
     {
         return this->isNull();
     }
 
-    ExpressionWhereClause operator!=(const null_t&) const
+    ExpressionNodeWhereClause operator!=(const null_t&) const
     {
         return this->isNotNull();
     }
@@ -532,7 +581,7 @@ private:
     static typename std::enable_if<MayBeField<TField>::value, detail::ExpressionNodeImplPtr>::type
         getImplHelper(const TField& value)
     {
-        return std::make_shared<detail::ExpressionNodeImplLiteral<TField> >(value);
+        return std::make_shared<detail::ExpressionNodeImplLiteral>(value);
     }
 };
 
@@ -618,26 +667,31 @@ inline ExpressionNodeBinaryOperator<String> operator +(const ExpressionNode<Stri
     return ExpressionNodeBinaryOperator<String>(eBinaryOperatorConcatenate, lhs, rhs);
 }
 
+ExpressionNodeWhereClause operator&&(const ExpressionNodeWhereClause& lhs, const ExpressionNodeWhereClause& rhs);
+ExpressionNodeWhereClause operator||(const ExpressionNodeWhereClause& lhs, const ExpressionNodeWhereClause& rhs);
+ExpressionNodeWhereClause operator!(const ExpressionNodeWhereClause& inner);
+
 #define _INST_RELATIONAL_OPERATOR(op, opType) \
 template<typename T1, typename T2> \
-typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionWhereClause>::type \
+typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionNodeWhereClause>::type \
     operator op(const ExpressionNode<T1>& lhs, const ExpressionNode<T2>& rhs) \
 { \
-    return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>(opType, lhs, rhs)); \
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>(opType, lhs.impl(), rhs.impl())); \
 } \
  \
 template<typename T1, typename T2> \
-typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionWhereClause>::type \
+typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionNodeWhereClause>::type \
     operator op(const T1& lhs, const ExpressionNode<T2>& rhs) \
 { \
-    return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>(opType, ExpressionNodeLiteral<T1>(lhs), rhs)); \
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>(opType, std::make_shared<detail::ExpressionNodeImplLiteral>(lhs), \
+        rhs.impl())); \
 } \
  \
 template<typename T1, typename T2> \
-typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionWhereClause>::type \
+typename std::enable_if<std::is_convertible<T1, T2>::value, ExpressionNodeWhereClause>::type \
     operator op(const ExpressionNode<T1>& lhs, const T2& rhs) \
 { \
-    return ExpressionWhereClause(std::make_shared<detail::ExpressionWhereClauseImplRelational>(opType, lhs, ExpressionNodeLiteral<T2>(rhs))); \
+    return ExpressionNodeWhereClause(std::make_shared<detail::ExpressionNodeImplWhereClauseRelational>(opType, lhs.impl(), std::make_shared<detail::ExpressionNodeImplLiteral>(rhs))); \
 }
 
 _INST_RELATIONAL_OPERATOR(==, eRelationalOperatorEqual)

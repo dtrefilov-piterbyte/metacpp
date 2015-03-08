@@ -73,7 +73,7 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
         columns.push_back(tblName + "." + m_storable->record()->metaObject()->field(i)->name());
     res = "SELECT " + join(columns, ", ") + " FROM " + tblName;
-    if (m_whereClause.size())
+    if (!m_whereClause.empty())
     {
         if (m_joins.size())
         {
@@ -94,11 +94,11 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
                 res += m_joins[i]->name();
                 if (m_joins.size() - 1 != i) res += ", ";
             }
-            res += " ON " + m_whereClause;
+            res += " ON " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
         else
         {
-            res += " WHERE " + m_whereClause;
+            res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
     }
     if (m_order.size()) res += " ORDER BY " + join(m_order, ", ");
@@ -119,9 +119,9 @@ SqlStatementSelect &SqlStatementSelect::offset(size_t off)
     return *this;
 }
 
-SqlStatementSelect &SqlStatementSelect::where(const ExpressionWhereClause &whereClause)
+SqlStatementSelect &SqlStatementSelect::where(const ExpressionNodeWhereClause &whereClause)
 {
-    m_whereClause = whereClause.impl()->sqlExpression();
+    m_whereClause = whereClause;
     return *this;
 }
 
@@ -234,31 +234,30 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
             res += " SET " + join(sets, ", ") +
                    " WHERE EXISTS (SELECT 1 FROM " + joins;
 
-            if (m_whereClause.size()) res += " WHERE " + m_whereClause + ")";
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk() + ")";
         }
         else if (SqlSyntaxPostgreSQL == syntax)
         {
             res += " SET " + join(sets, ", ") +
                    " FROM " + joins;
-            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
         else if (SqlSyntaxMysql == syntax)
         {
-            // TODO: untested
             res += ", " + joins + " SET " + join(sets, ", ");
-            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
         else
             throw std::runtime_error("Unimplemented syntax");
     }
     else
-        res += " SET " + join(sets, ", ") + " WHERE " + m_whereClause;
+        res += " SET " + join(sets, ", ") + " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
     return res;
 }
 
-SqlStatementUpdate &SqlStatementUpdate::where(const ExpressionWhereClause &whereClause)
+SqlStatementUpdate &SqlStatementUpdate::where(const ExpressionNodeWhereClause &whereClause)
 {
-    m_whereClause = whereClause.impl()->sqlExpression();
+    m_whereClause = whereClause;
     return *this;
 }
 
@@ -305,24 +304,24 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
         if (SqlSyntaxSqlite == syntax)
         {
             res += " WHERE EXISTS (SELECT 1 FROM " + refs;
-            if (m_whereClause.size()) " WHERE " + m_whereClause;
+            if (!m_whereClause.empty()) " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
             res += ")";
         }
         else
         {
             res += " USING " + refs;
-            if (m_whereClause.size()) res += " WHERE " + m_whereClause;
+            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
     }
-    else if (m_whereClause.size())
-        res += " WHERE " + m_whereClause;
+    else if (!m_whereClause.empty())
+        res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
     return res;
 
 }
 
-SqlStatementDelete &SqlStatementDelete::where(const ExpressionWhereClause &whereClause)
+SqlStatementDelete &SqlStatementDelete::where(const ExpressionNodeWhereClause &whereClause)
 {
-    m_whereClause = whereClause.impl()->sqlExpression();
+    m_whereClause = whereClause;
     return *this;
 }
 
