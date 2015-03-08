@@ -13,12 +13,48 @@
 * See the License for the specific language governing permissions and       *
 * limitations under the License.                                            *
 ****************************************************************************/
-#include "ExpressionAssignment.h"
+#ifndef MYSQLTRANSACTIONIMPL_H
+#define MYSQLTRANSACTIONIMPL_H
+#include "SqlTransactionImpl.h"
+#include "MySqlStatementImpl.h"
+#include <mysql.h>
 
 namespace metacpp {
 namespace db {
+namespace sql {
+namespace connectors {
+namespace mysql {
 
+class MySqlTransactionImpl : public SqlTransactionImpl
+{
+public:
+    MySqlTransactionImpl(MYSQL *dbConn);
+    ~MySqlTransactionImpl();
 
+    bool begin() override;
+    bool commit() override;
+    bool rollback() override;
+
+    SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) override;
+    bool prepare(SqlStatementImpl *statement) override;
+    bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) override;
+    bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
+    bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) override;
+    bool closeStatement(SqlStatementImpl *statement) override;
+
+    MYSQL *dbConn() const { return m_dbConn; }
+private:
+    bool execCommand(const char *query, const char *invokeContext);
+private:
+    MYSQL *m_dbConn;
+    Array<MySqlStatementImpl *> m_statements;
+    std::mutex m_statementsMutex;
+};
+
+} // namespace mysql
+} // namespace connectors
+} // namespace sql
 } // namespace db
 } // namespace metacpp
 
+#endif // MYSQLTRANSACTIONIMPL_H

@@ -146,6 +146,24 @@ public:
         else
             return StringBase<CharT>::getNull();
     }
+
+    String toString() const
+    {
+        StringStream os;
+        if (!m_schemeName.isNullOrEmpty()) os << m_schemeName << "://";
+        if (!m_username.isNullOrEmpty()) os << m_username;
+        if (!m_password.isNullOrEmpty()) os << ":" << m_password;
+        if (!m_username.isNullOrEmpty() || m_username.isNullOrEmpty()) os << "@";
+        if (!m_path.isNullOrEmpty()) os << "/" << m_path;
+        if (m_params.size())
+        {
+            auto assignments = m_params.template map<StringBase<CharT> >
+                    ([](const std::pair<StringBase<CharT>, StringBase<CharT> >& param) -> StringBase<CharT>
+                        { return param.first + "=" + param.second; });
+            os << "?" << join(assignments, "&");
+        }
+        return os.str();
+    }
 private:
     StringBase<CharT> m_schemeName, m_hierarchy, m_host, m_port, m_username, m_password, m_path;
     Array<std::pair<StringBase<CharT>, StringBase<CharT> > > m_params;
@@ -154,6 +172,12 @@ private:
 typedef UriBase<char> Uri;
 typedef UriBase<char16_t> WUri;
 
+template<typename CharT>
+std::basic_ostream<CharT>& operator<<(std::basic_ostream<CharT>& os, const UriBase<CharT>& uri)
+{
+    return os << uri.toString();
 }
+
+} // namespace metacpp
 
 #endif // URI_H

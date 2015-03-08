@@ -94,16 +94,6 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
     return true;
 }
 
-#define _ASSIGN_FIELD(field, type, isNull, val) \
-    if (field->nullable() && isNull) {  \
-        field->access<Nullable<type> >(storable->record()).reset(); \
-    } else { \
-        if (field->nullable()) \
-            field->access<Nullable<type> >(storable->record()) = val; \
-        else \
-            field->access<type>(storable->record()) = val; \
-    }
-
 template<typename T>
 void assignField(const MetaFieldBase *field, bool isNull, const T& val, Object *obj)
 {

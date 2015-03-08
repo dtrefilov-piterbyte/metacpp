@@ -65,6 +65,8 @@ namespace sql
                                        const Array<SqlConstraintBasePtr>& constraints);
         static void createSchemaPostgreSQL(SqlTransaction &transaction, const MetaObject *metaObject,
                                     const Array<SqlConstraintBasePtr> &constraints);
+        static void createSchemaMySql(SqlTransaction& transaction, const MetaObject *metaObject,
+                                      const Array<SqlConstraintBasePtr>& constraints);
     };
 
     /** \brief Common wrapper template class for Object.

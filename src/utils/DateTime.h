@@ -95,6 +95,9 @@ public:
      * (number of seconds since 1970-01-01)
     */
     explicit DateTime(time_t stdTime);
+
+    DateTime(int y, EMonth mo, int d, int h, int m, int s);
+
     /** \brief Constructs invalid instance of DateTime */
     DateTime();
     ~DateTime();

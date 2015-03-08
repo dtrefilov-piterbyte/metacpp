@@ -242,7 +242,7 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
                    " FROM " + joins;
             if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
         }
-        else if (SqlSyntaxMysql == syntax)
+        else if (SqlSyntaxMySql == syntax)
         {
             res += ", " + joins + " SET " + join(sets, ", ");
             if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();

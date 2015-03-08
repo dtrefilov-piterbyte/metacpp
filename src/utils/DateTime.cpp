@@ -192,6 +192,13 @@ DateTime::DateTime(time_t stdTime)
 
 }
 
+DateTime::DateTime(int y, EMonth mo, int d, int h, int m, int s)
+{
+    char buf[50];
+    sprintf(buf, "%04d-%02d-%02d %02d:%02d:%02d", y, static_cast<int>(mo) + 1, d, h, m, s);
+    *this = fromString(buf);
+}
+
 DateTime::DateTime()
 {
 }

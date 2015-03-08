@@ -13,12 +13,44 @@
 * See the License for the specific language governing permissions and       *
 * limitations under the License.                                            *
 ****************************************************************************/
-#include "ExpressionAssignment.h"
+#ifndef MYSQLSTATEMENTIMPL_H
+#define MYSQLSTATEMENTIMPL_H
+#include "SqlStatementImpl.h"
+#include <mysql.h>
 
 namespace metacpp {
 namespace db {
+namespace sql {
+namespace connectors {
+namespace mysql {
 
+class MySqlStatementImpl : public SqlStatementImpl
+{
+public:
+    MySqlStatementImpl(MYSQL_STMT *stmt, SqlStatementType type, const String& queryText);
+    ~MySqlStatementImpl();
 
+    MYSQL_STMT *getStmt() const;
+    MYSQL_RES *getResult() const;
+    void setResult(MYSQL_RES *result);
+    bool getExecuted() const;
+    void setExecuted(bool val = true);
+    /** Stores bind data which will receive field requirements on the next fetched row */
+    void prefetch();
+    size_t bufferLengthRequired(size_t nField);
+    MYSQL_BIND *bindResult(size_t nField);
+private:
+    MYSQL_STMT *m_stmt;
+    MYSQL_RES *m_result;
+    Array<MYSQL_BIND> m_bindResult;
+    Array<unsigned long> m_fieldLengths;
+    bool m_executed;
+};
+
+} // namespace mysql
+} // namespace connectors
+} // namespace sql
 } // namespace db
 } // namespace metacpp
 
+#endif // MYSQLSTATEMENTIMPL_H

@@ -122,6 +122,10 @@ public:
     virtual Variant getValue(const Object *object) const = 0;
     /** \brief Sets a value of the in specified object using value of metacpp::Variant (if possible) */
     virtual void setValue(const Variant& val, Object *object) const = 0;
+    /** \brief Checks whether this field is of integral type */
+    virtual bool isIntegral() const { return false; }
+    /** \brief Checks whether this is field is of floating point type */
+    virtual bool isFloatingPoint() const { return false; }
 
     /** \brief Accesses a field in the object using this reflection info */
     template<typename T>
@@ -177,6 +181,11 @@ protected:
         else
             access<T>(obj) = variant_cast<T>(val);
     }
+
+    /** \brief Overriden from MetaFieldBase::isIntegral */
+    bool isIntegral() const override { return std::is_integral<T>::value; }
+    /** \brief Overriden from MetaFieldBase::isFloatingPoint */
+    bool isFloatingPoint() const override { return std::is_floating_point<T>::value; }
 };
 
 /** \brief Represents bool property reflection info */
