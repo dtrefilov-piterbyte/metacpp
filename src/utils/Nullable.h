@@ -77,7 +77,7 @@ public:
 
 private:
     typename std::enable_if<std::is_copy_assignable<T>::value, void>::type set(const T& value) { m_value = value; m_isSet = true; }
-    typename std::enable_if<std::is_move_assignable<T>::value, void>::type set(const T&& value) { m_value = std::move(value); m_isSet = true; }
+    typename std::enable_if<std::is_move_assignable<T>::value, void>::type set(T&& value) { m_value = std::move(value); m_isSet = true; }
 
 private:
     bool m_isSet;

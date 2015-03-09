@@ -186,6 +186,11 @@ namespace detail
 
 } // namespace detail
 
+DateTime::DateTime(detail::DateTimeData *d)
+    : SharedDataPointer(d)
+{
+}
+
 DateTime::DateTime(time_t stdTime)
     : SharedDataPointer(new detail::DateTimeData(stdTime))
 {
@@ -468,16 +473,14 @@ String DateTime::toString(const char *format) const
 
 DateTime DateTime::fromString(const char *isoString)
 {
-    DateTime res;
-    res.m_d = new detail::DateTimeData();
+    DateTime res(new detail::DateTimeData());
     res.m_d->fromString(isoString);
     return res;
 }
 
 DateTime DateTime::fromString(const char *string, const char *format)
 {
-    DateTime res;
-    res.m_d = new detail::DateTimeData();
+    DateTime res(new detail::DateTimeData());
     res.m_d->fromString(string, format);
     return res;
 }

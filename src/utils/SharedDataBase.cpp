@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "SharedDataBase.h"
+#include <cassert>
 
 namespace metacpp
 {
@@ -25,6 +26,7 @@ SharedDataBase::SharedDataBase()
 
 SharedDataBase::~SharedDataBase()
 {
+    assert(0 == m_count);
 }
 
 int SharedDataBase::ref() const

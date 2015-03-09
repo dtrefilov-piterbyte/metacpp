@@ -88,8 +88,9 @@ namespace detail
 } // namespace detail
 
 /** \brief A class representing date and time in Gregorian calendar and providing methods of manipulation */
-class DateTime : protected SharedDataPointer<detail::DateTimeData>
+class DateTime final : protected SharedDataPointer<detail::DateTimeData>
 {
+    explicit DateTime(detail::DateTimeData *d);
 public:
     /** \brief Constructs new instance of DateTime from given Unix time
      * (number of seconds since 1970-01-01)

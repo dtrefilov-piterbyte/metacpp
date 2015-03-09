@@ -94,7 +94,7 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
             if (eOptional == field->mandatoriness())
                 field->access<Nullable<DateTime> >(obj).reset();
             else
-                field->access<Nullable<DateTime> >(obj) = DateTime(0);
+                field->access<Nullable<DateTime> >(obj) = DateTime();
             break;
         case eFieldString:
             if (eOptional == field->mandatoriness())
@@ -144,7 +144,7 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
         field->access<Object>(obj).init();
 		break;
     case eFieldDateTime:
-        field->access<DateTime>(obj) = DateTime(0);
+        field->access<DateTime>(obj) = DateTime();
         break;
     }
     }

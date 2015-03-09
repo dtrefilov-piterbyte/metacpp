@@ -47,6 +47,7 @@ namespace metacpp
         {
             clear();
             m_d = rhs.m_d;
+            rhs.clear();
             return *this;
         }
 
