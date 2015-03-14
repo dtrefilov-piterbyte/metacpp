@@ -648,23 +648,10 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
      {
          if (constraint->type() == SqlConstraintTypeIndex)
          {
-             /*
-             std::shared_ptr<SqlConstraintIndex> constrIdx = std::dynamic_pointer_cast<SqlConstraintIndex>(constraint);
-             String columnName = constrIdx->metaField()->name();
-             String indexName = "idx_" + tblName + "_" + columnName;
-             String queryStr =
-                     "DO $$ DECLARE index_exists boolean;"
-                     "BEGIN "
-                     "index_exists := FALSE;"
-                     "SELECT TRUE INTO index_exists FROM pg_indexes WHERE indexname = lower(\'" + indexName + "\') LIMIT 1;"
-                     "IF NOT FOUND THEN" +
-                     (constrIdx->unique() ? " CREATE UNIQUE INDEX " : " CREATE INDEX ") + indexName +
-                     " ON " + tblName + "(" + columnName + ");"
-                     "END IF;"
-                     "END$$ LANGUAGE plpgsql";
-             SqlStatementCustom statement(queryStr);
-             statement.exec(transaction);
-             */
+             if (std::dynamic_pointer_cast<SqlConstraintIndex>(constraint)->unique())
+                 SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD UNIQUE (" + constraint->metaField()->name() + ")").exec(transaction);
+             else
+                 SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD INDEX (" + constraint->metaField()->name() + ")").exec(transaction);
          }
      }
 }

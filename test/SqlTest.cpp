@@ -82,14 +82,9 @@ inline ExpressionNodeFunctionCall<DateTime> db_now()
 
 void SqlTest::SetUp()
 {
-#ifdef HAVE_SQLITE3
-
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://memdb?mode=memory&cache=shared")));
-#elif defined(HAVE_POSTGRES)
-    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
-#elif defined(HAVE_MYSQL)
-    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
-#endif
+    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
+    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
     ASSERT_TRUE(m_conn.get()) << "Sql connector unavailable";
     m_conn->setConnectionPooling(3);
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
