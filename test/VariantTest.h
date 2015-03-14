@@ -2,6 +2,7 @@
 #define VARIANTTEST_H
 #include <gtest/gtest.h>
 #include "Variant.h"
+
 template<typename T>
 class TypedVariantTest : public ::testing::Test
 {

@@ -54,7 +54,10 @@ public:
     virtual SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) = 0;
 
     /** \brief Prepare statement */
-    virtual bool prepare(SqlStatementImpl *statement) = 0;
+    virtual bool prepare(SqlStatementImpl *statement, size_t numParams) = 0;
+
+    /** \brief Bind in sql statement literal values */
+    virtual bool bindValues(SqlStatementImpl *statement, const VariantArray& values) = 0;
 
     /** \brief Execute statement
      * \param numRowsAffected pointer to retrieve number of rows affected with update or delete statement

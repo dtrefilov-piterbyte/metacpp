@@ -400,6 +400,16 @@ public:
     /** \brief Removes element from the begin of this array. Operation has complexity O(N), where N is a current array size. */
 	void pop_front() { this->detach(); this->m_d->_pop_front(); }
 
+    /** \brief Puts set of elements from an array into the end of this array */
+    void append(const T *many, size_t n) {
+        this->detach();
+        reserve(size() + n);
+        for (size_t i = 0; i < n; ++i) this->m_d->_push_back(many[i]);
+    }
+
+    /** \brief Concatenates this array with other */
+    void append(const Array& other) { this->append(other.data(), other.size()); }
+
     /** \brief Empties this array */
     void clear() { resize(0); }
 

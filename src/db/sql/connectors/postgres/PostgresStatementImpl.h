@@ -36,7 +36,10 @@ public:
     const String& getIdString() const;
     int currentRow() const;
     void setCurrentRow(int row);
+    void bindValues(const VariantArray& values);
+    const VariantArray& boundValues() const;
 private:
+    VariantArray m_boundValues;
     PGresult *m_result;
     String m_idString;
     int m_currentRow;

@@ -99,11 +99,32 @@ namespace detail
         return m_type;
     }
 
+    void *VariantData::buffer()
+    {
+        switch (m_type)
+        {
+        case eFieldBool: return &m_storage.m_bool;
+        case eFieldInt: return &m_storage.m_int;
+        case eFieldUint: return &m_storage.m_uint;
+        case eFieldInt64: return &m_storage.m_int64;
+        case eFieldUint64: return &m_storage.m_uint64;
+        case eFieldFloat: return &m_storage.m_float;
+        case eFieldDouble: return &m_storage.m_double;
+        case eFieldObject: return &m_storage.m_object;
+        case eFieldDateTime: return &m_datetime;
+        case eFieldString: return &m_string;
+        case eFieldArray: return &m_array;
+        default:
+            throw std::runtime_error("Unknown variant type");
+        }
+    }
+
     SharedDataBase *VariantData::clone() const
     {
         VariantData *copy = new VariantData();
         copy->m_datetime = m_datetime;
         copy->m_string = m_string;
+        copy->m_array = m_array;
         switch (m_type)
         {
         case eFieldBool:
@@ -326,7 +347,7 @@ bool Variant::isDateTime() const
 {
     detail::VariantData *data = this->data();
     if (!data) return false;
-    return data->type() == eFieldString;
+    return data->type() == eFieldDateTime;
 }
 
 bool Variant::isObject() const
@@ -341,6 +362,12 @@ bool Variant::isArray() const
     detail::VariantData *data = this->data();
     if (!data) return false;
     return data->type() == eFieldArray;
+}
+
+void *Variant::buffer()
+{
+    detail::VariantData *data = this->getData();
+    return data->buffer();
 }
 
 detail::VariantData *Variant::getData() const

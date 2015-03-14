@@ -65,11 +65,12 @@ public:
     virtual SqlStatementType type() const = 0;
 protected:
     /** \brief Constructs a query using specified syntax */
-    virtual String buildQuery(SqlSyntax syntax) const = 0;
+    virtual String buildQuery(SqlSyntax syntax) = 0;
     /** \brief Create statement implementation */
     std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
     std::shared_ptr<connectors::SqlStatementImpl> m_impl;
+    VariantArray m_literals;
 };
 
 /** \brief Class representing Select queries */
@@ -84,7 +85,7 @@ public:
     SqlStatementType type() const override;
 
     /** \brief Overridden from SqlStatementBase::buildQuery */
-    String buildQuery(SqlSyntax syntax) const override;
+    String buildQuery(SqlSyntax syntax) override;
 
     /** \brief Specifies other table to be used in inner join with this statement */
     template<typename TObj>
@@ -157,7 +158,7 @@ private:
     {
         m_orderAsc = true;
         m_order.reserve(m_order.size() + 1 + sizeof...(others));
-        m_order.push_back(detail::SqlExpressionTreeWalker(column.impl()).doWalk() + (asc ? " ASC" : " DESC"));
+        m_order.push_back(detail::SqlExpressionTreeWalker(column.impl()).evaluate() + (asc ? " ASC" : " DESC"));
         return orderByHelper(asc, others...);
     }
 private:
@@ -190,7 +191,7 @@ public:
     /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
     /** \brief Overridden from SqlStatementBase::buildQuery */
-    String buildQuery(SqlSyntax syntax) const override;
+    String buildQuery(SqlSyntax syntax) override;
     /** \brief Executes statement and returns number of rows inserted (on success should be equal to 1) */
     int exec(SqlTransaction& transaction);
 private:
@@ -208,7 +209,7 @@ public:
     /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
     /** \brief Overridden from SqlStatementBase::buildQuery */
-    String buildQuery(SqlSyntax syntax) const override;
+    String buildQuery(SqlSyntax syntax) override;
 
     /** \brief Reference other tables */
     template<typename TObj>
@@ -230,8 +231,11 @@ public:
     template<typename TObj>
     SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment)
     {
-        m_sets.push_back(detail::SqlExpressionTreeWalker(assignment.lhs(), false).doWalk() + " = " +
-                         detail::SqlExpressionTreeWalker(assignment.rhs(), false).doWalk());
+        String expr = detail::SqlExpressionTreeWalker(assignment.lhs(), false).evaluate() + " = ";
+        detail::SqlExpressionTreeWalker walker(assignment.rhs());
+        expr += walker.evaluate();
+        m_literals.append(walker.literals());
+        m_sets.push_back(expr);
         return *this;
     }
 
@@ -240,8 +244,7 @@ public:
     SqlStatementUpdate&
         set(const ExpressionAssignmentBase<TObj>& assignment1, const ExpressionAssignmentBase<TObj>& assignment2, TRest... rest)
     {
-        m_sets.push_back(detail::SqlExpressionTreeWalker(assignment1.lhs(), false).doWalk() + " = " +
-                         detail::SqlExpressionTreeWalker(assignment1.rhs(), false).doWalk());
+        set(assignment1);
         return set(assignment2, rest...);
     }
 
@@ -267,7 +270,7 @@ public:
     /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
     /** \brief Overridden from SqlStatementBase::buildQuery */
-    String buildQuery(SqlSyntax syntax) const override;
+    String buildQuery(SqlSyntax syntax) override;
 
     /** \brief Reference other tables */
     template<typename TObj>
@@ -306,7 +309,7 @@ public:
     /** \brief Overridden from SqlStatementBase::type */
     SqlStatementType type() const override;
     /** \brief Overridden from SqlStatementBase::buildQuery */
-    String buildQuery(SqlSyntax syntax) const override;
+    String buildQuery(SqlSyntax syntax) override;
     /** \brief Executes statement using given transaction */
     void exec(SqlTransaction& transaction);
 private:

@@ -194,7 +194,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldInt:
@@ -202,7 +202,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldEnum:
@@ -210,7 +210,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldUint:
@@ -218,7 +218,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldInt64:
@@ -226,7 +226,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldUint64:
@@ -234,7 +234,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldFloat:
@@ -242,7 +242,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldDouble:
@@ -250,7 +250,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldString:
@@ -258,7 +258,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         case eFieldDateTime:
@@ -266,7 +266,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxSqlite).doWalk());
+                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxSqlite).evaluate());
             }
             break;
         default:
@@ -357,7 +357,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldInt:
@@ -365,7 +365,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldEnum:
@@ -373,7 +373,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldUint:
@@ -381,7 +381,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldInt64:
@@ -389,7 +389,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldUint64:
@@ -397,7 +397,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldFloat:
@@ -405,7 +405,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldDouble:
@@ -413,7 +413,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldString:
@@ -421,7 +421,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         case eFieldDateTime:
@@ -429,7 +429,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).doWalk());
+                    (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxPostgreSQL).evaluate());
             }
             break;
         default:
@@ -531,7 +531,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldInt:
@@ -539,7 +539,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldEnum:
@@ -547,7 +547,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldUint:
@@ -555,7 +555,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldInt64:
@@ -563,7 +563,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldUint64:
@@ -571,7 +571,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldFloat:
@@ -579,7 +579,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldDouble:
@@ -587,7 +587,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldString:
@@ -595,7 +595,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          case eFieldDateTime:
@@ -603,7 +603,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
              if (field->mandatoriness() == eDefaultable)
              {
                  constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxMySql).doWalk());
+                     (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
              }
              break;
          default:

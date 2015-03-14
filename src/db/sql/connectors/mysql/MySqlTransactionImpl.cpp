@@ -66,8 +66,9 @@ SqlStatementImpl *MySqlTransactionImpl::createStatement(SqlStatementType type, c
     return statement;
 }
 
-bool MySqlTransactionImpl::prepare(SqlStatementImpl *statement)
+bool MySqlTransactionImpl::prepare(SqlStatementImpl *statement, size_t numParams)
 {
+    (void)numParams;
     MySqlStatementImpl *mysqlStatement = reinterpret_cast<MySqlStatementImpl *>(statement);
     int res = mysql_stmt_prepare(mysqlStatement->getStmt(), statement->queryText().c_str(), statement->queryText().length());
     if (0 != res)
@@ -77,6 +78,91 @@ bool MySqlTransactionImpl::prepare(SqlStatementImpl *statement)
         return false;
     }
     statement->setPrepared();
+    return true;
+}
+
+bool MySqlTransactionImpl::bindValues(SqlStatementImpl *statement, const VariantArray &values)
+{
+    if (!statement->prepared())
+        throw std::runtime_error("SqliteTransactionImpl::bindValues(): statement should be prepared first");
+    MySqlStatementImpl *mysqlStatement = reinterpret_cast<MySqlStatementImpl *>(statement);
+    MYSQL_BIND *binds = (MYSQL_BIND *)alloca(sizeof(MYSQL_BIND) * values.size());
+    MYSQL_TIME *time_buffers = (MYSQL_TIME *)alloca(sizeof(MYSQL_TIME) * values.size());
+    for (size_t i = 0; i < values.size(); ++i)
+    {
+        MYSQL_BIND& bind = binds[i];
+        Variant v = values[i];
+        memset(&bind, 0, sizeof(bind));
+        if (!v.valid())
+        {
+            bind.is_null = &bind.is_null_value;
+            bind.is_null_value = true;
+        }
+        else
+        {
+            switch (values[i].type())
+            {
+            case eFieldBool:
+                bind.buffer_type = MYSQL_TYPE_TINY;
+                bind.buffer = v.buffer();
+                break;
+            case eFieldUint:
+                bind.is_unsigned = true; // fall through
+            case eFieldInt:
+            case eFieldEnum:
+                bind.buffer_type = MYSQL_TYPE_LONG;
+                bind.buffer = v.buffer();
+                break;
+            case eFieldUint64:
+                bind.is_unsigned = true; // fall through
+            case eFieldInt64:
+                bind.buffer_type = MYSQL_TYPE_LONGLONG;
+                bind.buffer = v.buffer();
+                break;
+            case eFieldFloat:
+                bind.buffer_type = MYSQL_TYPE_FLOAT;
+                bind.buffer = v.buffer();
+                break;
+            case eFieldDouble:
+                bind.buffer_type = MYSQL_TYPE_DOUBLE;
+                bind.buffer = v.buffer();
+                break;
+            case eFieldString: {
+                const String *pStr = reinterpret_cast<const String *>(v.buffer());
+                bind.buffer_type = MYSQL_TYPE_STRING;
+                bind.buffer_length = pStr->length();
+                bind.buffer = const_cast<char *>(pStr->data());
+                break;
+            }
+            case eFieldDateTime: {
+                bind.buffer_type = MYSQL_TYPE_DATETIME;
+                bind.buffer = &time_buffers[i];
+                memset(&time_buffers[i], 0, sizeof(MYSQL_TIME));
+                DateTime dt = v.value<DateTime>();
+                time_buffers[i].year = std::abs(dt.year());
+                time_buffers[i].month = static_cast<int>(dt.month()) + 1;
+                time_buffers[i].day = dt.day();
+                time_buffers[i].hour = dt.hours();
+                time_buffers[i].minute = dt.minutes();
+                time_buffers[i].second = dt.seconds();
+                time_buffers[i].neg = dt.year() < 0;
+                time_buffers[i].time_type = MYSQL_TIMESTAMP_DATETIME;
+                break;
+            }
+            case eFieldObject:
+            case eFieldArray:
+                throw std::runtime_error("Cannot bind denormalized data");
+            default:
+                throw std::runtime_error("Unknown field type");
+            }
+        }
+    }
+    int res = mysql_stmt_bind_param(mysqlStatement->getStmt(), binds);
+    if (0 != res)
+    {
+        std::cerr << "mysql_stmt_bind_param() failed: " << mysql_error(dbConn()) << std::endl;
+        return false;
+    }
     return true;
 }
 
@@ -93,19 +179,6 @@ bool MySqlTransactionImpl::execStatement(SqlStatementImpl *statement, int *numRo
     }
     if (numRowsAffected) *numRowsAffected = mysql_stmt_affected_rows(mysqlStatement->getStmt());
     return true;
-}
-
-template<typename T>
-void assignField(const MetaFieldBase *field, bool isNull, const T& val, Object *obj)
-{
-    if (field->nullable() && !isNull) {
-        field->access<Nullable<T> >(obj).reset();
-    } else {
-        if (field->nullable())
-            field->access<Nullable<T> >(obj) = val;
-        else
-            field->access<T>(obj) = val;
-    }
 }
 
 template<typename T>
@@ -144,7 +217,7 @@ void accessField(const MetaFieldBase *field, Object *object, MYSQL_BIND *bind)
         break;
     case eFieldObject:
     case eFieldArray:
-        throw std::runtime_error("Cannot denormalized data");
+        throw std::runtime_error("Cannot bind denormalized data");
     default:
         throw std::runtime_error("Unknown field type");
     }

@@ -40,27 +40,33 @@ enum SqlSyntax
 namespace detail
 {
 
-class SqlExpressionTreeWalker : public db::detail::ASTWalkerBase
+class SqlExpressionTreeWalker final : db::detail::ASTWalkerBase
 {
 public:
-    explicit SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr& rootNode, bool fullQualified = true, SqlSyntax sqlSyntax = SqlSyntaxUnknown);
+    explicit SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr& rootNode, bool fullQualified = true, SqlSyntax sqlSyntax = SqlSyntaxUnknown, int startLiteralIndex = 0);
     ~SqlExpressionTreeWalker();
 
+    String evaluate();
+    const VariantArray& literals() const;
+
 protected:
-    String evaluateColumn(std::shared_ptr<db::detail::ExpressionNodeImplColumn> column) override;
-    String evaluateLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal) override;
-    String evaluateNull(std::shared_ptr<db::detail::ExpressionNodeImplNull> null) override;
-    String evaluateUnaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplUnaryOperator> unary) override;
-    String evaluateBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary) override;
-    String evaluateFunctionCall(std::shared_ptr<db::detail::ExpressionNodeImplFunctionCall> functionCall) override;
-    String evaluateWhereClauseRelational(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational) override;
-    String evaluateWhereClauseLogical(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical) override;
-    String evaluateWhereClauseConditional(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseConditional> whereClauseConditional) override;
+    void visitColumn(std::shared_ptr<db::detail::ExpressionNodeImplColumn> column) override;
+    void visitLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal) override;
+    void visitNull(std::shared_ptr<db::detail::ExpressionNodeImplNull> null) override;
+    void visitUnaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplUnaryOperator> unary) override;
+    void visitBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary) override;
+    void visitFunctionCall(std::shared_ptr<db::detail::ExpressionNodeImplFunctionCall> functionCall) override;
+    void visitWhereClauseRelational(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational) override;
+    void visitWhereClauseLogical(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical) override;
+    void visitWhereClauseConditional(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseConditional> whereClauseConditional) override;
 private:
-    String evaluateSubnode(const db::detail::ExpressionNodeImplPtr& node, bool bracesRequired);
+    String evaluateSubnode(const db::detail::ExpressionNodeImplPtr& node, bool bracesRequired = false);
 private:
     bool m_fullQualified;
     SqlSyntax m_sqlSyntax;
+    Array<String> m_stack;
+    VariantArray m_bindValues;
+    size_t m_startLiteralIndex;
 };
 
 } // namespace detail

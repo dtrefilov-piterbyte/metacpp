@@ -36,7 +36,42 @@ TYPED_TEST_P(TypedVariantTest, AssignTest)
     EXPECT_EQ(v.value<TypeParam>(), v1.value<TypeParam>());
 }
 
-REGISTER_TYPED_TEST_CASE_P(TypedVariantTest, ConstructValidTest, ConstructInvalidTest, TypeTest, AssignTest);
+TYPED_TEST_P(TypedVariantTest, IsArithmetic)
+{
+    TypeParam p = TypeParam();
+    Variant v(p);
+    ASSERT_EQ(v.isArithmetic(), std::is_arithmetic<TypeParam>::value);
+}
+
+TYPED_TEST_P(TypedVariantTest, IsIntegral)
+{
+    TypeParam p = TypeParam();
+    Variant v(p);
+    ASSERT_EQ(v.isIntegral(), std::is_integral<TypeParam>::value);
+}
+
+TYPED_TEST_P(TypedVariantTest, IsFloatingPoint)
+{
+    TypeParam p = TypeParam();
+    Variant v(p);
+    ASSERT_EQ(v.isFloatingPoint(), std::is_floating_point<TypeParam>::value);
+}
+
+TYPED_TEST_P(TypedVariantTest, IsString)
+{
+    TypeParam p = TypeParam();
+    Variant v(p);
+    ASSERT_EQ(v.isString(), (std::is_same<String, TypeParam>::value));
+}
+
+TYPED_TEST_P(TypedVariantTest, IsDateTime)
+{
+    TypeParam p = TypeParam();
+    Variant v(p);
+    ASSERT_EQ(v.isDateTime(), (std::is_same<DateTime, TypeParam>::value));
+}
+
+REGISTER_TYPED_TEST_CASE_P(TypedVariantTest, ConstructValidTest, ConstructInvalidTest, TypeTest, AssignTest, IsArithmetic, IsIntegral, IsFloatingPoint, IsString, IsDateTime);
 
 INSTANTIATE_TYPED_TEST_CASE_P(TypedVariantTestInstance, TypedVariantTest, VariantTypes);
 

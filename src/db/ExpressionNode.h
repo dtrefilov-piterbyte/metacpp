@@ -272,8 +272,8 @@ public:
     ExpressionNodeType nodeType() const override;
 
     RelationOperatorType operatorType() const;
-    ExpressionNodeImplPtr left() const;
-    ExpressionNodeImplPtr right() const;
+    ExpressionNodeImplPtr leftNode() const;
+    ExpressionNodeImplPtr rightNode() const;
 private:
     RelationOperatorType m_operator;
     ExpressionNodeImplPtr m_lhs, m_rhs;
@@ -282,14 +282,14 @@ private:
 class ExpressionNodeImplWhereClauseLogical : public ExpressionNodeImplWhereClauseBase
 {
 public:
-    ExpressionNodeImplWhereClauseLogical(UnaryLogicalOperatorType op, const ExpressionNodeImplWhereClausePtr& inner);
+    ExpressionNodeImplWhereClauseLogical(UnaryLogicalOperatorType op, const ExpressionNodeImplWhereClausePtr& innerNode);
     ~ExpressionNodeImplWhereClauseLogical();
 
     bool complex() const override;
     ExpressionNodeType nodeType() const override;
 
     UnaryLogicalOperatorType operatorType() const;
-    ExpressionNodeImplWhereClausePtr inner() const;
+    ExpressionNodeImplWhereClausePtr innerNode() const;
 private:
     UnaryLogicalOperatorType m_operator;
     ExpressionNodeImplWhereClausePtr m_inner;
@@ -305,8 +305,8 @@ public:
     ExpressionNodeType nodeType() const override;
 
     ConditionalOperatorType operatorType() const;
-    ExpressionNodeImplWhereClausePtr left() const;
-    ExpressionNodeImplWhereClausePtr right() const;
+    ExpressionNodeImplWhereClausePtr leftNode() const;
+    ExpressionNodeImplWhereClausePtr rightNode() const;
 private:
     ConditionalOperatorType m_operator;
     ExpressionNodeImplWhereClausePtr m_lhs, m_rhs;

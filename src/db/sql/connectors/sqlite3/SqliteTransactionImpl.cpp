@@ -87,20 +87,56 @@ SqlStatementImpl *SqliteTransactionImpl::createStatement(SqlStatementType type, 
     return statement;
 }
 
-bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement)
+bool SqliteTransactionImpl::prepare(SqlStatementImpl *statement, size_t numParams)
 {
+    (void)numParams;
     const String& query = statement->queryText();
     sqlite3_stmt *stmt;
     //std::cout << query << std::endl;
+    const char *pSqlTail;
     int error = sqlite3_prepare_v2(m_dbHandle, query.c_str(), (int)query.size() + 1,
-        &stmt, nullptr);
+        &stmt, &pSqlTail);
     if (SQLITE_OK != error)
     {
         std::cerr << "sqlite3_prepare_v2(): " << sqlite3_errmsg(m_dbHandle) << std::endl;
         std::cerr << query << std::endl;
         return false;
     }
+    if (*pSqlTail)
+        std::cerr << "Unused part of an SQL statement: " << pSqlTail;
     reinterpret_cast<SqliteStatementImpl *>(statement)->setHandle(stmt);
+    return true;
+}
+
+bool SqliteTransactionImpl::bindValues(SqlStatementImpl *statement, const VariantArray &values)
+{
+    if (!statement->prepared())
+        throw std::runtime_error("SqliteTransactionImpl::bindValues(): statement should be prepared first");
+    sqlite3_stmt *stmt = reinterpret_cast<SqliteStatementImpl *>(statement)->handle();
+    for (size_t i = 0; i < values.size(); ++i)
+    {
+        int error = SQLITE_OK;
+        Variant v = values[i];
+        if (!v.valid())
+            error = sqlite3_bind_null(stmt, i + 1);
+        else if (v.isIntegral())
+            error = sqlite3_bind_int64(stmt, i + 1, variant_cast<int64_t>(v));
+        else if (v.isFloatingPoint())
+            error = sqlite3_bind_double(stmt, i + 1, variant_cast<double>(v));
+        else if (v.isString() || v.isDateTime())
+        {
+            String s = variant_cast<String>(v);
+            error = sqlite3_bind_text(stmt, i + 1, s.data(), s.length(), SQLITE_TRANSIENT);
+        }
+        else
+            throw std::invalid_argument("Unsupported - not a scalar variant value");
+        if (SQLITE_OK != error)
+        {
+            std::cerr << "sqlite3_bind_*(): " << sqlite3_errmsg(m_dbHandle) << std::endl;
+            std::cerr << v << std::endl;
+            return false;
+        }
+    }
     return true;
 }
 

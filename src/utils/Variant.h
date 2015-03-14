@@ -65,6 +65,7 @@ namespace detail
         EFieldType type() const;
         template<typename T>
         T value() const;
+        void *buffer();
 
         SharedDataBase *clone() const override;
     private:
@@ -199,6 +200,8 @@ public:
     bool isObject() const;
     /** \brief Checks if this variant stores a VariantArray * */
     bool isArray() const;
+
+    void *buffer();
 private:
     detail::VariantData *getData() const;
 };

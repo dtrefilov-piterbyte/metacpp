@@ -60,11 +60,13 @@ SqlStatementImpl *PostgresTransactionImpl::createStatement(SqlStatementType type
     return statement;
 }
 
-bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement)
+bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement, size_t numParams)
 {
     static int statementId = 0;
     String idString = "metacpp_prepared_stmt_" + String::fromValue(statementId++);
-    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(), 0, nullptr);
+    Oid *paramTypes = (Oid *)alloca(sizeof(Oid) * numParams);
+    std::fill_n(paramTypes, numParams, InvalidOid);
+    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(), numParams, paramTypes);
     ExecStatusType status = PQresultStatus(result);
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {
@@ -78,12 +80,52 @@ bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement)
     return true;
 }
 
+bool PostgresTransactionImpl::bindValues(SqlStatementImpl *statement, const VariantArray &values)
+{
+    if (!statement->prepared())
+        throw std::runtime_error("PostgresTransactionImpl::execStatement(): should be prepared first");
+    PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
+    postgresStatement->bindValues(values);
+    return true;
+}
+
 bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *numRowsAffected)
 {
     if (!statement->prepared())
         throw std::runtime_error("PostgresTransactionImpl::execStatement(): should be prepared first");
     PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
-    PGresult *result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), 0, NULL, NULL, NULL, 0 /* text format */);
+    VariantArray values = postgresStatement->boundValues();
+    PGresult *result;
+    if (values.size())
+    {
+        const char **paramValues = (const char **)alloca(sizeof(char *) * values.size());
+        StringArray transient;
+        for (size_t i = 0; i < values.size(); ++i)
+        {
+            if (!values[i].valid())
+            {
+                paramValues[i] = nullptr;
+                transient.push_back(String());
+            }
+            else
+            {
+                String val = variant_cast<String>(values[i]);
+                if (values[i].isString() || values[i].isDateTime())
+                    paramValues[i] = PQescapeLiteral(m_dbConn, val.data(), val.size());
+                else
+                    paramValues[i] = val.data();
+                transient.push_back(val);
+            }
+        }
+        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), values.size(), paramValues, nullptr, nullptr, 0 /* text format */);
+        for (size_t i = 0; i < values.size(); ++i)
+        {
+            if (values[i].isString() || values[i].isDateTime())
+                PQfreemem(const_cast<char *>(paramValues[i]));
+        }
+    }
+    else
+        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), 0, NULL, NULL, NULL, 0 /* text format */);
     ExecStatusType status = PQresultStatus(result);
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {

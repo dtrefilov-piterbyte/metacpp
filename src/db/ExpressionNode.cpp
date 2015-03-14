@@ -228,12 +228,12 @@ RelationOperatorType ExpressionNodeImplWhereClauseRelational::operatorType() con
     return m_operator;
 }
 
-ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::left() const
+ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::leftNode() const
 {
     return m_lhs;
 }
 
-ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::right() const
+ExpressionNodeImplPtr ExpressionNodeImplWhereClauseRelational::rightNode() const
 {
     return m_rhs;
 }
@@ -263,7 +263,7 @@ UnaryLogicalOperatorType ExpressionNodeImplWhereClauseLogical::operatorType() co
     return m_operator;
 }
 
-ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseLogical::inner() const
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseLogical::innerNode() const
 {
     return m_inner;
 }
@@ -293,12 +293,12 @@ ConditionalOperatorType ExpressionNodeImplWhereClauseConditional::operatorType()
     return m_operator;
 }
 
-ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::left() const
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::leftNode() const
 {
     return m_lhs;
 }
 
-ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::right() const
+ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::rightNode() const
 {
     return m_rhs;
 }

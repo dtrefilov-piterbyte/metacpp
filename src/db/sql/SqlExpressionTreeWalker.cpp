@@ -24,8 +24,8 @@ namespace sql
 namespace detail
 {
 
-SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode, bool fullQualified, SqlSyntax sqlSyntax)
-    : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax)
+SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode, bool fullQualified, SqlSyntax sqlSyntax, int startLiteralIndex)
+    : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax), m_startLiteralIndex(startLiteralIndex)
 {
 }
 
@@ -33,110 +33,198 @@ SqlExpressionTreeWalker::~SqlExpressionTreeWalker()
 {
 }
 
-String SqlExpressionTreeWalker::evaluateColumn(std::shared_ptr<db::detail::ExpressionNodeImplColumn> column)
+String SqlExpressionTreeWalker::evaluate()
 {
-    if (m_fullQualified)
-        return String() + column->metaField()->metaObject()->name() + "." + column->metaField()->name();
-    return column->metaField()->name();
+    doWalk();
+    assert(m_stack.size() == 1);
+    String result = m_stack.back();
+    m_stack.pop_back();
+    return result;
 }
 
-String SqlExpressionTreeWalker::evaluateLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal)
+const VariantArray &SqlExpressionTreeWalker::literals() const
 {
-    switch (literal->type())
+    return m_bindValues;
+}
+
+void SqlExpressionTreeWalker::visitColumn(std::shared_ptr<db::detail::ExpressionNodeImplColumn> column)
+{
+    String eval;
+    if (m_fullQualified)
+        eval = String() + column->metaField()->metaObject()->name() + "." + column->metaField()->name();
+    else
+        eval = column->metaField()->name();
+    m_stack.push_back(eval);
+}
+
+void SqlExpressionTreeWalker::visitLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal)
+{
+    m_bindValues.push_back(literal->value());
+    if (m_fullQualified)
     {
-    case eFieldDateTime:
-    case eFieldString:
-        return "\'" + variant_cast<String>(literal->value()).replace("'", "\'\'") + "\'";
-    default:
-        return variant_cast<String>(literal->value());
+        if (m_sqlSyntax == SqlSyntaxPostgreSQL)
+            m_stack.push_back("$" + String::fromValue(m_startLiteralIndex + m_bindValues.size()));
+        else
+            m_stack.push_back("?");
+    }
+    else
+    {
+        String eval;
+        switch (literal->type())
+        {
+        case eFieldDateTime:
+        case eFieldString:
+            eval = "\'" + variant_cast<String>(literal->value()).replace("'", "\'\'") + "\'";
+            break;
+        default:
+            eval = variant_cast<String>(literal->value());
+            break;
+        }
+        m_stack.push_back(eval);
     }
 }
 
-String SqlExpressionTreeWalker::evaluateNull(std::shared_ptr<db::detail::ExpressionNodeImplNull> null)
+void SqlExpressionTreeWalker::visitNull(std::shared_ptr<db::detail::ExpressionNodeImplNull> null)
 {
     (void)null;
-    return "NULL";
+    String eval = "NULL";
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateUnaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplUnaryOperator> unary)
+void SqlExpressionTreeWalker::visitUnaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplUnaryOperator> unary)
 {
     auto inner = unary->innerNode();
+    String eval;
     switch (unary->operatorType())
     {
     case eUnaryOperatorPlus:
-        return evaluateNode(unary->innerNode());
+        eval = evaluateSubnode(inner);
+        break;
     case eUnaryOperatorMinus:
-        return "-" + evaluateSubnode(inner, !inner->isLeaf());
+        eval = "-" + evaluateSubnode(inner, !inner->isLeaf());
+        break;
     case eUnaryOperatorNegation:
-        return "~" + evaluateSubnode(inner, !inner->isLeaf());
+        eval = "~" + evaluateSubnode(inner, !inner->isLeaf());
+        break;
     default:
         throw std::invalid_argument("Unknown unary operator");
     }
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary)
+void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary)
 {
     auto left = binary->leftNode();
     auto right = binary->rightNode();
     String l = evaluateSubnode(left, !left->isLeaf());
     String r = evaluateSubnode(right, !right->isLeaf());
+    String eval;
     switch (binary->operatorType())
     {
-    case eBinaryOperatorPlus: return l + " + " + r;
-    case eBinaryOperatorConcatenate: return l + " || " + r;
-    case eBinaryOperatorMinus: return l + " - " + r;
-    case eBinaryOperatorMultiply: return l + " * " + r;
-    case eBinaryOperatorDivide: return l + " / " + r;
-    case eBinaryOperatorReminder: return l + " % " + r;
-    case eBinaryOperatorAnd: return l + " & " + r;
-    case eBinaryOperatorOr: return l + " | " + r;
-    case eBinaryOperatorShiftLeft: return l + " << " + r;
-    case eBinaryOperatorShiftRight: return l + " >> " + r;
-    case eBinaryOperatorXor: return "(" + l + " & ~" + r + ") | (~" + l + " & " + r + ")";
+    case eBinaryOperatorPlus:
+        eval = l + " + " + r;
+        break;
+    case eBinaryOperatorConcatenate:
+        eval = l + " || " + r;
+        break;
+    case eBinaryOperatorMinus:
+        eval = l + " - " + r;
+        break;
+    case eBinaryOperatorMultiply:
+        eval = l + " * " + r;
+        break;
+    case eBinaryOperatorDivide:
+        eval = l + " / " + r;
+        break;
+    case eBinaryOperatorReminder:
+        eval = l + " % " + r;
+        break;
+    case eBinaryOperatorAnd:
+        eval = l + " & " + r;
+        break;
+    case eBinaryOperatorOr:
+        eval = l + " | " + r;
+        break;
+    case eBinaryOperatorShiftLeft:
+        eval = l + " << " + r;
+        break;
+    case eBinaryOperatorShiftRight:
+        eval = l + " >> " + r;
+        break;
+    case eBinaryOperatorXor:
+        eval = "(" + l + " & ~" + r + ") | (~" + l + " & " + r + ")";
+        break;
     default:
         throw std::invalid_argument("Unknown binary operator");
     }
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateFunctionCall(std::shared_ptr<db::detail::ExpressionNodeImplFunctionCall> functionCall)
+void SqlExpressionTreeWalker::visitFunctionCall(std::shared_ptr<db::detail::ExpressionNodeImplFunctionCall> functionCall)
 {
-    StringArray args = functionCall->argumentNodes().map<String>([this](const db::detail::ExpressionNodeImplPtr node) { return evaluateNode(node); });
-    return functionCall->functionName() + "(" + join(args, ", ") + ")";
+    StringArray args = functionCall->argumentNodes().map<String>([this](const db::detail::ExpressionNodeImplPtr node) { return evaluateSubnode(node); });
+    String eval = functionCall->functionName() + "(" + join(args, ", ") + ")";
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateWhereClauseRelational(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational)
+void SqlExpressionTreeWalker::visitWhereClauseRelational(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational)
 {
-    auto left = whereClauseRelational->left();
-    auto right = whereClauseRelational->right();
+    auto left = whereClauseRelational->leftNode();
+    auto right = whereClauseRelational->rightNode();
     String l = evaluateSubnode(left, !left->isLeaf());
     String r = evaluateSubnode(right, !right->isLeaf());
+    String eval;
     switch (whereClauseRelational->operatorType())
     {
-    case eRelationalOperatorEqual:              return l + " = "  + r;
-    case eRelationalOperatorNotEqual:           return l + " <> " + r;
-    case eRelationalOperatorLess:               return l + " < "  + r;
-    case eRelationalOperatorLessOrEqual:        return l + " <= " + r;
-    case eRelationalOperatorGreater:            return l + " > "  + r;
-    case eRelationalOperatorGreaterOrEqual:     return l + " >= " + r;
-    case eRelationalOperatorIsNull:             return l + " IS " + r;
-    case eRelationalOperatorIsNotNull:          return l + " IS NOT " + r;
-    case eRelationalOperatorLike:               return l + " LIKE " + r;
+    case eRelationalOperatorEqual:
+        eval = l + " = "  + r;
+        break;
+    case eRelationalOperatorNotEqual:
+        eval = l + " <> " + r;
+        break;
+    case eRelationalOperatorLess:
+        eval = l + " < "  + r;
+        break;
+    case eRelationalOperatorLessOrEqual:
+        eval = l + " <= " + r;
+        break;
+    case eRelationalOperatorGreater:
+        eval = l + " > "  + r;
+        break;
+    case eRelationalOperatorGreaterOrEqual:
+        eval = l + " >= " + r;
+        break;
+    case eRelationalOperatorIsNull:
+        eval = l + " IS NULL";
+        break;
+    case eRelationalOperatorIsNotNull:
+        eval = l + " IS NOT NULL";
+        break;
+    case eRelationalOperatorLike:
+        eval = l + " LIKE " + r;
+        break;
     default:
         throw std::invalid_argument("Unknown relational operator type");
-}
+    }
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateWhereClauseLogical(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical)
+void SqlExpressionTreeWalker::visitWhereClauseLogical(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical)
 {
-    auto inner = whereClauseLogical->inner();
+    auto inner = whereClauseLogical->innerNode();
+    String eval;
     switch (whereClauseLogical->operatorType())
     {
-    case eLogicalOperatorNot: return "NOT " + evaluateSubnode(inner, inner->complex());
+    case eLogicalOperatorNot:
+        eval = "NOT " + evaluateSubnode(inner, inner->complex());
+        break;
+    default:
+        throw std::invalid_argument("Unknown logical operator type");
     }
-    throw std::invalid_argument("Unknown logical operator type");
+    m_stack.push_back(eval);
 }
 
-String SqlExpressionTreeWalker::evaluateWhereClauseConditional(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseConditional> whereClauseConditional)
+void SqlExpressionTreeWalker::visitWhereClauseConditional(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseConditional> whereClauseConditional)
 {
     String op;
     switch (whereClauseConditional->operatorType())
@@ -146,18 +234,23 @@ String SqlExpressionTreeWalker::evaluateWhereClauseConditional(std::shared_ptr<d
     default:
         throw std::invalid_argument("Unknown conditional operator type");
     }
-    auto left = whereClauseConditional->left();
-    auto right = whereClauseConditional->right();
+    auto left = whereClauseConditional->leftNode();
+    auto right = whereClauseConditional->rightNode();
     String l = evaluateSubnode(left, left->complex());
     String r = evaluateSubnode(right, right->complex());
-    return l + op + r;
+    String eval = l + op + r;
+    m_stack.push_back(eval);
 }
 
 
 String SqlExpressionTreeWalker::evaluateSubnode(const db::detail::ExpressionNodeImplPtr &node, bool bracesRequired)
 {
-    if (!bracesRequired) return evaluateNode(node);
-    return "(" + evaluateNode(node) + ")";
+    visitNode(node);
+    String eval = m_stack.back();
+    m_stack.pop_back();
+    if (!bracesRequired)
+        return eval;
+    return "(" + eval + ")";
 }
 
 } // namespace detail

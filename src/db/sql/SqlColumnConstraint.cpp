@@ -91,7 +91,7 @@ SqlConstraintType SqlConstraintCheck::type()
 
 String SqlConstraintCheck::checkExpression() const
 {
-    return detail::SqlExpressionTreeWalker(m_checkExpression.impl(), false).doWalk();
+    return detail::SqlExpressionTreeWalker(m_checkExpression.impl(), false).evaluate();
 }
 
 } // namespace sql

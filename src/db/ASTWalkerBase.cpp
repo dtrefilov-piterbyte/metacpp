@@ -28,26 +28,75 @@ ASTWalkerBase::~ASTWalkerBase()
 {
 }
 
-String ASTWalkerBase::doWalk()
+void ASTWalkerBase::doWalk()
 {
-    return evaluateNode(m_rootNode);
+    return visitNode(m_rootNode);
 }
 
-String ASTWalkerBase::evaluateNode(detail::ExpressionNodeImplPtr node)
+void ASTWalkerBase::visitNode(detail::ExpressionNodeImplPtr node)
 {
     switch (node->nodeType())
     {
-    case eNodeColumn: return evaluateColumn(std::dynamic_pointer_cast<detail::ExpressionNodeImplColumn>(node));
-    case eNodeLiteral: return evaluateLiteral(std::dynamic_pointer_cast<detail::ExpressionNodeImplLiteral>(node));
-    case eNodeNull: return evaluateNull(std::dynamic_pointer_cast<detail::ExpressionNodeImplNull>(node));
-    case eNodeUnaryOperator: return evaluateUnaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplUnaryOperator>(node));
-    case eNodeBinaryOperator: return evaluateBinaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplBinaryOperator>(node));
-    case eNodeFunctionCall: return evaluateFunctionCall(std::dynamic_pointer_cast<detail::ExpressionNodeImplFunctionCall>(node));
-    case eNodeWhereClauseRelational: return evaluateWhereClauseRelational(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseRelational>(node));
-    case eNodeWhereClauseLogical: return evaluateWhereClauseLogical(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseLogical>(node));
-    case eNodeWhereClauseComplex: return evaluateWhereClauseConditional(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseConditional>(node));
+    case eNodeColumn: return visitColumn(std::dynamic_pointer_cast<detail::ExpressionNodeImplColumn>(node));
+    case eNodeLiteral: return visitLiteral(std::dynamic_pointer_cast<detail::ExpressionNodeImplLiteral>(node));
+    case eNodeNull: return visitNull(std::dynamic_pointer_cast<detail::ExpressionNodeImplNull>(node));
+    case eNodeUnaryOperator: return visitUnaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplUnaryOperator>(node));
+    case eNodeBinaryOperator: return visitBinaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplBinaryOperator>(node));
+    case eNodeFunctionCall: return visitFunctionCall(std::dynamic_pointer_cast<detail::ExpressionNodeImplFunctionCall>(node));
+    case eNodeWhereClauseRelational: return visitWhereClauseRelational(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseRelational>(node));
+    case eNodeWhereClauseLogical: return visitWhereClauseLogical(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseLogical>(node));
+    case eNodeWhereClauseComplex: return visitWhereClauseConditional(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseConditional>(node));
     default: throw std::runtime_error("Unknown node type");
     }
+}
+
+void ASTWalkerBase::visitColumn(std::shared_ptr<ExpressionNodeImplColumn> column)
+{
+    (void)column;
+}
+
+void ASTWalkerBase::visitLiteral(std::shared_ptr<ExpressionNodeImplLiteral> literal)
+{
+    (void)literal;
+}
+
+void ASTWalkerBase::visitNull(std::shared_ptr<ExpressionNodeImplNull> null)
+{
+    (void)null;
+}
+
+void ASTWalkerBase::visitUnaryOperator(std::shared_ptr<ExpressionNodeImplUnaryOperator> unary)
+{
+    visitNode(unary->innerNode());
+}
+
+void ASTWalkerBase::visitBinaryOperator(std::shared_ptr<ExpressionNodeImplBinaryOperator> binary)
+{
+    visitNode(binary->leftNode());
+    visitNode(binary->rightNode());
+}
+
+void ASTWalkerBase::visitFunctionCall(std::shared_ptr<ExpressionNodeImplFunctionCall> functionCall)
+{
+    for (auto node : functionCall->argumentNodes())
+        visitNode(node);
+}
+
+void ASTWalkerBase::visitWhereClauseRelational(std::shared_ptr<ExpressionNodeImplWhereClauseRelational> whereClauseRelational)
+{
+    visitNode(whereClauseRelational->leftNode());
+    visitNode(whereClauseRelational->rightNode());
+}
+
+void ASTWalkerBase::visitWhereClauseLogical(std::shared_ptr<ExpressionNodeImplWhereClauseLogical> whereClauseLogical)
+{
+    visitNode(whereClauseLogical->innerNode());
+}
+
+void ASTWalkerBase::visitWhereClauseConditional(std::shared_ptr<ExpressionNodeImplWhereClauseConditional> whereClauseComplex)
+{
+    visitNode(whereClauseComplex->leftNode());
+    visitNode(whereClauseComplex->rightNode());
 }
 
 } // namespace detail

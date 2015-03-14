@@ -60,6 +60,16 @@ void PostgresStatementImpl::setCurrentRow(int row)
     m_currentRow = row;
 }
 
+void PostgresStatementImpl::bindValues(const VariantArray &values)
+{
+    m_boundValues = values;
+}
+
+const VariantArray &PostgresStatementImpl::boundValues() const
+{
+    return m_boundValues;
+}
+
 } // namespace postgres
 } // namespace connectors
 } // namespace sql

@@ -43,7 +43,8 @@ public:
     bool rollback() override;
 
     SqlStatementImpl *createStatement(SqlStatementType type, const String& queryText) override;
-    bool prepare(SqlStatementImpl *statement) override;
+    bool prepare(SqlStatementImpl *statement, size_t numParams) override;
+    bool bindValues(SqlStatementImpl *statement, const VariantArray &values) override;
     bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) override;
     bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
     bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) override;

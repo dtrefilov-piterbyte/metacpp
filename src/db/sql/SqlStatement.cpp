@@ -62,7 +62,7 @@ SqlStatementType SqlStatementSelect::type() const
     return SqlStatementTypeSelect;
 }
 
-String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
+String SqlStatementSelect::buildQuery(SqlSyntax syntax)
 {
     (void)syntax;
     if (!m_storable->record()->metaObject()->totalFields())
@@ -75,6 +75,9 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
     res = "SELECT " + join(columns, ", ") + " FROM " + tblName;
     if (!m_whereClause.empty())
     {
+        detail::SqlExpressionTreeWalker walker(m_whereClause.impl(), true, syntax);
+        String whereExpr = walker.evaluate();
+        m_literals = walker.literals();
         if (m_joins.size())
         {
             switch (m_joinType)
@@ -94,11 +97,11 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax) const
                 res += m_joins[i]->name();
                 if (m_joins.size() - 1 != i) res += ", ";
             }
-            res += " ON " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            res += " ON " + whereExpr;
         }
         else
         {
-            res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            res += " WHERE " + whereExpr;
         }
     }
     if (m_order.size()) res += " ORDER BY " + join(m_order, ", ");
@@ -128,8 +131,10 @@ SqlStatementSelect &SqlStatementSelect::where(const ExpressionNodeWhereClause &w
 SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
 {
     SqlResultSet res(transaction, createImpl(transaction), m_storable);
-    if (!transaction.impl()->prepare(m_impl.get()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
         throw std::runtime_error("Failed to prepare statement");
+    if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
+        throw std::runtime_error("Failed to bind values");
     return res;
 }
 
@@ -147,35 +152,41 @@ SqlStatementType SqlStatementInsert::type() const
     return SqlStatementTypeInsert;
 }
 
-String SqlStatementInsert::buildQuery(SqlSyntax syntax) const
+String SqlStatementInsert::buildQuery(SqlSyntax syntax)
 {
     (void)syntax;
-    // TODO: bind arguments
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
     String res;
     String tblName = m_storable->record()->metaObject()->name();
     res = "INSERT INTO " + tblName;
     auto pkey = m_storable->primaryKey();
-    StringArray columns, values;
+    StringArray columns, placeholders;
+    m_literals.clear();
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
     {
         auto field = m_storable->record()->metaObject()->field(i);
         if (field != pkey)
         {
             columns.push_back(field->name());
-            values.push_back(m_storable->fieldValue(field));
+            if (SqlSyntaxPostgreSQL == syntax)
+                placeholders.push_back("$" + String::fromValue(placeholders.size() + 1));
+            else
+                placeholders.push_back("?");
+            m_literals.push_back(field->getValue(m_storable->record()));
         }
     }
-    res += "(" + join(columns, ", ") + ") VALUES (" + join(values, ", ") + ")";
+    res += "(" + join(columns, ", ") + ") VALUES (" + join(placeholders, ", ") + ")";
     return res;
 }
 
 int SqlStatementInsert::exec(SqlTransaction &transaction)
 {
     createImpl(transaction);
-    if (!transaction.impl()->prepare(m_impl.get()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
         throw std::runtime_error("Failed to prepare statement");
+    if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
+        throw std::runtime_error("Failed to bind values");
     int numRows = 0;
     if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
@@ -197,9 +208,8 @@ SqlStatementType SqlStatementUpdate::type() const
     return SqlStatementTypeUpdate;
 }
 
-String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
+String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
 {
-    // TODO: bind arguments
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
     String res;
@@ -209,15 +219,30 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
     StringArray sets;
     if (!m_sets.size())
     {
+        m_literals.clear();
         for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
         {
             auto field = m_storable->record()->metaObject()->field(i);
             if (field != pkey)
-                sets.push_back(String(field->name()) + " = " + m_storable->fieldValue(field));
+            {
+                m_literals.push_back(field->getValue(m_storable->record()));
+                if (syntax == SqlSyntaxPostgreSQL)
+                    sets.push_back(String(field->name()) + " = $" + String::fromValue(m_literals.size()));
+                else
+                    sets.push_back(String(field->name()) + " = ?");
+            }
         }
     }
     else
         sets = m_sets;
+
+    String whereExpr;
+    if (!m_whereClause.empty())
+    {
+        detail::SqlExpressionTreeWalker walker(m_whereClause.impl(), true, syntax, m_literals.size());
+        whereExpr = walker.evaluate();
+        m_literals.append(walker.literals());
+    }
 
     if (m_joins.size())
     {
@@ -234,24 +259,27 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax) const
             res += " SET " + join(sets, ", ") +
                    " WHERE EXISTS (SELECT 1 FROM " + joins;
 
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk() + ")";
+            if (!m_whereClause.empty()) res += " WHERE " + whereExpr + ")";
         }
         else if (SqlSyntaxPostgreSQL == syntax)
         {
             res += " SET " + join(sets, ", ") +
                    " FROM " + joins;
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            if (!m_whereClause.empty()) res += " WHERE " + whereExpr;
         }
         else if (SqlSyntaxMySql == syntax)
         {
             res += ", " + joins + " SET " + join(sets, ", ");
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            if (!m_whereClause.empty()) res += " WHERE " + whereExpr;
         }
         else
             throw std::runtime_error("Unimplemented syntax");
     }
     else
-        res += " SET " + join(sets, ", ") + " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+    {
+        res += " SET " + join(sets, ", ");
+        if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
+    }
     return res;
 }
 
@@ -264,8 +292,10 @@ SqlStatementUpdate &SqlStatementUpdate::where(const ExpressionNodeWhereClause &w
 int SqlStatementUpdate::exec(SqlTransaction &transaction)
 {
     createImpl(transaction);
-    if (!transaction.impl()->prepare(m_impl.get()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
         throw std::runtime_error("Failed to prepare statement");
+    if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
+        throw std::runtime_error("Failed to bind values");
     int numRows = 0;
     if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
@@ -286,10 +316,18 @@ SqlStatementType SqlStatementDelete::type() const
     return SqlStatementTypeDelete;
 }
 
-String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
+String SqlStatementDelete::buildQuery(SqlSyntax syntax)
 {
     String res;
     String tblName = m_storable->record()->metaObject()->name();
+
+    String whereExpr;
+    if (!m_whereClause.empty())
+    {
+        detail::SqlExpressionTreeWalker walker(m_whereClause.impl(), true, syntax);
+        whereExpr = walker.evaluate();
+        m_literals.append(walker.literals());
+    }
 
     if (m_joins.size())
     {
@@ -297,25 +335,24 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax) const
         if (SqlSyntaxSqlite == syntax)
         {
             res = "DELETE FROM " + tblName + " WHERE EXISTS (SELECT 1 FROM " + join(joins, ", ");
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
             res += ")";
         }
         else if (SqlSyntaxPostgreSQL == syntax)
         {
             res = "DELETE FROM " + tblName + " USING " + join(joins, ", ");
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
         }
         else // MySql
         {
             res = "DELETE " + tblName + " FROM " + tblName + " JOIN " + join(joins, " JOIN ");
-            if (!m_whereClause.empty()) res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+            if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
         }
     }
     else
     {
         res = "DELETE FROM " + tblName;
-        if (!m_whereClause.empty())
-            res += " WHERE " + detail::SqlExpressionTreeWalker(m_whereClause.impl(), true, syntax).doWalk();
+        if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
     }
     return res;
 
@@ -330,8 +367,10 @@ SqlStatementDelete &SqlStatementDelete::where(const ExpressionNodeWhereClause &w
 int SqlStatementDelete::exec(SqlTransaction &transaction)
 {
     createImpl(transaction);
-    if (!transaction.impl()->prepare(m_impl.get()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
         throw std::runtime_error("Failed to prepare statement");
+    if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
+        throw std::runtime_error("Failed to bind values");
     int numRows = 0;
     if (!transaction.impl()->execStatement(m_impl.get(), &numRows))
         throw std::runtime_error("Failed to execute statement");
@@ -353,7 +392,7 @@ SqlStatementType SqlStatementCustom::type() const
     return SqlStatementTypeUnknown;
 }
 
-String SqlStatementCustom::buildQuery(SqlSyntax syntax) const
+String SqlStatementCustom::buildQuery(SqlSyntax syntax)
 {
     (void)syntax;
     return m_queryText;
@@ -362,8 +401,10 @@ String SqlStatementCustom::buildQuery(SqlSyntax syntax) const
 void SqlStatementCustom::exec(SqlTransaction &transaction)
 {
     createImpl(transaction);
-    if (!transaction.impl()->prepare(m_impl.get()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
         throw std::runtime_error("Failed to prepare statement");
+    if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
+        throw std::runtime_error("Failed to bind values");
     if (!transaction.impl()->execStatement(m_impl.get()))
         throw std::runtime_error("Failed to execute statement");
 }
