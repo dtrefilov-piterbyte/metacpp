@@ -24,8 +24,10 @@ namespace sql
 namespace detail
 {
 
-SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode, bool fullQualified, SqlSyntax sqlSyntax, int startLiteralIndex)
-    : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax), m_startLiteralIndex(startLiteralIndex)
+SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode, 
+	bool fullQualified, SqlSyntax sqlSyntax, size_t startLiteralIndex)
+    : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax),
+	m_startLiteralIndex(startLiteralIndex)
 {
 }
 

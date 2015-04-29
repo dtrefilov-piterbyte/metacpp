@@ -19,18 +19,30 @@
 #include <locale>
 #include <ctime>
 #include <iomanip>
+#ifdef _MSC_VER
+#include "compat/strptime.h"
+#endif
 
 namespace metacpp {
 
 // standard time lib isn't thread safe
 static std::mutex g_stdTimeMutex;
 
+#ifdef _MSC_VER
+#define sprintf(buf, fmt, ...) sprintf_s(buf, fmt, __VA_ARGS__)
+#endif
+
 namespace detail
 {
     DateTimeData::DateTimeData(time_t stdTime)
     {
         std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
+#ifdef _MSC_VER
+		if (0 != localtime_s(&m_tm, &stdTime))
+			throw std::invalid_argument("stdTime");
+#else
         m_tm = *localtime(&stdTime);
+#endif
     }
 
     DateTimeData::DateTimeData(const tm &tm)
@@ -91,6 +103,7 @@ namespace detail
         return m_tm.tm_mday;
     }
 
+#ifndef _MSC_VER
     EDayOfWeek DateTimeData::dayOfWeek() const
     {
         switch (m_tm.tm_wday)
@@ -105,6 +118,7 @@ namespace detail
         default: throw std::invalid_argument("Invalid tm_wday");
         }
     }
+#endif
 
     int DateTimeData::hours() const
     {
@@ -156,26 +170,9 @@ namespace detail
 
     void DateTimeData::fromString(const char *str, const char *format)
     {
-#ifdef _MSC_VER	  
-		StringStream ss(str);
-		try
-        {
-			ss.exceptions(std::ios_base::failbit | std::ios_base::badbit);
-			ss >> std::get_time(&m_tm, format);	 // TODO: seems to be buggy in MSVC 2013
-        }
-        catch (const std::exception& ex)
-        {
-            throw std::invalid_argument("Invalid DateTime string");
-		}
-		ss.exceptions(std::ios_base::goodbit);
-		char ch; ss.get();
-		if (!ss.eof())
-			throw std::invalid_argument("Found extra characters at end of DateTime string");
-#else
         const char *res = strptime(str, format, &m_tm);
         if (NULL == res || *res)
             throw std::invalid_argument(String(String(str) + " is not a datetime in specified format").c_str());
-#endif
     }
 
     SharedDataBase *DateTimeData::clone() const
@@ -244,10 +241,12 @@ int DateTime::day() const
     return getData()->day();
 }
 
+#ifndef _MSC_VER
 EDayOfWeek DateTime::dayOfWeek() const
 {
     return getData()->dayOfWeek();
 }
+#endif
 
 int DateTime::hours() const
 {

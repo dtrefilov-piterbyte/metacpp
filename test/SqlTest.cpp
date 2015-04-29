@@ -85,7 +85,7 @@ void SqlTest::SetUp()
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://memdb?mode=memory&cache=shared")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
-    ASSERT_TRUE(m_conn.get()) << "Sql connector unavailable";
+    ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
     m_conn->setConnectionPooling(3);
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
     ASSERT_TRUE(m_conn->connect());
@@ -95,7 +95,7 @@ void SqlTest::SetUp()
 void SqlTest::TearDown()
 {
     connectors::SqlConnectorBase::setDefaultConnector(nullptr);
-    ASSERT_TRUE(m_conn.get());
+    ASSERT_TRUE(static_cast<bool>(m_conn));
     EXPECT_TRUE(m_conn->disconnect());
     m_conn.reset();
 }
@@ -233,7 +233,7 @@ TEST_F(SqlTest, selectTest)
 
         transaction.commit();
     }
-    catch (const std::exception& ex)
+    catch (const std::exception&)
     {
         throw;
     }
@@ -253,7 +253,7 @@ TEST_F(SqlTest, updateTest)
                        (COL(Person::age) == null || COL(Person::cat_weight) == null)).exec(transaction);
         transaction.commit();
     }
-    catch (const std::exception& ex)
+    catch (const std::exception&)
     {
         throw;
     }
@@ -283,7 +283,7 @@ TEST_F(SqlTest, insertTest)
 
         transaction.commit();
     }
-    catch (const std::exception& ex)
+    catch (const std::exception&)
     {
         throw;
     }
@@ -299,7 +299,7 @@ TEST_F(SqlTest, deleteTest)
                                           COL(City::name) == String("Moscow") &&
                                           COL(Person::name).like("invalid_%")).exec(transaction);
     }
-    catch (const std::exception& ex)
+    catch (const std::exception&)
     {
         throw;
     }

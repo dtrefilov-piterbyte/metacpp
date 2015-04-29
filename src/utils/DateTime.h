@@ -66,8 +66,9 @@ namespace detail
         int year() const;
         EMonth month() const;
         int day() const;
+#ifndef _MSC_VER
         EDayOfWeek dayOfWeek() const;
-
+#endif
         int hours() const;
         int minutes() const;
         int seconds() const;
@@ -117,8 +118,10 @@ public:
     EMonth month() const;
     /** \brief Gets a day of the month part */
     int day() const;
+#ifndef _MSC_VER
     /** \brief Gets a day of the week part */
     EDayOfWeek dayOfWeek() const;
+#endif
     /** \brief Gets an hour part (from 0 to 23) */
     int hours() const;
     /** \brief Gets a minute part (from 0 to 59) */

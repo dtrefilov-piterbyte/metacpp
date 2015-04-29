@@ -50,7 +50,7 @@ namespace detail
     template<>
     int StringHelper<char>::strcasecmp(const char *a, const char *b) {
 #ifdef _MSC_VER
-        return ::stricmp(a, b);
+        return ::_stricmp(a, b);
 #else
         return ::strcasecmp(a, b);
 #endif
@@ -64,7 +64,7 @@ namespace detail
     template<>
     int StringHelper<char>::strncasecmp(const char *a, const char *b, size_t size) {
 #ifdef _MSC_VER
-        return ::strnicmp(a, b, size);
+        return ::_strnicmp(a, b, size);
 #else
         return ::strncasecmp(a, b, size);
 #endif

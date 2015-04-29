@@ -66,7 +66,7 @@ bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement, size_t numPar
     String idString = "metacpp_prepared_stmt_" + String::fromValue(statementId++);
     Oid *paramTypes = (Oid *)alloca(sizeof(Oid) * numParams);
     std::fill_n(paramTypes, numParams, InvalidOid);
-    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(), numParams, paramTypes);
+    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(), static_cast<int>(numParams), paramTypes);
     ExecStatusType status = PQresultStatus(result);
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {
@@ -117,7 +117,8 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
                 transient.push_back(val);
             }
         }
-        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), values.size(), paramValues, nullptr, nullptr, 0 /* text format */);
+        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), static_cast<int>(values.size()),
+			paramValues, nullptr, nullptr, 0 /* text format */);
         for (size_t i = 0; i < values.size(); ++i)
         {
             if (values[i].isString() || values[i].isDateTime())

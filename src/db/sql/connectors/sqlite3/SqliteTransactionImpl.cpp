@@ -118,15 +118,15 @@ bool SqliteTransactionImpl::bindValues(SqlStatementImpl *statement, const Varian
         int error = SQLITE_OK;
         Variant v = values[i];
         if (!v.valid())
-            error = sqlite3_bind_null(stmt, i + 1);
+            error = sqlite3_bind_null(stmt, static_cast<int>(i + 1));
         else if (v.isIntegral())
-            error = sqlite3_bind_int64(stmt, i + 1, variant_cast<int64_t>(v));
+            error = sqlite3_bind_int64(stmt, static_cast<int>(i + 1), variant_cast<int64_t>(v));
         else if (v.isFloatingPoint())
-            error = sqlite3_bind_double(stmt, i + 1, variant_cast<double>(v));
+            error = sqlite3_bind_double(stmt, static_cast<int>(i + 1), variant_cast<double>(v));
         else if (v.isString() || v.isDateTime())
         {
             String s = variant_cast<String>(v);
-            error = sqlite3_bind_text(stmt, i + 1, s.data(), s.length(), SQLITE_TRANSIENT);
+            error = sqlite3_bind_text(stmt, static_cast<int>(i + 1), s.data(), s.length(), SQLITE_TRANSIENT);
         }
         else
             throw std::invalid_argument("Unsupported - not a scalar variant value");

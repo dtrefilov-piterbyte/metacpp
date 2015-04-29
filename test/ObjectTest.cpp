@@ -284,7 +284,7 @@ namespace
 
         static int foo(int a, const float& b)
         {
-            return a * b;
+            return static_cast<int>(a * b);
         }
 
         static void foo()
@@ -293,7 +293,7 @@ namespace
 
         float bar(int a, const double& b) const
         {
-            return m_x * a * b;
+            return static_cast<float>(m_x * a * b);
         }
 
         void bar(int newX)

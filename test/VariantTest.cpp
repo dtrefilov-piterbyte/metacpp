@@ -125,10 +125,10 @@ INSTANTIATE_CONVERT_TEST(int32_t, uint32_t, ::testing::Values(
                              ))
 
 INSTANTIATE_CONVERT_TEST(float, int64_t, ::testing::Values(
-                             std::make_pair<float, int64_t>(0.0, 0),
-                             std::make_pair<float, int64_t>(0.9, 0),
-                             std::make_pair<float, int64_t>(20.1, 20),
-                             std::make_pair<float, int64_t>(-1.0, -1)
+                             std::make_pair<float, int64_t>(0.0f, 0),
+                             std::make_pair<float, int64_t>(0.9f, 0),
+                             std::make_pair<float, int64_t>(20.1f, 20),
+                             std::make_pair<float, int64_t>(-1.0f, -1)
                              ))
 
 

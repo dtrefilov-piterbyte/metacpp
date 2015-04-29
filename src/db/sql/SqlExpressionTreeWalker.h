@@ -43,7 +43,8 @@ namespace detail
 class SqlExpressionTreeWalker final : db::detail::ASTWalkerBase
 {
 public:
-    explicit SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr& rootNode, bool fullQualified = true, SqlSyntax sqlSyntax = SqlSyntaxUnknown, int startLiteralIndex = 0);
+    explicit SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr& rootNode, 
+		bool fullQualified = true, SqlSyntax sqlSyntax = SqlSyntaxUnknown, size_t startLiteralIndex = 0);
     ~SqlExpressionTreeWalker();
 
     String evaluate();
