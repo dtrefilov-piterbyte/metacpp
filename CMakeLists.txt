@@ -85,6 +85,7 @@ IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     # using GNUCXX
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -std=c++11")
+    LIST(APPEND LIBS "-lpthread")
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
     # using Intel C++
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
