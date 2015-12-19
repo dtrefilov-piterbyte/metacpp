@@ -82,7 +82,7 @@ inline ExpressionNodeFunctionCall<DateTime> db_now()
 
 void SqlTest::SetUp()
 {
-    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://memdb?mode=memory&cache=shared")));
+    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
     ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
@@ -162,9 +162,44 @@ void SqlTest::clearData()
 #ifdef HAVE_SQLITE3
 
 
-TEST(StorableTest, testConstraints)
+TEST_F(SqlTest, testConstraints)
 {
     ASSERT_EQ(Storable<Person>::numConstraints(), 5);
+
+    auto constraintPkey = Storable<Person>::getConstraint(0);
+    auto constraintRef = Storable<Person>::getConstraint(1);
+    auto constraintUnique = Storable<Person>::getConstraint(2);
+    auto constraintIndex = Storable<Person>::getConstraint(3);
+    auto constraintCheck = Storable<Person>::getConstraint(4);
+    ASSERT_EQ(constraintPkey->type(), SqlConstraintTypePrimaryKey);
+    ASSERT_EQ(constraintPkey->metaField()->name(), String("id"));
+    ASSERT_EQ(constraintPkey->metaObject(), Person::staticMetaObject());
+
+    ASSERT_EQ(constraintRef->type(), SqlConstraintTypeForeignKey);
+    ASSERT_EQ(constraintRef->metaField()->name(), String("cityId"));
+    ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintForeignKey>(constraintRef)
+              ->referenceMetaObject(), City::staticMetaObject());
+    ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintForeignKey>(constraintRef)
+              ->referenceMetaField()->name(), String("id"));
+
+    ASSERT_EQ(constraintUnique->type(), SqlConstraintTypeIndex);
+    ASSERT_EQ(constraintUnique->metaObject(), Person::staticMetaObject());
+    ASSERT_EQ(constraintUnique->metaField()->name(), String("id"));
+    ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintIndex>(constraintUnique)
+              ->unique(), true);
+
+    ASSERT_EQ(constraintIndex->type(), SqlConstraintTypeIndex);
+    ASSERT_EQ(constraintIndex->metaObject(), Person::staticMetaObject());
+    ASSERT_EQ(constraintIndex->metaField()->name(), String("cityId"));
+    ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintIndex>(constraintIndex)
+              ->unique(), false);
+
+    ASSERT_EQ(constraintCheck->type(), SqlConstraintTypeCheck);
+    ASSERT_EQ(constraintCheck->metaObject(), Person::staticMetaObject());
+    ASSERT_EQ(constraintCheck->metaField()->name(), String("age"));
+    ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintCheck>(constraintCheck)
+              ->checkExpression(), String("age < 120"));
+
 }
 
 TEST_F(SqlTest, transactionCommitTest)
