@@ -51,7 +51,7 @@ bool SqliteConnector::connect()
     {
         sqlite3 *dbHandle;
         int error = sqlite3_open_v2(m_connectionUri.c_str(), &dbHandle,
-                                    SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
+                                    SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_URI, nullptr);
         if (SQLITE_OK != error)
         {
             std::cerr << "sqlite3_open_v2(): " << describeSqliteError(error) << std::endl;
