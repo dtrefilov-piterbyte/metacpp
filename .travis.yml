@@ -30,5 +30,7 @@ before_script:
   - cmake .. -DCMAKE_BUILD_TYPE=RelMinSize -DBUILD_SHARED_LIBS=ON
 
 script:
-  - make VERBOSE=1 && make test && cat Testing/Temporary/LastTest.log
+  - make VERBOSE=1
+  - make test
+  - cat Testing/Temporary/LastTest.log
   - sudo make install
