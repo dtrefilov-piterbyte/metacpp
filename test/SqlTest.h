@@ -6,14 +6,19 @@
 class SqlTest : public testing::Test
 {
 public:
+    virtual void prepareSchema();
+    virtual void prepareData();
+    virtual void clearData();
+};
+
+class SqliteTest : public SqlTest
+{
+public:
     void SetUp() override;
     void TearDown() override;
+
     static void SetUpTestCase();
     static void TearDownTestCase();
-
-    void prepareSchema();
-    void prepareData();
-    void clearData();
 private:
     std::unique_ptr<metacpp::db::sql::connectors::SqlConnectorBase> m_conn;
 };

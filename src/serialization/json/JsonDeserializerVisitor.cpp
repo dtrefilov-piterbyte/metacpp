@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "JsonDeserializerVisitor.h"
+#include "Object.h"
 #include <cassert>
 #include <time.h>
 

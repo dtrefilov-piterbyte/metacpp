@@ -376,7 +376,7 @@ namespace
         ASSERT_THROW(obj.invoke<String>("test", Variant()), MethodNotFoundException);
     }
 
-    TEST_F(ObjectTest, invokeSuccessByConstness)
+    TEST_F(ObjectTest, invokeSuccessByMutable)
     {
         MyObject obj(2);
         ASSERT_EQ(obj.invoke<String>("test", 123), "123");

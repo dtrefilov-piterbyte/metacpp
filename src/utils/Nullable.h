@@ -23,21 +23,16 @@ template<typename T>
 class Nullable
 {
 public:
-    Nullable() : m_isSet(false), m_value() {}
+    template<typename... Args>
+    Nullable(Args&&... args) : m_isSet(sizeof...(args) != 0), m_value(args...) {}
+    Nullable(const Nullable& other) { *this = other; }
     Nullable(const T& value) : m_isSet(true), m_value(value) {}
-    Nullable(const Nullable& other) : m_isSet(other.m_isSet), m_value(other.m_value) {}
 
     typename std::enable_if<std::is_copy_assignable<T>::value, Nullable>::type& operator=(const Nullable& other)
     {
         m_isSet = other.m_isSet;
         m_value = other.m_value;
         return *this;
-    }
-
-    typename std::enable_if<std::is_copy_assignable<T>::value, T>::type& operator=(const T& value)
-    {
-        set(value);
-        return m_value;
     }
 
     typename std::enable_if<std::is_move_assignable<T>::value, Nullable>::type& operator=(Nullable&& other)
@@ -47,13 +42,12 @@ public:
         return *this;
     }
 
-    typename std::enable_if<std::is_move_assignable<T>::value, T>::type& operator=(T&& value)
-    {
-        set(std::move(value));
-        return m_value;
+    bool operator==(const Nullable& other) const {
+        return (m_isSet == other.m_isSet) &&
+            (!m_isSet || m_value == other.m_value);
     }
-
-    bool operator==(const T& value) { return m_isSet && value == m_value; }
+    bool operator==(const T& value) const { return m_isSet && value == m_value; }
+    bool operator==(const std::nullptr_t&) const { return !m_isSet; }
     const T& operator *() const { return get(); }
     T& operator *() { return get(); }
     operator bool() const { return m_isSet; }

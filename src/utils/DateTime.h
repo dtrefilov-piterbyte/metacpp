@@ -98,7 +98,7 @@ public:
     */
     explicit DateTime(time_t stdTime);
 
-    DateTime(int y, EMonth mo, int d, int h, int m, int s);
+    DateTime(int y, EMonth mo, int d, int h = 0, int m = 0, int s = 0);
 
     /** \brief Constructs invalid instance of DateTime */
     DateTime();

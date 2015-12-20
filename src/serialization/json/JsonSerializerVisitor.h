@@ -16,6 +16,7 @@
 #ifndef JSONSERIALIZERVISITOR_H
 #define JSONSERIALIZERVISITOR_H
 #include "VisitorBase.h"
+#include "MetaInfo.h"
 #include <json/json.h>
 
 namespace metacpp

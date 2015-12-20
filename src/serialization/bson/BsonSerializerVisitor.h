@@ -16,6 +16,7 @@
 #ifndef BSONSERIALIZATIONVISITOR_H
 #define BSONSERIALIZATIONVISITOR_H
 #include "VisitorBase.h"
+#include "Object.h"
 #include <mongo/bson/bson.h>
 
 namespace metacpp

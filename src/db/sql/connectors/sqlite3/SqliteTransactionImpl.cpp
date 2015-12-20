@@ -232,7 +232,8 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
                 break;
             case eFieldDateTime:
                 assignField<DateTime>(field, sqliteType, SQLITE_TEXT, storable->record(),
-                                      DateTime::fromString((const char *)sqlite3_column_text(stmt, i)));
+                                      sqliteType == SQLITE_NULL ? DateTime() :
+                                          DateTime::fromString((const char *)sqlite3_column_text(stmt, i)));
                 break;
             case eFieldObject:
             case eFieldArray:

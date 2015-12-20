@@ -28,6 +28,8 @@ SqlTransaction::SqlTransaction(SqlTransactionAutoCloseMode autoClose, connectors
     : m_connector(connector), m_impl(nullptr), m_autoCloseMode(autoClose),
       m_transactionStarted(false)
 {
+    if (!m_connector)
+        throw std::invalid_argument("sql connector cannot be null");
     m_impl = connector->createTransaction();
     if (!m_impl)
         throw std::runtime_error("Failed to create transaction");

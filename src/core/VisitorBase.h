@@ -15,10 +15,13 @@
 ****************************************************************************/
 #ifndef VISITOR_BASE_H
 #define VISITOR_BASE_H
-#include "Object.h"
+//#include "Object.h"
 
 namespace metacpp
 {
+
+class Object;
+class MetaFieldBase;
 
 /** \brief Base class for visitors used for object introspection */
 class VisitorBase

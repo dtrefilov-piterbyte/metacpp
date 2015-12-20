@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "VisitorBase.h"
+#include "Object.h"
 
 namespace metacpp
 {

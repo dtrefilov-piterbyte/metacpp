@@ -74,58 +74,6 @@ DEFINE_STORABLE(Person,
                  CHECK(COL(Person::age), COL(Person::age) < 120)    // humans do not live so much
                  )
 
-// User-defined SQL function now() for Postgresql
-inline ExpressionNodeFunctionCall<DateTime> db_now()
-{
-    return ExpressionNodeFunctionCall<DateTime>("now");
-}
-
-void SqlTest::SetUp()
-{
-    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
-    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
-    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
-    ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
-    m_conn->setConnectionPooling(3);
-    connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
-    ASSERT_TRUE(m_conn->connect());
-    prepareSchema();
-}
-
-void SqlTest::TearDown()
-{
-    connectors::SqlConnectorBase::setDefaultConnector(nullptr);
-    ASSERT_TRUE(static_cast<bool>(m_conn));
-    EXPECT_TRUE(m_conn->disconnect());
-    m_conn.reset();
-}
-
-void SqlTest::SetUpTestCase()
-{
-#ifdef HAVE_SQLITE3
-    connectors::SqlConnectorBase::registerConnectorFactory("sqlite3", std::make_shared<connectors::sqlite::SqliteConnectorFactory>());
-#endif
-#ifdef HAVE_POSTGRES
-    connectors::SqlConnectorBase::registerConnectorFactory("postgres", std::make_shared<connectors::postgres::PostgresConnectorFactory>());
-#endif
-#ifdef HAVE_MYSQL
-    connectors::SqlConnectorBase::registerConnectorFactory("mysql", std::make_shared<connectors::mysql::MySqlConnectorFactory>());
-#endif
-}
-
-void SqlTest::TearDownTestCase()
-{
-#ifdef HAVE_SQLITE3
-    connectors::SqlConnectorBase::unregisterConnectorFactory("sqlite3");
-#endif
-#ifdef HAVE_POSTGRES
-    connectors::SqlConnectorBase::unregisterConnectorFactory("postgres");
-#endif
-#ifdef HAVE_MYSQL
-    connectors::SqlConnectorBase::unregisterConnectorFactory("mysql");
-#endif
-}
-
 void SqlTest::prepareSchema()
 {
     SqlTransaction transaction;
@@ -137,15 +85,27 @@ void SqlTest::prepareSchema()
 void SqlTest::prepareData()
 {
     SqlTransaction transaction;
+
     Storable<City> city;
     city.init();
     city.name = "Moscow";
     city.insertOne(transaction);
+
     Storable<Person> person;
     person.name = "Pupkin";
-    person.birthday = DateTime::fromString("2004-12-31 00:00:00");
     person.cityId = city.id;
     person.insertOne(transaction);
+
+    city.name = "Ibadan";
+    city.insertOne(transaction);
+
+    person.name = "Smith";
+    person.birthday = DateTime(1960, April, 4);
+    person.age = 55;
+    person.cat_weight = 1.0;
+    person.cityId = city.id;
+    person.insertOne(transaction);
+
     transaction.commit();
 }
 
@@ -158,8 +118,6 @@ void SqlTest::clearData()
     city.remove().exec(transaction);
     transaction.commit();
 }
-
-#ifdef HAVE_SQLITE3
 
 
 TEST_F(SqlTest, testConstraints)
@@ -202,19 +160,73 @@ TEST_F(SqlTest, testConstraints)
 
 }
 
-TEST_F(SqlTest, transactionCommitTest)
+// User-defined SQL function now() for Postgresql
+inline ExpressionNodeFunctionCall<DateTime> db_now()
+{
+    return ExpressionNodeFunctionCall<DateTime>("now");
+}
+
+void SqliteTest::SetUp()
+{
+    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
+    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
+    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
+    ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
+    m_conn->setConnectionPooling(3);
+    connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
+    ASSERT_TRUE(m_conn->connect());
+    prepareSchema();
+}
+
+void SqliteTest::TearDown()
+{
+    connectors::SqlConnectorBase::setDefaultConnector(nullptr);
+    ASSERT_TRUE(static_cast<bool>(m_conn));
+    EXPECT_TRUE(m_conn->disconnect());
+    m_conn.reset();
+}
+
+void SqliteTest::SetUpTestCase()
+{
+#ifdef HAVE_SQLITE3
+    connectors::SqlConnectorBase::registerConnectorFactory("sqlite3", std::make_shared<connectors::sqlite::SqliteConnectorFactory>());
+#endif
+#ifdef HAVE_POSTGRES
+    connectors::SqlConnectorBase::registerConnectorFactory("postgres", std::make_shared<connectors::postgres::PostgresConnectorFactory>());
+#endif
+#ifdef HAVE_MYSQL
+    connectors::SqlConnectorBase::registerConnectorFactory("mysql", std::make_shared<connectors::mysql::MySqlConnectorFactory>());
+#endif
+}
+
+void SqliteTest::TearDownTestCase()
+{
+#ifdef HAVE_SQLITE3
+    connectors::SqlConnectorBase::unregisterConnectorFactory("sqlite3");
+#endif
+#ifdef HAVE_POSTGRES
+    connectors::SqlConnectorBase::unregisterConnectorFactory("postgres");
+#endif
+#ifdef HAVE_MYSQL
+    connectors::SqlConnectorBase::unregisterConnectorFactory("mysql");
+#endif
+}
+
+#ifdef HAVE_SQLITE3
+
+TEST_F(SqliteTest, transactionCommitTest)
 {
     SqlTransaction transaction;
     ASSERT_NO_THROW(transaction.commit());
 }
 
-TEST_F(SqlTest, transactionRollbackTest)
+TEST_F(SqliteTest, transactionRollbackTest)
 {
     SqlTransaction transaction;
     ASSERT_NO_THROW(transaction.rollback());
 }
 
-TEST_F(SqlTest, transactionManualBegin)
+TEST_F(SqliteTest, transactionManualBegin)
 {
     SqlTransaction transaction(SqlTransactionAutoCloseManual);
     ASSERT_NO_THROW(transaction.begin());
@@ -223,7 +235,7 @@ TEST_F(SqlTest, transactionManualBegin)
     ASSERT_ANY_THROW(transaction.commit());
 }
 
-TEST_F(SqlTest, multipleTransactionsTest)
+TEST_F(SqliteTest, multipleTransactionsTest)
 {
     const size_t numThreads = 10;
     std::thread threads[numThreads];
@@ -241,8 +253,58 @@ TEST_F(SqlTest, multipleTransactionsTest)
             threads[i].join();
 }
 
+TEST_F(SqliteTest, simpleSelectTest)
+{
+    prepareData();
 
-TEST_F(SqlTest, selectTest)
+    SqlTransaction transaction;
+    Array<City> cities;
+    Array<Person> persons;
+
+    Storable<City> city;
+    for (auto row : city.select().exec(transaction))
+    {
+        // iterator is a simple auto incremented row counter
+        EXPECT_EQ(cities.size(), row);
+        cities.push_back(city);
+    }
+    Storable<Person> person;
+    for (auto row : person.select().exec(transaction))
+    {
+        EXPECT_EQ(persons.size(), row);
+        persons.push_back(person);
+    }
+    transaction.commit();
+
+
+    ASSERT_EQ(cities.size(), 2);
+    auto moscow = std::find_if(cities.begin(), cities.end(), [](const City& c) { return c.name == "Moscow"; });
+    ASSERT_NE(moscow, cities.end());
+    auto ibadan = std::find_if(cities.begin(), cities.end(), [](const City& c) { return c.name == "Ibadan"; });
+    ASSERT_NE(ibadan, cities.end());
+
+
+    ASSERT_EQ(persons.size(), 2);
+    auto pupkin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Pupkin"; });
+    ASSERT_NE(pupkin, persons.end());
+    auto smith = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Smith"; });
+    ASSERT_NE(smith, persons.end());
+
+    EXPECT_EQ(pupkin->cityId, moscow->id);
+    EXPECT_EQ(pupkin->name, "Pupkin");
+    EXPECT_EQ(pupkin->birthday, nullptr);
+    EXPECT_EQ(pupkin->age, nullptr);
+    EXPECT_EQ(pupkin->cat_weight, nullptr);
+
+    EXPECT_EQ(smith->cityId, ibadan->id);
+    EXPECT_EQ(smith->name, "Smith");
+    EXPECT_EQ(smith->birthday, DateTime(1960, April, 4));
+    EXPECT_EQ(smith->age, 55);
+    EXPECT_EQ(smith->cat_weight, 1.0);
+}
+
+
+TEST_F(SqliteTest, allInOneSelectTest)
 {
     prepareData();
     try
@@ -250,6 +312,7 @@ TEST_F(SqlTest, selectTest)
         SqlTransaction transaction;
         Storable<Person> person;
         Storable<City> city;
+
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
                 (coalesce(COL(Person::age), 0) + 2.5  * COL(Person::cat_weight)) > 250) &&
                 COL(Person::cityId) == COL(City::id) &&
@@ -257,14 +320,12 @@ TEST_F(SqlTest, selectTest)
                 coalesce(COL(Person::birthday), DateTime::fromString("2000-01-01 00:00:00")) >= DateTime::fromString("2000-01-01 00:00:00"))
                 .limit(10).orderAsc(COL(Person::name), COL(City::name)).orderDesc(COL(Person::age)).exec(transaction);
 
-        StringArray persons;
-        for (auto it : resultSet)
+        Array<Person> persons;
+        for (auto row : resultSet)
         {
-            (void)it;
-            persons.push_back(person.name);
+            (void)row;
+            persons.push_back(person);
         }
-
-        person.remove().exec(transaction);
 
         transaction.commit();
     }
@@ -275,7 +336,7 @@ TEST_F(SqlTest, selectTest)
     clearData();
 }
 
-TEST_F(SqlTest, updateTest)
+TEST_F(SqliteTest, updateTest)
 {
     prepareData();
     try
@@ -295,7 +356,7 @@ TEST_F(SqlTest, updateTest)
     clearData();
 }
 
-TEST_F(SqlTest, insertTest)
+TEST_F(SqliteTest, insertTest)
 {
     try
     {
@@ -324,7 +385,7 @@ TEST_F(SqlTest, insertTest)
     }
 }
 
-TEST_F(SqlTest, deleteTest)
+TEST_F(SqliteTest, deleteTest)
 {
     try
     {

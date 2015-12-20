@@ -16,6 +16,7 @@
 #ifndef BSONDESERIALIZERVISITOR_H
 #define BSONDESERIALIZERVISITOR_H
 #include "VisitorBase.h"
+#include "Object.h"
 #include "mongo/bson/bson.h"
 
 namespace metacpp
@@ -30,7 +31,7 @@ class BsonDeserializerVisitor : public VisitorBase
 {
 public:
     /** \brief Constructs new instance of JsonDeserializerVisitor with a given value */
-    BsonDeserializerVisitor(const mongo::BSONObj& rootObj);
+    explicit BsonDeserializerVisitor(const mongo::BSONObj& rootObj);
     ~BsonDeserializerVisitor();
 protected:
     /** \brief Overrides VisitorBase::visitField */
