@@ -496,164 +496,172 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
 }
 
 void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObject *metaObject, const Array<SqlConstraintBasePtr> &constraints)
-{    String tblName = metaObject->name();
-     // validate constraints
-     for (SqlConstraintBasePtr constraint : constraints)
-     {
-         if (constraint->metaObject() != metaObject)
-             throw std::runtime_error("Constraint does not belong to this table");
-     }
+{
+    String tblName = metaObject->name();
+    // validate constraints
+    for (SqlConstraintBasePtr constraint : constraints)
+    {
+        if (constraint->metaObject() != metaObject)
+            throw std::runtime_error("Constraint does not belong to this table");
+    }
 
-     String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
-     StringArray columns;
-     auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
-     {
-         for (SqlConstraintBasePtr constraint : constraints)
-         {
-             if (constraint->type() == type && field == constraint->metaField())
-                 return constraint;
-         }
-         return SqlConstraintBasePtr();
-     };
+    String queryStr = "CREATE TABLE " + tblName + "(";
+    StringArray columns;
+    auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
+    {
+        for (SqlConstraintBasePtr constraint : constraints)
+        {
+            if (constraint->type() == type && field == constraint->metaField())
+                return constraint;
+        }
+        return SqlConstraintBasePtr();
+    };
 
-     for (size_t i = 0; i < metaObject->totalFields(); ++i)
-     {
-         const MetaFieldBase *field = metaObject->field(i);
-         String name = field->name();
-         String typeName;
-         StringArray constraints;
-         if (!field->nullable())
-             constraints.push_back("NOT NULL");
-         switch (field->type())
-         {
-         case eFieldBool:
-             typeName = "TINYINT";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldInt:
-             typeName = "INT";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldEnum:
-             typeName = "INT";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldUint:
-             typeName = "INT UNSIGNED";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldInt64:
-             typeName = "BIGINT UNSIGNED";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldUint64:
-             typeName = "BIGINT UNSIGNED";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldFloat:
-             typeName = "FLOAT";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldDouble:
-             typeName = "DOUBLE";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldString:
-             typeName = "TEXT";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         case eFieldDateTime:
-             typeName = "DATETIME";
-             if (field->mandatoriness() == eDefaultable)
-             {
-                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                     (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-             }
-             break;
-         default:
-             throw std::runtime_error(std::string("Cannot handle field ") + field->name() + " as an sql column");
-         }
+    for (size_t i = 0; i < metaObject->totalFields(); ++i)
+    {
+        const MetaFieldBase *field = metaObject->field(i);
+        String name = field->name();
+        String typeName;
+        StringArray constraints;
+        if (!field->nullable())
+            constraints.push_back("NOT NULL");
+        switch (field->type())
+        {
+        case eFieldBool:
+            typeName = "TINYINT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldBool *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldInt:
+            typeName = "INT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldInt *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldEnum:
+            typeName = "INT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldEnum *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldUint:
+            typeName = "INT UNSIGNED";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldUint *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldInt64:
+            typeName = "BIGINT UNSIGNED";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldInt64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldUint64:
+            typeName = "BIGINT UNSIGNED";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldUint64 *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldFloat:
+            typeName = "FLOAT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldFloat *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldDouble:
+            typeName = "DOUBLE";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldString:
+            typeName = "TEXT";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        case eFieldDateTime:
+            typeName = "DATETIME";
+            if (field->mandatoriness() == eDefaultable)
+            {
+                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
+                                                                                   (reinterpret_cast<const MetaFieldDateTime *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
+            }
+            break;
+        default:
+            throw std::runtime_error(std::string("Cannot handle field ") + field->name() + " as an sql column");
+        }
 
-         auto primaryKey = findConstraint(SqlConstraintTypePrimaryKey, field);
-         if (primaryKey)
-         {
-             if (field->isIntegral())
-                 typeName += " PRIMARY KEY AUTO_INCREMENT";
-             else
-                 throw std::runtime_error("Primary keys are only allowed on integral types");
-         }
+        auto primaryKey = findConstraint(SqlConstraintTypePrimaryKey, field);
+        if (primaryKey)
+        {
+            if (field->isIntegral())
+                typeName += " PRIMARY KEY AUTO_INCREMENT";
+            else
+                throw std::runtime_error("Primary keys are only allowed on integral types");
+        }
 
-         auto foreignKey = std::dynamic_pointer_cast<SqlConstraintForeignKey>(
-                     findConstraint(SqlConstraintTypeForeignKey, field));
-         if (foreignKey)
-         {
-             constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
-                                   "(" + foreignKey->referenceMetaField()->name() + ")");
-         }
+        auto foreignKey = std::dynamic_pointer_cast<SqlConstraintForeignKey>(
+                    findConstraint(SqlConstraintTypeForeignKey, field));
+        if (foreignKey)
+        {
+            constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
+                                  "(" + foreignKey->referenceMetaField()->name() + ")");
+        }
 
-         auto check = findConstraint(SqlConstraintTypeCheck, field);
-         if (check)
-         {
-             constraints.push_back("CHECK (" +
-                                   std::dynamic_pointer_cast<SqlConstraintCheck>(check)->checkExpression()
-                                   + ")");
-         }
+        auto check = findConstraint(SqlConstraintTypeCheck, field);
+        if (check)
+        {
+            constraints.push_back("CHECK (" +
+                                  std::dynamic_pointer_cast<SqlConstraintCheck>(check)->checkExpression()
+                                  + ")");
+        }
 
-         String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
-         columns.push_back(column);
-     }
-     queryStr += join(columns, ", ") + ")";
+        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
+        columns.push_back(column);
+    }
+    queryStr += join(columns, ", ") + ")";
 
-     // main statement CREATE TABLE
-     SqlStatementCustom statement(queryStr);
-     statement.exec(transaction);
+    try
+    {
+        // main statement CREATE TABLE
+        SqlStatementCustom statement(queryStr);
+        statement.exec(transaction);
+    }
+    catch (const std::exception&) {
+        // skip creation of indices if schema is already exist
+        return;
+    }
 
-     for (auto constraint : constraints)
-     {
-         if (constraint->type() == SqlConstraintTypeIndex)
-         {
-             if (std::dynamic_pointer_cast<SqlConstraintIndex>(constraint)->unique())
-                 SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD UNIQUE (" + constraint->metaField()->name() + ")").exec(transaction);
-             else
-                 SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD INDEX (" + constraint->metaField()->name() + ")").exec(transaction);
-         }
-     }
+    for (auto constraint : constraints)
+    {
+        if (constraint->type() == SqlConstraintTypeIndex)
+        {
+            if (std::dynamic_pointer_cast<SqlConstraintIndex>(constraint)->unique())
+                SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD UNIQUE (" + constraint->metaField()->name() + ")").exec(transaction);
+            else
+                SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD INDEX (" + constraint->metaField()->name() + ")").exec(transaction);
+        }
+    }
 }
 
 

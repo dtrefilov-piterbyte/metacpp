@@ -67,19 +67,14 @@ void MySqlStatementImpl::prefetch()
         throw std::runtime_error("Result was not set");
     unsigned int numFields = mysql_num_fields(m_result);
     m_bindResult.resize(numFields);
-    m_fieldLengths.resize(numFields);
     memset(m_bindResult.data(), 0, m_bindResult.size() * sizeof(MYSQL_BIND));
-    std::fill(m_fieldLengths.begin(), m_fieldLengths.end(), 0);
-    for (size_t i = 0; i < numFields; ++i)
-        m_bindResult[i].length = &m_fieldLengths[i];
+    for (size_t i = 0; i < numFields; ++i) {
+        m_bindResult[i].length = &(m_bindResult[i].length_value = 0);
+        m_bindResult[i].is_null = &(m_bindResult[i].is_null_value = false);
+    }
     int res = mysql_stmt_bind_result(m_stmt, m_bindResult.data());
     if (0 != res)
         throw std::runtime_error("mysql_stmt_bind_result() failed");
-}
-
-size_t MySqlStatementImpl::bufferLengthRequired(size_t nField)
-{
-    return m_fieldLengths[nField];
 }
 
 MYSQL_BIND *MySqlStatementImpl::bindResult(size_t nField)

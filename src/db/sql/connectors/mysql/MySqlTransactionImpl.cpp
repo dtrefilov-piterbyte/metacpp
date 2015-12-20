@@ -95,6 +95,7 @@ bool MySqlTransactionImpl::bindValues(SqlStatementImpl *statement, const Variant
         memset(&bind, 0, sizeof(bind));
         if (!v.valid())
         {
+            bind.buffer_type = MYSQL_TYPE_NULL;
             bind.is_null = &bind.is_null_value;
             bind.is_null_value = true;
         }
@@ -209,9 +210,7 @@ void accessField(const MetaFieldBase *field, Object *object, MYSQL_BIND *bind)
         break;
     case eFieldString:
         bind->buffer_type = MYSQL_TYPE_STRING;
-        field->access<String>(object).resize(*bind->length);
-        bind->buffer = const_cast<char *>(field->access<String>(object).data());
-        return;
+        break;
     case eFieldDateTime:
         bind->buffer_type = MYSQL_TYPE_DATETIME;
         break;
@@ -274,14 +273,15 @@ bool MySqlTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *s
             continue;
         }
 
-        if (mysqlStatement->bindResult(i)->is_null)
+        MYSQL_BIND *bind = mysqlStatement->bindResult(i);
+        if (bind->is_null_value)
         {
             if (!field->nullable()) throw std::runtime_error(std::string() + "Field " + field->name() + " is not nullable");
             field->setValue(Variant(), storable->record());
+            continue;
         }
-        MYSQL_BIND *bind = mysqlStatement->bindResult(i);
         MYSQL_TIME timeBuffer;
-        bind->buffer_length = *bind->length;
+        bind->buffer_length = bind->length_value;
 
         switch (field->type())
         {
@@ -307,9 +307,14 @@ bool MySqlTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *s
         case eFieldDouble:
             accessField<double>(field, storable->record(), bind);
             break;
-        case eFieldString:
+        case eFieldString: {
             accessField<String>(field, storable->record(), bind);
+            String& s = field->nullable() ? (field->access<Nullable<String> >(storable->record()).get())
+                                          : field->access<String>(storable->record());
+            s.resize(*bind->length);
+            bind->buffer = const_cast<char *>(s.data());
             break;
+        }
         case eFieldDateTime:
             bind->buffer_length = sizeof(timeBuffer);
             bind->buffer = &timeBuffer;
@@ -324,10 +329,26 @@ bool MySqlTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *s
         int fetchRes = mysql_stmt_fetch_column(mysqlStatement->getStmt(), bind, i, 0);
         if (0 != fetchRes)
             throw std::runtime_error(std::string() + "mysql_stmt_fetch_column() failed:" + mysql_error(dbConn()));
-        if (eFieldDateTime == field->type())
-            field->setValue(DateTime(timeBuffer.year,
+        if (eFieldDateTime == field->type()) {
+            bool isNull =
+                    timeBuffer.year == 0 &&
+                    timeBuffer.month == 0 &&
+                    timeBuffer.day == 0 &&
+                    timeBuffer.hour == 0 &&
+                    timeBuffer.minute == 0 &&
+                    timeBuffer.second == 0;
+            if (isNull) {
+                if (field->nullable())
+                    field->setValue(Variant(), storable->record());
+                else
+                    field->setValue(DateTime(), storable->record());
+            }
+            else {
+                field->setValue(DateTime(timeBuffer.year,
                                      static_cast<EMonth>(timeBuffer.month - 1), timeBuffer.day, timeBuffer.hour,
                                      timeBuffer.minute, timeBuffer.second), storable->record());
+            }
+        }
     }
     return true;
 }

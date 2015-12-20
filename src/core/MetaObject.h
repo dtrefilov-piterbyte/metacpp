@@ -162,7 +162,7 @@ protected:
         if (nullable())
         {
             auto& f = access<Nullable<T>>(obj);
-            return f ? Variant(*f) : Variant();
+            return f.isSet() ? Variant(*f) : Variant();
         }
         else
             return access<T>(obj);

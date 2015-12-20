@@ -37,13 +37,11 @@ public:
     void setExecuted(bool val = true);
     /** Stores bind data which will receive field requirements on the next fetched row */
     void prefetch();
-    size_t bufferLengthRequired(size_t nField);
     MYSQL_BIND *bindResult(size_t nField);
 private:
     MYSQL_STMT *m_stmt;
     MYSQL_RES *m_result;
     Array<MYSQL_BIND> m_bindResult;
-    Array<unsigned long> m_fieldLengths;
     bool m_executed;
 };
 

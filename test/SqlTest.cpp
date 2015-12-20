@@ -105,7 +105,7 @@ void SqlTest::prepareData()
     person.insertOne(transaction);
 
     city.name = "Ibadan";
-    city.country = nullptr;
+    city.country.reset();
     city.insertOne(transaction);
 
     person.name = "Smith";
