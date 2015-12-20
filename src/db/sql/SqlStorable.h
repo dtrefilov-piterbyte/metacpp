@@ -81,6 +81,9 @@ namespace sql
         Storable() : m_pkey(nullptr) {
         }
 
+        Storable(TObj& obj) : TObj(obj), m_pkey(nullptr) {
+        }
+
         /** \brief Overriden from SqlStorable::primaryKey */
         const MetaFieldBase *primaryKey() const override {
             if (m_pkey) return m_pkey;
@@ -104,6 +107,36 @@ namespace sql
         static void createSchema(SqlTransaction& transaction)
         {
             SqlStorable::createSchema(transaction, TObj::staticMetaObject(), ms_constraints);
+        }
+
+        static Array<TObj> fetchAll(SqlTransaction& transaction) {
+            Array<TObj> result;
+            Storable<TObj> storable;
+            auto set = storable.select().exec(transaction);
+            size_t size = set.size();
+            if (size != std::numeric_limits<size_t>::max())
+                result.reserve(size);
+            for (auto row : set) {
+                (void)row;
+                result.push_back(storable);
+            }
+            return result;
+        }
+
+        static Array<TObj> fetchAll(SqlTransaction& transaction,
+                             const ExpressionNodeWhereClause& whereClause)
+        {
+            Array<TObj> result;
+            Storable<TObj> storable;
+            auto set = storable.select().where(whereClause).exec(transaction);
+            size_t size = set.size();
+            if (size != std::numeric_limits<size_t>::max())
+                result.reserve(size);
+            for (auto row : set) {
+                (void)row;
+                result.push_back(storable);
+            }
+            return result;
         }
 
     private:
