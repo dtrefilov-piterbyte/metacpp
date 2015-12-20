@@ -259,33 +259,18 @@ TEST_F(SqliteTest, multipleTransactionsTest)
             threads[i].join();
 }
 
-static bool HasPupkin(const Array<Person> persons)
+static bool HasPerson(const Array<Person>& persons, const String& name)
 {
-    auto pupkin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Pupkin"; });
+    auto pupkin = std::find_if(persons.begin(), persons.end(), [name](const Person& p) { return p.name == name; });
     if (pupkin == persons.end())
         return false;
 
     return true;
 }
 
-static bool HasSmith(const Array<Person> persons)
-{
-    auto smith = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Smith"; });
-    if (smith == persons.end())
-        return false;
-
-    return true;
-}
-
-static bool HasLenin(const Array<Person> persons)
-{
-    auto lenin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Lenin"; });
-
-    if (lenin == persons.end())
-        return false;
-
-    return true;
-}
+static bool HasPupkin(const Array<Person>& persons) { return HasPerson(persons, "Pupkin"); }
+static bool HasSmith(const Array<Person>& persons) { return HasPerson(persons, "Smith"); }
+static bool HasLenin(const Array<Person>& persons) { return HasPerson(persons, "Lenin"); }
 
 TEST_F(SqliteTest, simpleSelectTest)
 {

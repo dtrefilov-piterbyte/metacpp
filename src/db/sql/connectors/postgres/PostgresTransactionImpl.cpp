@@ -56,13 +56,14 @@ SqlStatementImpl *PostgresTransactionImpl::createStatement(SqlStatementType type
 {
     std::lock_guard<std::mutex> _guard(m_statementsMutex);
     PostgresStatementImpl *statement = new PostgresStatementImpl(type, queryText);
+    //std::cout << queryText << std::endl;
     m_statements.push_back(statement);
     return statement;
 }
 
 bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement, size_t numParams)
 {
-    static int statementId = 0;
+    static std::atomic<int> statementId { 0 };
     String idString = "metacpp_prepared_stmt_" + String::fromValue(statementId++);
     Oid *paramTypes = (Oid *)alloca(sizeof(Oid) * numParams);
     std::fill_n(paramTypes, numParams, InvalidOid);
@@ -110,7 +111,7 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
             else
             {
                 String val = variant_cast<String>(values[i]);
-                if (values[i].isString() || values[i].isDateTime())
+                if (values[i].isDateTime())
                     paramValues[i] = PQescapeLiteral(m_dbConn, val.data(), val.size());
                 else
                     paramValues[i] = val.data();
@@ -121,12 +122,14 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
 			paramValues, nullptr, nullptr, 0 /* text format */);
         for (size_t i = 0; i < values.size(); ++i)
         {
-            if (values[i].isString() || values[i].isDateTime())
+            if (values[i].isDateTime())
                 PQfreemem(const_cast<char *>(paramValues[i]));
         }
     }
-    else
-        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), 0, NULL, NULL, NULL, 0 /* text format */);
+    else {
+        result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), 0, nullptr, nullptr, nullptr, 0 /* text format */);
+    }
+    postgresStatement->setExecResult(result);
     ExecStatusType status = PQresultStatus(result);
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {
@@ -140,7 +143,7 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
 template<typename T>
 void assignField(const MetaFieldBase *field, bool isNull, const T& val, Object *obj)
 {
-    if (field->nullable() && !isNull) {
+    if (field->nullable() && isNull) {
         field->access<Nullable<T> >(obj).reset();
     } else {
         if (field->nullable())
@@ -157,56 +160,61 @@ bool PostgresTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable
     if (statement->done())
         return false;
     PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
+    if (!postgresStatement->getExecResult()) {
+        if (!execStatement(statement))
+            return false;
+    }
     // increment row
     int currentRow =  postgresStatement->currentRow() + 1;
     postgresStatement->setCurrentRow(currentRow);
-    int rowCount = PQntuples(postgresStatement->getResult());
+    int rowCount = PQntuples(postgresStatement->getExecResult());
     if (currentRow >= rowCount)
     {
         postgresStatement->setDone();
         return false;
     }
-    const int nFields = PQnfields(postgresStatement->getResult());
+    const int nFields = PQnfields(postgresStatement->getExecResult());
     for (int i = 0; i < nFields; ++i)
     {
-        const char *fName = PQfname(postgresStatement->getResult(), i);
-        auto field = storable->record()->metaObject()->fieldByName(fName);
+        const char *fName = PQfname(postgresStatement->getExecResult(), i);
+        auto field = storable->record()->metaObject()->fieldByName(fName, false);
         if (!field)
         {
             std::cerr << "Cannot bind sql result to an object field " << fName << std::endl;
             continue;
         }
-        const char *pVal = PQgetvalue(postgresStatement->getResult(), currentRow, i);
+        bool isNull = PQgetisnull(postgresStatement->getExecResult(), currentRow, i);
+        const char *pVal = isNull ? nullptr : PQgetvalue(postgresStatement->getExecResult(), currentRow, i);
 
         switch (field->type())
         {
         case eFieldBool:
-            assignField<bool>(field, !pVal, *pVal == 't', storable->record());
+            assignField<bool>(field, isNull, isNull ? bool() : *pVal == 't', storable->record());
             break;
         case eFieldInt:
-            assignField<int32_t>(field, !pVal, String(pVal).toValue<int32_t>(), storable->record());
+            assignField<int32_t>(field, isNull, isNull ? int32_t() : String(pVal).toValue<int32_t>(), storable->record());
             break;
         case eFieldEnum:
         case eFieldUint:
-            assignField<uint32_t>(field, !pVal, String(pVal).toValue<uint32_t>(), storable->record());
+            assignField<uint32_t>(field, isNull, isNull ? uint32_t() : String(pVal).toValue<uint32_t>(), storable->record());
             break;
         case eFieldInt64:
-            assignField<int64_t>(field, !pVal, String(pVal).toValue<int64_t>(), storable->record());
+            assignField<int64_t>(field, isNull, isNull ? int64_t() : String(pVal).toValue<int64_t>(), storable->record());
             break;
         case eFieldUint64:
-            assignField<uint64_t>(field, !pVal, String(pVal).toValue<uint64_t>(), storable->record());
+            assignField<uint64_t>(field, isNull, isNull ? uint64_t() : String(pVal).toValue<uint64_t>(), storable->record());
             break;
         case eFieldFloat:
-            assignField<float>(field, !pVal, String(pVal).toValue<float>(), storable->record());
+            assignField<float>(field, isNull, isNull ? float () : String(pVal).toValue<float>(), storable->record());
             break;
         case eFieldDouble:
-            assignField<double>(field, !pVal, String(pVal).toValue<double>(), storable->record());
+            assignField<double>(field, isNull, isNull ? double() : String(pVal).toValue<double>(), storable->record());
             break;
         case eFieldString:
-            assignField<String>(field, !pVal, String(pVal, PQgetlength(postgresStatement->getResult(), currentRow, i)), storable->record());
+            assignField<String>(field, isNull, isNull ? String() : String(pVal, PQgetlength(postgresStatement->getExecResult(), currentRow, i)), storable->record());
             break;
         case eFieldDateTime:
-            assignField<DateTime>(field, !pVal, DateTime::fromString(pVal), storable->record());
+            assignField<DateTime>(field, isNull, isNull ? DateTime() : DateTime::fromString(pVal), storable->record());
             break;
         case eFieldObject:
         case eFieldArray:
@@ -222,9 +230,11 @@ size_t PostgresTransactionImpl::size(SqlStatementImpl *statement)
 {
     if (!statement->prepared())
         throw std::runtime_error("PostgresTransactionImpl::size(): should be prepared first");
-    if (statement->done())
-        return std::numeric_limits<size_t>::max();
     PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
+    if (!postgresStatement->getExecResult()) {
+        if (!execStatement(statement))
+            return std::numeric_limits<size_t>::max();
+    }
     return static_cast<unsigned>(PQntuples(postgresStatement->getResult()));
 }
 

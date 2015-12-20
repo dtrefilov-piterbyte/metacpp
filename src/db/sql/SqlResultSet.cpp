@@ -61,6 +61,8 @@ namespace detail
     {
         if (m_iterator.rowId() != ROW_ID_INVALID)
             throw std::runtime_error("SqlResultSet::begin() had already been called");
+
+
         // try fetch first row
         if (moveIterator())
             m_iterator.setRowId(0);

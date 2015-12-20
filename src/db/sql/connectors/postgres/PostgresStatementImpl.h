@@ -32,7 +32,9 @@ public:
     ~PostgresStatementImpl();
 
     void setResult(PGresult *result, const String& idString);
+    void setExecResult(PGresult *result);
     PGresult *getResult() const;
+    PGresult *getExecResult() const;
     const String& getIdString() const;
     int currentRow() const;
     void setCurrentRow(int row);
@@ -40,7 +42,7 @@ public:
     const VariantArray& boundValues() const;
 private:
     VariantArray m_boundValues;
-    PGresult *m_result;
+    PGresult *m_result, *m_execResult;
     String m_idString;
     int m_currentRow;
 };

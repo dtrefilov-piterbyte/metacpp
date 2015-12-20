@@ -233,8 +233,13 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
             }
         }
     }
-    else
-        sets = m_sets;
+    else {
+        assert(m_sets.size() == m_literals.size());
+        size_t i = 1;
+        sets.reserve(m_sets.size());
+        for (String set : m_sets)
+            sets.push_back(set.replace("?", "$" + String::fromValue(i++)));
+    }
 
     String whereExpr;
     if (!m_whereClause.empty())

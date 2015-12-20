@@ -23,14 +23,16 @@ namespace connectors {
 namespace postgres {
 
 PostgresStatementImpl::PostgresStatementImpl(SqlStatementType type, const String &queryText)
-    : SqlStatementImpl(type, queryText), m_result(nullptr), m_currentRow(-1)
+    : SqlStatementImpl(type, queryText), m_result(nullptr), m_execResult(nullptr), m_currentRow(-1)
 {
 
 }
 
 PostgresStatementImpl::~PostgresStatementImpl()
 {
-    if (prepared() && m_result)
+    if (m_execResult)
+        PQclear(m_execResult);
+    if (m_result)
         PQclear(m_result);
 }
 
@@ -40,9 +42,19 @@ void PostgresStatementImpl::setResult(PGresult *result, const String &idString)
     m_idString = idString;
 }
 
+void PostgresStatementImpl::setExecResult(PGresult *result)
+{
+    m_execResult = result;
+}
+
 PGresult *PostgresStatementImpl::getResult() const
 {
     return m_result;
+}
+
+PGresult *PostgresStatementImpl::getExecResult() const
+{
+    return m_execResult;
 }
 
 const String &PostgresStatementImpl::getIdString() const
