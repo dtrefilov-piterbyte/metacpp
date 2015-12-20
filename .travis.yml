@@ -6,7 +6,7 @@ compiler:
   - gcc
 
 before_install:
-  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/tes
+  - sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
   - sudo add-apt-repository -y universe restricted multiverse
   - sudo apt-get update -qq
 
