@@ -330,24 +330,9 @@ bool MySqlTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *s
         if (0 != fetchRes)
             throw std::runtime_error(std::string() + "mysql_stmt_fetch_column() failed:" + mysql_error(dbConn()));
         if (eFieldDateTime == field->type()) {
-            bool isNull =
-                    timeBuffer.year == 0 &&
-                    timeBuffer.month == 0 &&
-                    timeBuffer.day == 0 &&
-                    timeBuffer.hour == 0 &&
-                    timeBuffer.minute == 0 &&
-                    timeBuffer.second == 0;
-            if (isNull) {
-                if (field->nullable())
-                    field->setValue(Variant(), storable->record());
-                else
-                    field->setValue(DateTime(), storable->record());
-            }
-            else {
-                field->setValue(DateTime(timeBuffer.year,
+            field->setValue(DateTime(timeBuffer.year,
                                      static_cast<EMonth>(timeBuffer.month - 1), timeBuffer.day, timeBuffer.hour,
                                      timeBuffer.minute, timeBuffer.second), storable->record());
-            }
         }
     }
     return true;
