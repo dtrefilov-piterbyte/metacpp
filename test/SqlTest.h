@@ -8,7 +8,7 @@ class SqlTest : public testing::Test
 public:
     void prepareSchema();
     void prepareData();
-    void cleanData();
+    void clearData();
 };
 
 class SqliteTest : public SqlTest

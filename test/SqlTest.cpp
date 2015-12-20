@@ -30,6 +30,7 @@ public:
 STRUCT_INFO_BEGIN(City)
     FIELD(City, id)
     FIELD(City, name)
+    FIELD(City, country)
 STRUCT_INFO_END(City)
 
 REFLECTIBLE_F(City)
@@ -104,6 +105,7 @@ void SqlTest::prepareData()
     person.insertOne(transaction);
 
     city.name = "Ibadan";
+    city.country = nullptr;
     city.insertOne(transaction);
 
     person.name = "Smith";
@@ -116,7 +118,7 @@ void SqlTest::prepareData()
     transaction.commit();
 }
 
-void SqlTest::cleanData()
+void SqlTest::clearData()
 {
     SqlTransaction transaction;
     Storable<City> city;
@@ -182,7 +184,7 @@ void SqliteTest::SetUp()
 
 void SqliteTest::TearDown()
 {
-    cleanData();
+    clearData();
 
     connectors::SqlConnectorBase::setDefaultConnector(nullptr);
     ASSERT_TRUE(static_cast<bool>(m_conn));
@@ -313,11 +315,15 @@ TEST_F(SqliteTest, simpleSelectTest)
     auto ibadan = std::find_if(cities.begin(), cities.end(), [](const City& c) { return c.name == "Ibadan"; });
     ASSERT_NE(ibadan, cities.end());
 
+    EXPECT_EQ(moscow->name, "Moscow");
+    EXPECT_EQ(moscow->country, String("Russia"));
+
+    EXPECT_EQ(ibadan->name, "Ibadan");
+    EXPECT_EQ(ibadan->country, nullptr);
+
     auto pupkin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Pupkin"; });
     auto smith = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Smith"; });
     auto lenin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Lenin"; });
-
-
 
     ASSERT_EQ(persons.size(), 3);
     ASSERT_TRUE(HasPupkin(persons));
