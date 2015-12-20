@@ -67,6 +67,9 @@ public:
     /** \brief Write result of select operation into storable and move cursor to the next row */
     virtual bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) = 0;
 
+    /** \brief Returns number of rows in a result set, returns (size_t)-1 if unavailable */
+    virtual size_t size(SqlStatementImpl *statement) = 0;
+
     /** \brief Retrieve an id of the previously inserted row */
     virtual bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) = 0;
 

@@ -332,6 +332,20 @@ bool MySqlTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *s
     return true;
 }
 
+size_t MySqlTransactionImpl::size(SqlStatementImpl *statement)
+{
+    const size_t def = std::numeric_limits<size_t>::max();
+    if (!statement->prepared())
+        throw std::runtime_error("MySqlTransactionImpl::execStatement(): should be prepared first");
+    if (statement->done())
+        return def;
+    MySqlStatementImpl *mysqlStatement = reinterpret_cast<MySqlStatementImpl *>(statement);
+    MYSQL_RES * res = mysqlStatement->getResult();
+    if (res)
+        return mysql_num_rows(res);
+    return def;
+}
+
 bool MySqlTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable)
 {
     (void)statement;

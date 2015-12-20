@@ -247,6 +247,12 @@ bool SqliteTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable *
     throw std::runtime_error(std::string("sqlite3_step(): ") + sqlite3_errmsg(m_dbHandle));
 }
 
+size_t SqliteTransactionImpl::size(SqlStatementImpl *statement)
+{
+    (void)statement;
+    return std::numeric_limits<size_t>::max();
+}
+
 bool SqliteTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable)
 {
     (void)statement;

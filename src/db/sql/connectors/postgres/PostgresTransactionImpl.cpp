@@ -218,6 +218,16 @@ bool PostgresTransactionImpl::fetchNext(SqlStatementImpl *statement, SqlStorable
     return true;
 }
 
+size_t PostgresTransactionImpl::size(SqlStatementImpl *statement)
+{
+    if (!statement->prepared())
+        throw std::runtime_error("PostgresTransactionImpl::size(): should be prepared first");
+    if (statement->done())
+        return std::numeric_limits<size_t>::max();
+    PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
+    return static_cast<unsigned>(PQntuples(postgresStatement->getResult()));
+}
+
 bool PostgresTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable)
 {
     (void)statement;

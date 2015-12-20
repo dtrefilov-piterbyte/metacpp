@@ -91,6 +91,7 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
                 field->access<Nullable<double> >(obj).reset();
             else
                 field->access<Nullable<double> >(obj) = reinterpret_cast<const MetaFieldDouble *>(field)->defaultValue();
+            break;
         case eFieldDateTime:
             if (eOptional == field->mandatoriness())
                 field->access<Nullable<DateTime> >(obj).reset();
@@ -102,6 +103,7 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
                 field->access<Nullable<String> >(obj).reset();
             else
                 field->access<Nullable<String> >(obj) = reinterpret_cast<const MetaFieldString *>(field)->defaultValue();
+            break;
         }
         return;
     }

@@ -20,8 +20,9 @@ using namespace ::metacpp::db::sql;
 class City : public Object
 {
 public:
-    int             id;
-    String          name;
+    int                 id;
+    String              name;
+    Nullable<String>    country;
 
     META_INFO_DECLARE(City)
 };
@@ -89,11 +90,17 @@ void SqlTest::prepareData()
     Storable<City> city;
     city.init();
     city.name = "Moscow";
+    city.country = "Russia";
     city.insertOne(transaction);
 
     Storable<Person> person;
     person.name = "Pupkin";
     person.cityId = city.id;
+    person.insertOne(transaction);
+
+    person.name = "Lenin";
+    person.cat_weight = 2.0;
+    person.age = 53;
     person.insertOne(transaction);
 
     city.name = "Ibadan";
@@ -109,7 +116,7 @@ void SqlTest::prepareData()
     transaction.commit();
 }
 
-void SqlTest::clearData()
+void SqlTest::cleanData()
 {
     SqlTransaction transaction;
     Storable<City> city;
@@ -160,26 +167,23 @@ TEST_F(SqlTest, testConstraints)
 
 }
 
-// User-defined SQL function now() for Postgresql
-inline ExpressionNodeFunctionCall<DateTime> db_now()
-{
-    return ExpressionNodeFunctionCall<DateTime>("now");
-}
-
 void SqliteTest::SetUp()
 {
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
     //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
     ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
-    m_conn->setConnectionPooling(3);
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
     ASSERT_TRUE(m_conn->connect());
     prepareSchema();
+
+    prepareData();
 }
 
 void SqliteTest::TearDown()
 {
+    cleanData();
+
     connectors::SqlConnectorBase::setDefaultConnector(nullptr);
     ASSERT_TRUE(static_cast<bool>(m_conn));
     EXPECT_TRUE(m_conn->disconnect());
@@ -253,10 +257,36 @@ TEST_F(SqliteTest, multipleTransactionsTest)
             threads[i].join();
 }
 
+static bool HasPupkin(const Array<Person> persons)
+{
+    auto pupkin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Pupkin"; });
+    if (pupkin == persons.end())
+        return false;
+
+    return true;
+}
+
+static bool HasSmith(const Array<Person> persons)
+{
+    auto smith = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Smith"; });
+    if (smith == persons.end())
+        return false;
+
+    return true;
+}
+
+static bool HasLenin(const Array<Person> persons)
+{
+    auto lenin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Lenin"; });
+
+    if (lenin == persons.end())
+        return false;
+
+    return true;
+}
+
 TEST_F(SqliteTest, simpleSelectTest)
 {
-    prepareData();
-
     SqlTransaction transaction;
     Array<City> cities;
     Array<Person> persons;
@@ -283,12 +313,16 @@ TEST_F(SqliteTest, simpleSelectTest)
     auto ibadan = std::find_if(cities.begin(), cities.end(), [](const City& c) { return c.name == "Ibadan"; });
     ASSERT_NE(ibadan, cities.end());
 
-
-    ASSERT_EQ(persons.size(), 2);
     auto pupkin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Pupkin"; });
-    ASSERT_NE(pupkin, persons.end());
     auto smith = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Smith"; });
-    ASSERT_NE(smith, persons.end());
+    auto lenin = std::find_if(persons.begin(), persons.end(), [](const Person& p) { return p.name == "Lenin"; });
+
+
+
+    ASSERT_EQ(persons.size(), 3);
+    ASSERT_TRUE(HasPupkin(persons));
+    ASSERT_TRUE(HasSmith(persons));
+    ASSERT_TRUE(HasLenin(persons));
 
     EXPECT_EQ(pupkin->cityId, moscow->id);
     EXPECT_EQ(pupkin->name, "Pupkin");
@@ -301,17 +335,208 @@ TEST_F(SqliteTest, simpleSelectTest)
     EXPECT_EQ(smith->birthday, DateTime(1960, April, 4));
     EXPECT_EQ(smith->age, 55);
     EXPECT_EQ(smith->cat_weight, 1.0);
+
+    EXPECT_EQ(lenin->cityId, moscow->id);
+    EXPECT_EQ(lenin->name, "Lenin");
+    EXPECT_EQ(lenin->birthday, nullptr);
+    EXPECT_EQ(lenin->age, 53);
+    EXPECT_EQ(lenin->cat_weight, 2.0);
 }
 
+TEST_F(SqliteTest, testInnerJoin)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
 
+    for (auto row : person.select().innerJoin<City>().where(COL(Person::cityId) == COL(City::id) &&
+                                                            COL(City::name) == String("Moscow"))
+         .exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasPupkin(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, testOuterJoin)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().outerJoin<City>().where(COL(Person::cityId) == COL(City::id) &&
+                                                            COL(City::name) == String("Moscow"))
+         .exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 3);
+    EXPECT_TRUE(HasPupkin(persons));
+    EXPECT_TRUE(HasSmith(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, testIsNullOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::age).isNull()).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasPupkin(persons));
+}
+
+TEST_F(SqliteTest, testIsNotNullOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::birthday).isNotNull()).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, testEqualOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::name) == String("Smith")).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, testNotEqualOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::name) != String("Smith")).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasPupkin(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, testLessOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::age) < 55).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, testLessOrEqualOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::age) <= 55).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasLenin(persons));
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, testGreaterOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::age) > 53).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, testGreaterOrEqualOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::age) >= 53).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasLenin(persons));
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, testLikeOperator)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    Array<Person> persons;
+
+    for (auto row : person.select().where(COL(Person::name).like("%n")).exec(transaction))
+    {
+        (void)row;
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasLenin(persons));
+    EXPECT_TRUE(HasPupkin(persons));
+}
+
+// test a complex query
 TEST_F(SqliteTest, allInOneSelectTest)
 {
-    prepareData();
     try
     {
         SqlTransaction transaction;
         Storable<Person> person;
-        Storable<City> city;
 
         SqlResultSet resultSet = person.select().innerJoin<City>().where((COL(Person::age).isNull() ||
                 (coalesce(COL(Person::age), 0) + 2.5  * COL(Person::cat_weight)) > 250) &&
@@ -333,12 +558,10 @@ TEST_F(SqliteTest, allInOneSelectTest)
     {
         throw;
     }
-    clearData();
 }
 
 TEST_F(SqliteTest, updateTest)
 {
-    prepareData();
     try
     {
         prepareData();
@@ -353,7 +576,6 @@ TEST_F(SqliteTest, updateTest)
     {
         throw;
     }
-    clearData();
 }
 
 TEST_F(SqliteTest, insertTest)

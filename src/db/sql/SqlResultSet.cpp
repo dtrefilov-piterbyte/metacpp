@@ -52,6 +52,11 @@ namespace detail
         }
     }
 
+    size_t SqlResultSetData::size()
+    {
+        return m_transaction.impl()->size(m_statement.get());
+    }
+
     SqlResultIterator SqlResultSetData::begin()
     {
         if (m_iterator.rowId() != ROW_ID_INVALID)
@@ -89,6 +94,11 @@ SqlResultIterator SqlResultSet::begin()
 SqlResultIterator SqlResultSet::end()
 {
     return this->data()->end();
+}
+
+size_t SqlResultSet::size()
+{
+    return this->data()->size();
 }
 
 } // namespace sql

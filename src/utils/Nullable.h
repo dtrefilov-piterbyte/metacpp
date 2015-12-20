@@ -35,13 +35,6 @@ public:
         return *this;
     }
 
-    typename std::enable_if<std::is_move_assignable<T>::value, Nullable>::type& operator=(Nullable&& other)
-    {
-        m_isSet = other.m_isSet;
-        m_value = std::move(other.m_value);
-        return *this;
-    }
-
     bool operator==(const Nullable& other) const {
         return (m_isSet == other.m_isSet) &&
             (!m_isSet || m_value == other.m_value);

@@ -41,6 +41,7 @@ public:
     bool bindValues(SqlStatementImpl *statement, const VariantArray &values) override;
     bool execStatement(SqlStatementImpl *statement, int *numRowsAffected = nullptr) override;
     bool fetchNext(SqlStatementImpl *statement, SqlStorable *storable) override;
+    size_t size(SqlStatementImpl *statement) override;
     bool getLastInsertId(SqlStatementImpl *statement, SqlStorable *storable) override;
     bool closeStatement(SqlStatementImpl *statement) override;
 

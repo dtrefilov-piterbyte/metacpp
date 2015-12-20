@@ -6,9 +6,9 @@
 class SqlTest : public testing::Test
 {
 public:
-    virtual void prepareSchema();
-    virtual void prepareData();
-    virtual void clearData();
+    void prepareSchema();
+    void prepareData();
+    void cleanData();
 };
 
 class SqliteTest : public SqlTest

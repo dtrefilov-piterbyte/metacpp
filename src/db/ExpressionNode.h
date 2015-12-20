@@ -795,6 +795,14 @@ ExpressionNodeFunctionCall<typename detail::CoalesceHelper<TArgs...>::TRes> coal
     return ExpressionNodeFunctionCall<typename detail::CoalesceHelper<TArgs...>::TRes>("coalesce", args...);
 }
 
+// postgresql-specific function calls
+namespace postgres {
+    inline ExpressionNodeFunctionCall<DateTime> now()
+    {
+        return ExpressionNodeFunctionCall<DateTime>("now");
+    }
+}
+
 } // namespace db
 } // namespace metacpp
 

@@ -47,6 +47,7 @@ namespace detail
         SqlResultIterator end();
         SharedDataBase *clone() const override;
         bool moveIterator();
+        size_t size();
     private:
         friend class SqlResultIterator;
 
@@ -60,7 +61,7 @@ namespace detail
 } // namespace detail
 
 /** \brief Result of an SqlSelectStatement */
-class SqlResultSet final : SharedDataPointer<detail::SqlResultSetData>
+class SqlResultSet : SharedDataPointer<detail::SqlResultSetData>
 {
 public:
     /** Construct result set from select statement
@@ -74,6 +75,8 @@ public:
     SqlResultIterator begin();
     /** \brief Returns iterator pointing to the end of this set */
     SqlResultIterator end();
+    /** \brief Returns number of rows in a result set, (size_t)-1 if unavailable */
+    size_t size();
 };
 
 } // namespace sql
