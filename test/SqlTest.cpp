@@ -624,8 +624,9 @@ TEST_F(SqliteTest, insertTest)
     Storable<Person> pupkin;
     {
         SqlTransaction transaction;
-        auto result = pupkin.select().where(COL(Person::name) == String("Pupkin")).exec(transaction);
-        ASSERT_TRUE(result.begin() != result.end());
+        auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Pupkin"));
+        ASSERT_EQ(persons.size(), 1);
+        pupkin = persons.front();
     }
     {
         SqlTransaction transaction;

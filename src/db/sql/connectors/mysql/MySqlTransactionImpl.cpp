@@ -56,6 +56,7 @@ SqlStatementImpl *MySqlTransactionImpl::createStatement(SqlStatementType type, c
 {
     std::lock_guard<std::mutex> _guard(m_statementsMutex);
     MYSQL_STMT *stmt = mysql_stmt_init(dbConn());
+    //std::cout << queryText << std::endl;
     if (!stmt)
     {
         std::cerr << "mysql_stmt_init() failed:" << mysql_error(dbConn()) << std::endl;
@@ -352,6 +353,13 @@ size_t MySqlTransactionImpl::size(SqlStatementImpl *statement)
         mysqlStatement->setExecuted();
     }
     MYSQL_RES * res = mysqlStatement->getResult();
+    if (!res)
+    {
+        res = mysql_stmt_result_metadata(mysqlStatement->getStmt());
+        if (!res)
+            throw std::runtime_error(std::string() + "mysql_stmt_result_metadata() failed: " + mysql_error(dbConn()));
+        mysqlStatement->setResult(res);
+    }
     if (res)
         return mysql_num_rows(res);
     return def;

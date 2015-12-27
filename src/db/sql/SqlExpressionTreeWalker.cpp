@@ -127,7 +127,10 @@ void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::Ex
         eval = l + " + " + r;
         break;
     case eBinaryOperatorConcatenate:
-        eval = l + " || " + r;
+        if (m_sqlSyntax == SqlSyntaxMySql)
+            eval = "CONCAT(" + l + ", " + r + ")";
+        else
+            eval = l + " || " + r;
         break;
     case eBinaryOperatorMinus:
         eval = l + " - " + r;
@@ -136,7 +139,10 @@ void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::Ex
         eval = l + " * " + r;
         break;
     case eBinaryOperatorDivide:
-        eval = l + " / " + r;
+        if (m_sqlSyntax == SqlSyntaxMySql)
+            eval = l + " DIV " + r;
+        else
+            eval = l + " / " + r;
         break;
     case eBinaryOperatorReminder:
         eval = l + " % " + r;

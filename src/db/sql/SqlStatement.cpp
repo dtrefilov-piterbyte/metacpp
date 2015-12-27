@@ -238,7 +238,12 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
         size_t i = 1;
         sets.reserve(m_sets.size());
         for (String set : m_sets)
-            sets.push_back(set.replace("?", "$" + String::fromValue(i++)));
+        {
+            if (syntax == SqlSyntaxPostgreSQL)
+                sets.push_back(set.replace("?", "$" + String::fromValue(i++)));
+            else
+                sets.push_back(set);
+        }
     }
 
     String whereExpr;
@@ -259,7 +264,7 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
                 joins += ", ";
         }
 
-        if (SqlSyntaxSqlite == syntax)
+        if (SqlSyntaxSqlite == syntax || SqlSyntaxMySql == syntax)
         {
             res += " SET " + join(sets, ", ") +
                    " WHERE EXISTS (SELECT 1 FROM " + joins;
@@ -270,11 +275,6 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
         {
             res += " SET " + join(sets, ", ") +
                    " FROM " + joins;
-            if (!m_whereClause.empty()) res += " WHERE " + whereExpr;
-        }
-        else if (SqlSyntaxMySql == syntax)
-        {
-            res += ", " + joins + " SET " + join(sets, ", ");
             if (!m_whereClause.empty()) res += " WHERE " + whereExpr;
         }
         else
