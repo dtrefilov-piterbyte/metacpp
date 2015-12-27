@@ -107,6 +107,18 @@ void SqlExpressionTreeWalker::visitUnaryOperator(std::shared_ptr<db::detail::Exp
         break;
     case eUnaryOperatorNegation:
         eval = "~" + evaluateSubnode(inner, !inner->isLeaf());
+        if (m_sqlSyntax == SqlSyntaxMySql)
+        {
+            switch (inner->type())
+            {
+            case eFieldInt:
+            case eFieldUint:
+                eval = "CAST(" + eval + " as INTEGER)";
+                break;
+            default:
+                break;
+            }
+        }
         break;
     default:
         throw std::invalid_argument("Unknown unary operator");
