@@ -113,7 +113,7 @@ void SqlExpressionTreeWalker::visitUnaryOperator(std::shared_ptr<db::detail::Exp
             {
             case eFieldInt:
             case eFieldUint:
-                eval = "CAST(" + eval + " as INTEGER)";
+                eval = "CAST(" + eval + " AS INTEGER)";
                 break;
             default:
                 break;
@@ -124,6 +124,72 @@ void SqlExpressionTreeWalker::visitUnaryOperator(std::shared_ptr<db::detail::Exp
         throw std::invalid_argument("Unknown unary operator");
     }
     m_stack.push_back(eval);
+}
+
+void SqlExpressionTreeWalker::visitCastOperator(std::shared_ptr<db::detail::ExpressionNodeImplCastOperator> cast)
+{
+    auto inner = cast->innerNode();
+    String castType;
+    if (m_sqlSyntax == SqlSyntaxPostgreSQL)
+    {
+        switch (cast->type())
+        {
+        case eFieldBool:
+            castType = "SMALLINT";
+            break;
+        case eFieldInt:
+        case eFieldEnum:
+            castType = "INTEGER";
+            break;
+        case eFieldUint:
+        case eFieldInt64:
+        case eFieldUint64:
+            castType = "BIGINT";
+            break;
+        case eFieldFloat:
+            castType = "REAL";
+            break;
+        case eFieldDouble:
+            castType = "DOUBLE PRECISION";
+            break;
+        case eFieldString:
+            castType = "TEXT";
+            break;
+        case eFieldDateTime:
+            castType = "DATETIME";
+            break;
+        default:
+            throw std::invalid_argument("Unknown cast type");
+        }
+    }
+    else
+    {
+        switch (cast->type())
+        {
+        // integer capacity does not have any effect in most databases
+        case eFieldBool:
+        case eFieldInt:
+        case eFieldEnum:
+        case eFieldUint:
+        case eFieldInt64:
+        case eFieldUint64:
+            castType = "INTEGER";
+            break;
+        case eFieldFloat:
+        case eFieldDouble:
+            castType = "REAL";
+            break;
+        case eFieldString:
+            castType = "TEXT";
+            break;
+        case eFieldDateTime:
+            castType = "DATETIME";
+            break;
+        default:
+            throw std::invalid_argument("Unknown cast type");
+        }
+    }
+    m_stack.push_back("CAST(" + evaluateSubnode(inner) + " AS " + castType + ")");
 }
 
 void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary)

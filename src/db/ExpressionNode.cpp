@@ -303,6 +303,35 @@ ExpressionNodeImplWhereClausePtr ExpressionNodeImplWhereClauseConditional::right
     return m_rhs;
 }
 
+ExpressionNodeImplCastOperator::ExpressionNodeImplCastOperator(EFieldType type, ExpressionNodeImplPtr innerNode)
+    : m_type(type), m_innerNode(innerNode)
+{
+}
+
+ExpressionNodeImplCastOperator::~ExpressionNodeImplCastOperator()
+{
+}
+
+EFieldType ExpressionNodeImplCastOperator::type() const
+{
+    return m_type;
+}
+
+ExpressionNodeType ExpressionNodeImplCastOperator::nodeType() const
+{
+    return eNodeCastOperator;
+}
+
+bool ExpressionNodeImplCastOperator::isLeaf() const
+{
+    return false;
+}
+
+ExpressionNodeImplPtr ExpressionNodeImplCastOperator::innerNode() const
+{
+    return m_innerNode;
+}
+
 } // namespace detail
 
 

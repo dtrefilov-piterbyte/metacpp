@@ -35,6 +35,7 @@ protected:
     virtual void visitLiteral(std::shared_ptr<detail::ExpressionNodeImplLiteral> literal);
     virtual void visitNull(std::shared_ptr<detail::ExpressionNodeImplNull> null);
     virtual void visitUnaryOperator(std::shared_ptr<detail::ExpressionNodeImplUnaryOperator> unary);
+    virtual void visitCastOperator(std::shared_ptr<detail::ExpressionNodeImplCastOperator> cast);
     virtual void visitBinaryOperator(std::shared_ptr<detail::ExpressionNodeImplBinaryOperator> binary);
     virtual void visitFunctionCall(std::shared_ptr<detail::ExpressionNodeImplFunctionCall> functionCall);
     virtual void visitWhereClauseRelational(std::shared_ptr<detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational);

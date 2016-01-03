@@ -41,6 +41,7 @@ void ASTWalkerBase::visitNode(detail::ExpressionNodeImplPtr node)
     case eNodeLiteral: return visitLiteral(std::dynamic_pointer_cast<detail::ExpressionNodeImplLiteral>(node));
     case eNodeNull: return visitNull(std::dynamic_pointer_cast<detail::ExpressionNodeImplNull>(node));
     case eNodeUnaryOperator: return visitUnaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplUnaryOperator>(node));
+    case eNodeCastOperator: return visitCastOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplCastOperator>(node));
     case eNodeBinaryOperator: return visitBinaryOperator(std::dynamic_pointer_cast<detail::ExpressionNodeImplBinaryOperator>(node));
     case eNodeFunctionCall: return visitFunctionCall(std::dynamic_pointer_cast<detail::ExpressionNodeImplFunctionCall>(node));
     case eNodeWhereClauseRelational: return visitWhereClauseRelational(std::dynamic_pointer_cast<detail::ExpressionNodeImplWhereClauseRelational>(node));
@@ -68,6 +69,11 @@ void ASTWalkerBase::visitNull(std::shared_ptr<ExpressionNodeImplNull> null)
 void ASTWalkerBase::visitUnaryOperator(std::shared_ptr<ExpressionNodeImplUnaryOperator> unary)
 {
     visitNode(unary->innerNode());
+}
+
+void ASTWalkerBase::visitCastOperator(std::shared_ptr<ExpressionNodeImplCastOperator> cast)
+{
+    visitNode(cast->innerNode());
 }
 
 void ASTWalkerBase::visitBinaryOperator(std::shared_ptr<ExpressionNodeImplBinaryOperator> binary)

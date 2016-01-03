@@ -55,6 +55,7 @@ protected:
     void visitLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal) override;
     void visitNull(std::shared_ptr<db::detail::ExpressionNodeImplNull> null) override;
     void visitUnaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplUnaryOperator> unary) override;
+    void visitCastOperator(std::shared_ptr<db::detail::ExpressionNodeImplCastOperator> cast) override;
     void visitBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary) override;
     void visitFunctionCall(std::shared_ptr<db::detail::ExpressionNodeImplFunctionCall> functionCall) override;
     void visitWhereClauseRelational(std::shared_ptr<db::detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational) override;

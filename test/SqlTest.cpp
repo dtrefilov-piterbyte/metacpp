@@ -581,6 +581,91 @@ TEST_F(SqliteTest, TestNegation)
     EXPECT_FALSE(HasSmith(persons));
 }
 
+TEST_F(SqliteTest, upperFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, upper(COL(Person::name)) == String("SMITH"));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, lowerFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, lower(COL(Person::name)) == String("smith"));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, trimFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, trim(" " + COL(Person::name) + " ") == String("Smith"));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, ltrimFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, ltrim(" " + COL(Person::name) + " ") == String("Smith "));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, rtrimFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, rtrim(" " + COL(Person::name) + " ") == String(" Smith"));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, lengthFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, length(COL(Person::name)) == 5);
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasSmith(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, coalesceFunctionTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction, coalesce(COL(Person::age), 53) == 53);
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasPupkin(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_F(SqliteTest, castIntTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction,
+                                              cast<int>(sqlite::strftime("%m", COL(Person::birthday))) ==
+                                              static_cast<int>(April) + 1);
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
+TEST_F(SqliteTest, castStringTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction,
+                                              cast<String>(COL(Person::age)) == String("55"));
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
 // test a complex query
 TEST_F(SqliteTest, allInOneSelectTest)
 {

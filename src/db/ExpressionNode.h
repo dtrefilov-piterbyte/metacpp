@@ -32,6 +32,7 @@ enum ExpressionNodeType
     eNodeLiteral,                   /**< \brief SQL-literal (computed from C++ expression) */
     eNodeNull,                      /**< \brief Null-valued node */
     eNodeUnaryOperator,             /**< \brief Unary operator */
+    eNodeCastOperator,              /**< \brief Type cast operator */
     eNodeBinaryOperator,            /**< \brief Binary operator */
     eNodeFunctionCall,              /**< \brief Function call */
     eNodeWhereClauseRelational,
@@ -207,6 +208,20 @@ public:
     ExpressionNodeImplPtr innerNode() const;
 private:
     UnaryOperatorType m_operator;
+    ExpressionNodeImplPtr m_innerNode;
+};
+
+class ExpressionNodeImplCastOperator : public ExpressionNodeImplBase
+{
+public:
+    ExpressionNodeImplCastOperator(EFieldType type, ExpressionNodeImplPtr innerNode);
+    ~ExpressionNodeImplCastOperator();
+    EFieldType type() const override;
+    ExpressionNodeType nodeType() const override;
+    bool isLeaf() const override;
+    ExpressionNodeImplPtr innerNode() const;
+private:
+    EFieldType m_type;
     ExpressionNodeImplPtr m_innerNode;
 };
 
@@ -559,6 +574,16 @@ public:
 };
 
 template<typename T>
+class ExpressionNodeCastOperator : public ExpressionNode<T>
+{
+public:
+    ExpressionNodeCastOperator(EFieldType type, const ExpressionNodeBase& innerNode)
+        : ExpressionNode<T>(std::make_shared<detail::ExpressionNodeImplCastOperator>(type, innerNode.impl()))
+    {
+    }
+};
+
+template<typename T>
 class ExpressionNodeBinaryOperator : public ExpressionNode<T>
 {
 public:
@@ -613,6 +638,29 @@ template<typename T, typename = typename std::enable_if<std::is_arithmetic<T>::v
 ExpressionNodeUnaryOperator<T> operator~(const ExpressionNode<T>& innerNode)
 {
     return ExpressionNodeUnaryOperator<T>(eUnaryOperatorNegation, innerNode);
+}
+
+namespace detail
+{
+template<typename T>
+struct CastHelper;
+
+template<> struct CastHelper<bool> { static const EFieldType type = eFieldBool; };
+template<> struct CastHelper<int32_t> { static const EFieldType type = eFieldInt; };
+template<> struct CastHelper<uint32_t> { static const EFieldType type = eFieldUint; };
+template<> struct CastHelper<int64_t> { static const EFieldType type = eFieldInt64; };
+template<> struct CastHelper<uint64_t> { static const EFieldType type = eFieldUint64; };
+template<> struct CastHelper<float> { static const EFieldType type = eFieldFloat; };
+template<> struct CastHelper<double> { static const EFieldType type = eFieldDouble; };
+template<> struct CastHelper<DateTime> { static const EFieldType type = eFieldDateTime; };
+template<> struct CastHelper<String> { static const EFieldType type = eFieldString; };
+
+} // namespace detail
+
+template<typename TRes>
+ExpressionNodeCastOperator<TRes> cast(const ExpressionNodeBase& innerNode)
+{
+    return ExpressionNodeCastOperator<TRes>(detail::CastHelper<TRes>::type, innerNode);
 }
 
 namespace detail
@@ -812,6 +860,14 @@ namespace postgres {
     inline ExpressionNodeFunctionCall<DateTime> now()
     {
         return ExpressionNodeFunctionCall<DateTime>("now");
+    }
+}
+
+// sqlite-specific function calls
+namespace sqlite {
+    inline ExpressionNodeFunctionCall<String> strftime(const String& fmt, const ExpressionNode<DateTime>& dt)
+    {
+        return ExpressionNodeFunctionCall<String>("strftime", fmt, dt);
     }
 }
 
