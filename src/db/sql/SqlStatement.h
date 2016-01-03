@@ -133,6 +133,8 @@ public:
     SqlStatementSelect& where(const ExpressionNodeWhereClause& whereClause);
     /** \brief Executes statement and returns result set */
     SqlResultSet exec(SqlTransaction& transaction);
+    /** \brief Executes statement and fetches first row from a returning result set */
+    bool fetchOne(SqlTransaction& transaction);
 
     /** \brief Specifies columns to be used for sorting in ascending order of result set */
     template<typename TObj1, typename TField1, typename... TOthers>
@@ -192,10 +194,15 @@ public:
     SqlStatementType type() const override;
     /** \brief Overridden from SqlStatementBase::buildQuery */
     String buildQuery(SqlSyntax syntax) override;
-    /** \brief Executes statement and returns number of rows inserted (on success should be equal to 1) */
-    int exec(SqlTransaction& transaction);
+    /** \brief Prepares insert statement for multi insert query */
+    int execPrepare(SqlTransaction& transaction);
+    /** \brief Executes previously prepared insert statement on given record
+     *  and returns number of rows inserted (on success should be equal to 1) */
+    int execStep(SqlTransaction& transaction, const Object *record);
 private:
     SqlStorable *m_storable;
+    size_t m_numLiterals;
+    bool m_prepared;
 };
 
 /** \brief Class representing Update queries */

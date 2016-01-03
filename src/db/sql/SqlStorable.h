@@ -139,6 +139,18 @@ namespace sql
             return result;
         }
 
+        static void insertAll(SqlTransaction& transaction,
+                              const Array<TObj> objects)
+        {
+            Storable<TObj> storable;
+            SqlStatementInsert statement(&storable);
+            statement.execPrepare(transaction);
+            for (auto& obj : objects)
+            {
+                statement.execStep(transaction, &obj);
+            }
+        }
+
     private:
 
         /** \brief Overriden from SqlStorable::record */

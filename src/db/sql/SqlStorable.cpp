@@ -50,7 +50,8 @@ SqlStatementUpdate SqlStorable::update()
 bool SqlStorable::insertOne(SqlTransaction& transaction)
 {
     SqlStatementInsert statement(this);
-    int nRows = statement.exec(transaction);
+    statement.execPrepare(transaction);
+    int nRows = statement.execStep(transaction, record());
     return nRows < 0 || nRows == 1;
 }
 

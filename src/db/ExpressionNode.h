@@ -522,6 +522,18 @@ public:
     {
         return ExpressionAssignment<TObj, TField, TField>(*this, ExpressionNodeNull<TField>());
     }
+
+    template<typename T>
+    ExpressionAssignment<TObj, TField, T> operator=(const T& rhs)
+    {
+        return ExpressionAssignment<TObj, TField, T>(*this, ExpressionNodeLiteral<T>(rhs));
+    }
+
+    template<typename T>
+    ExpressionAssignment<TObj, TField, T> operator=(const ExpressionNode<T>& rhs)
+    {
+        return ExpressionAssignment<TObj, TField, T>(*this, rhs);
+    }
 };
 
 /** \brief Creates new column expression node reffered to the given member of the object

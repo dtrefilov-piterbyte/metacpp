@@ -144,16 +144,19 @@ bool SqliteTransactionImpl::execStatement(SqlStatementImpl *statement, int *numR
 {
     if (!statement->prepared())
         throw std::runtime_error("SqliteTransactionImpl::execStatement(): should be prepared first");
-    int error = sqlite3_step(reinterpret_cast<SqliteStatementImpl *>(statement)->handle());
+    sqlite3_stmt * stmt = reinterpret_cast<SqliteStatementImpl *>(statement)->handle();
+    int error = sqlite3_step(stmt);
     if (SQLITE_DONE == error)
     {
         statement->setDone();
         if (numRowsAffected) *numRowsAffected = sqlite3_changes(m_dbHandle);
+        sqlite3_reset(stmt);
         return true;
     }
     else if (SQLITE_ROW == error)
     {
         if (numRowsAffected) *numRowsAffected = sqlite3_changes(m_dbHandle);
+        sqlite3_reset(stmt);
         return true;
     }
     std::cerr << "sqlite3_step(): " << sqlite3_errmsg(m_dbHandle);

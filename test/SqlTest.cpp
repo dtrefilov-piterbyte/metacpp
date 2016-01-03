@@ -339,6 +339,13 @@ TEST_F(SqliteTest, testInnerJoin)
     EXPECT_TRUE(HasLenin(persons));
 }
 
+TEST_F(SqliteTest, testMixedJoin)
+{
+    Storable<Person> person;
+
+    EXPECT_THROW(person.select().innerJoin<City>().outerJoin<City>(), std::logic_error);
+}
+
 TEST_F(SqliteTest, testOuterJoin)
 {
     SqlTransaction transaction;
@@ -597,28 +604,70 @@ TEST_F(SqliteTest, allInOneSelectTest)
     transaction.commit();
 }
 
-TEST_F(SqliteTest, updateTest)
+TEST_F(SqliteTest, updateOneTest)
+{
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin")).fetchOne(transaction));
+        person.name = "Pupkin Jr";
+        ASSERT_TRUE(person.updateOne(transaction));
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        ASSERT_FALSE(person.select().where(COL(Person::name) == String("Pupkin")).fetchOne(transaction));
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin Jr")).fetchOne(transaction));
+    }
+}
+
+TEST_F(SqliteTest, updateRefTest)
 {
     {
         SqlTransaction transaction;
         Storable<Person> person;
         auto affected = person.update().ref<City>().set(COL(Person::name) = "Pupkin Jr")
                 .where(COL(Person::cityId) == COL(City::id) && COL(City::name) == String("Moscow") &&
-                       (COL(Person::age) == null || COL(Person::cat_weight) == null)).exec(transaction);
-        EXPECT_EQ(affected, 1);
-
+                       COL(Person::cat_weight) == null).exec(transaction);
+        ASSERT_EQ(affected, 1);
         transaction.commit();
     }
 
     {
         SqlTransaction transaction;
+        auto persons = Storable<Person>::fetchAll(transaction);
 
-        EXPECT_EQ(Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Pupkin Jr")).size(), 1);
-        EXPECT_EQ(Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Pupkin")).size(), 0);
+        ASSERT_EQ(persons.size(), 3);
+        EXPECT_TRUE(HasPerson(persons, "Pupkin Jr"));
+        EXPECT_TRUE(HasSmith(persons));
+        EXPECT_FALSE(HasPupkin(persons));
+        EXPECT_TRUE(HasLenin(persons));
     }
 }
 
-TEST_F(SqliteTest, insertTest)
+TEST_F(SqliteTest, updateMultipleSetsTest)
+{
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        auto affected = person.update().set(COL(Person::name) = "Pupkin Jr",
+                                            COL(Person::cat_weight) = 3.0)
+                .where(COL(Person::name) == String("Pupkin")).exec(transaction);
+        ASSERT_EQ(affected, 1);
+        transaction.commit();
+    }
+
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin Jr")).fetchOne(transaction));
+        EXPECT_EQ(person.cat_weight, 3.0);
+        EXPECT_EQ(person.name, "Pupkin Jr");
+    }
+}
+
+TEST_F(SqliteTest, insertOneTest)
 {
     auto now = DateTime::now();
     Storable<Person> pupkin;
@@ -654,7 +703,57 @@ TEST_F(SqliteTest, insertTest)
     }
 }
 
-TEST_F(SqliteTest, deleteTest)
+TEST_F(SqliteTest, insertAllTest)
+{
+    auto now = DateTime::now();
+    Storable<Person> pupkin;
+    {
+        SqlTransaction transaction;
+        auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Pupkin"));
+        ASSERT_EQ(persons.size(), 1);
+        pupkin = persons.front();
+    }
+    {
+        Array<Person> persons;
+        persons.reserve(2);
+        pupkin.name = "New-born Pupkin 1";
+        pupkin.birthday = now;
+        persons.push_back(pupkin);
+        pupkin.name = "New-born Pupkin 2";
+        pupkin.birthday = now;
+        persons.push_back(pupkin);
+
+        SqlTransaction transaction;
+        Storable<Person>::insertAll(transaction, persons);
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        auto persons = Storable<Person>::fetchAll(transaction);
+        EXPECT_TRUE(HasPupkin(persons));
+        EXPECT_TRUE(HasSmith(persons));
+        EXPECT_TRUE(HasLenin(persons));
+        EXPECT_TRUE(HasPerson(persons, "New-born Pupkin 1"));
+        EXPECT_TRUE(HasPerson(persons, "New-born Pupkin 2"));
+    }
+}
+
+TEST_F(SqliteTest, deleteOneTest)
+{
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin")).fetchOne(transaction));
+        person.removeOne(transaction);
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        ASSERT_FALSE(HasPupkin(Storable<Person>::fetchAll(transaction)));
+    }
+}
+
+TEST_F(SqliteTest, deleteRefTest)
 {
     {
         SqlTransaction transaction;
@@ -674,4 +773,5 @@ TEST_F(SqliteTest, deleteTest)
         EXPECT_FALSE(HasLenin(persons));
     }
 }
+
 #endif

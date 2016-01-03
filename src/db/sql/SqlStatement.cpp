@@ -138,8 +138,14 @@ SqlResultSet SqlStatementSelect::exec(SqlTransaction &transaction)
     return res;
 }
 
+bool SqlStatementSelect::fetchOne(SqlTransaction &transaction)
+{
+    auto result = exec(transaction);
+    return result.begin() != result.end();
+}
+
 SqlStatementInsert::SqlStatementInsert(SqlStorable *storable)
-    : m_storable(storable)
+    : m_storable(storable), m_numLiterals(0), m_prepared(false)
 {
 }
 
@@ -162,7 +168,6 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax)
     res = "INSERT INTO " + tblName;
     auto pkey = m_storable->primaryKey();
     StringArray columns, placeholders;
-    m_literals.clear();
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
     {
         auto field = m_storable->record()->metaObject()->field(i);
@@ -173,18 +178,47 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax)
                 placeholders.push_back("$" + String::fromValue(placeholders.size() + 1));
             else
                 placeholders.push_back("?");
-            m_literals.push_back(field->getValue(m_storable->record()));
         }
     }
     res += "(" + join(columns, ", ") + ") VALUES (" + join(placeholders, ", ") + ")";
+    assert(columns.size() == placeholders.size());
+    m_numLiterals = columns.size();
     return res;
 }
 
-int SqlStatementInsert::exec(SqlTransaction &transaction)
+int SqlStatementInsert::execPrepare(SqlTransaction &transaction)
 {
+    if (m_prepared)
+        throw std::logic_error("Statement is already prepared");
     createImpl(transaction);
-    if (!transaction.impl()->prepare(m_impl.get(), m_literals.size()))
+    if (!transaction.impl()->prepare(m_impl.get(), m_numLiterals))
         throw std::runtime_error("Failed to prepare statement");
+    m_prepared = true;
+
+    return 0;
+}
+
+int SqlStatementInsert::execStep(SqlTransaction &transaction, const Object *record)
+{
+    if (!m_prepared)
+        throw std::logic_error("Statement must be prepared first");
+    if (m_storable->record()->metaObject() != record->metaObject())
+        throw std::invalid_argument("Cannot mix storable types in insert request");
+
+    m_literals.clear();
+    m_literals.reserve(m_numLiterals);
+    auto pkey = m_storable->primaryKey();
+    for (size_t i = 0; i < record->metaObject()->totalFields(); ++i)
+    {
+        auto field = record->metaObject()->field(i);
+        if (field != pkey)
+        {
+            m_literals.push_back(field->getValue(record));
+        }
+    }
+    if (m_literals.size() != m_numLiterals)
+        throw std::logic_error("Unexpected number of columns in record");
+
     if (m_literals.size() && !transaction.impl()->bindValues(m_impl.get(), m_literals))
         throw std::runtime_error("Failed to bind values");
     int numRows = 0;
