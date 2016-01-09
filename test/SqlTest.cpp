@@ -660,7 +660,7 @@ TEST_F(SqliteTest, castStringTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction,
-                                              cast<String>(COL(Person::age)) == String("55"));
+                                              cast<String>(COL(Person::age)) + ", " + COL(Person::name) == String("55, Smith"));
 
     ASSERT_EQ(persons.size(), 1);
     EXPECT_TRUE(HasSmith(persons));

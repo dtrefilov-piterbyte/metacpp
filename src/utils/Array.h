@@ -154,6 +154,9 @@ namespace detail
             if (size)
             {
                 m_data = (T *)m_traits.allocCb(size, data);
+                if (!m_data)
+                    throw std::bad_alloc();
+
                 m_dwSize = m_dwAllocatedSize = size;
             }
             else
@@ -181,6 +184,8 @@ namespace detail
             if (m_dwSize < size && m_dwAllocatedSize < size)
             {
                 m_data = (T *)m_traits.reallocCb(m_data, size, m_dwSize);
+                if (!m_data)
+                    throw std::bad_alloc();
                 m_dwAllocatedSize = size;
             }
         }
@@ -202,6 +207,8 @@ namespace detail
             if (m_dwAllocatedSize != m_dwSize)
             {
                 m_data = (T *)m_traits.reallocCb(m_data, m_dwSize, m_dwAllocatedSize);
+                if (!m_data)
+                    throw std::bad_alloc("Out of memory");
                 m_dwAllocatedSize = m_dwSize;
             }
         }
@@ -283,6 +290,8 @@ namespace detail
         {
             ArrayData *copy = new ArrayData();
             copy->m_data = (T *)m_traits.allocCb(m_dwSize, m_data);
+            if (!copy->m_data)
+                throw std::bad_alloc();
             copy->m_dwAllocatedSize = copy->m_dwSize = m_dwSize;
             copy->m_traits = m_traits;
             return copy;
