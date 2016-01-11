@@ -53,10 +53,11 @@ void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &fi
 
 ScriptThreadBase *JSScriptProgram::createThreadImpl(const String &functionName, const VariantArray &args)
 {
-    (void)functionName;
-    (void)args;
     std::lock_guard<std::mutex> _guard(m_threadsMutex);
-    ScriptThreadBase *thread =  new JSScriptThread(m_runtime, m_bytecode, m_global_class);
+    if (m_bytecode.empty())
+        throw std::runtime_error("Program must be compiled first");
+    JSScriptThread *thread =  new JSScriptThread(m_runtime, m_bytecode, m_global_class);
+    thread->setCallFunction(functionName, args);
     m_threads.push_back(thread);
     return thread;
 }

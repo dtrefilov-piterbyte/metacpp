@@ -18,6 +18,13 @@ public:
     std::shared_ptr<ScriptThreadBase> createThread(const String& functionName = String(),
                                                   const VariantArray& args = VariantArray());
 
+    template<typename... TArgs>
+    std::shared_ptr<ScriptThreadBase> createThread(const String& functionName,
+                                                   TArgs... args)
+    {
+        return createThread(functionName, {args...});
+    }
+
 public:
     virtual void compile(std::istream& source, const String& fileName) = 0;
 

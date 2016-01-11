@@ -26,8 +26,8 @@ public:
      *  and waits for it to finish */
     virtual bool abort() = 0;
 
-    /** \brief Executes this script in scheduler */
-    virtual void run() = 0;
+    /** \brief Executes given script thread */
+    virtual Variant run() = 0;
 };
 
 } // namespace scripting

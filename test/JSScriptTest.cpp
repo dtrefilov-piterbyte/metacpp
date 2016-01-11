@@ -72,12 +72,13 @@ TEST_F(JSScriptTest, testTerminate)
 
 TEST_F(JSScriptTest, testMultipleThreads)
 {
+    // test multiple scripts in same script engine running simultenioulsy
     auto program = m_engine->createProgram();
     std::istringstream ss("while (1) { }");
     program->compile(ss, "filename");
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<metacpp::scripting::ScriptThreadBase>> scriptThreads;
-    const size_t numThreads = 10;
+    const size_t numThreads = 5;
 
     for (size_t i = 0; i < numThreads; ++i)
     {
@@ -93,4 +94,15 @@ TEST_F(JSScriptTest, testMultipleThreads)
             threads[i].join();
     }
 
+}
+
+TEST_F(JSScriptTest, testFunctionCall)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(a, b) { return (a * b).toString(); }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f", metacpp::VariantArray({ 2, 3.5 }));
+    metacpp::Variant value = thread->run();
+    ASSERT_TRUE(value.isString());
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "7");
 }

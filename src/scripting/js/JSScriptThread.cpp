@@ -1,5 +1,6 @@
 #include "JSScriptThread.h"
 #include "JSScriptEngine.h"
+#include "Object.h"
 #include <thread>
 
 namespace metacpp
@@ -9,13 +10,90 @@ namespace scripting
 namespace js
 {
 
+namespace details
+{
+Variant fromValue(JSContext *context, const JS::Value& v)
+{
+    if (v.isNullOrUndefined())
+        return Variant();
+
+    if (v.isBoolean())
+        return v.toBoolean();
+
+    if (v.isInt32())
+        return v.toInt32();
+
+    if (v.isNumber())
+        return v.toNumber();
+
+    if (v.isString())
+    {
+        size_t length;
+        auto pChars = reinterpret_cast<const char16_t *>
+                (JS_GetStringCharsZAndLength(context, v.toString(), &length));
+        return string_cast<String>(pChars, length);
+    }
+
+    if (v.isObject())
+    {
+        //JSObject& obj = v.toObject();
+        //JSClass *cl =JS_GetClass(&obj);
+        //return Variant();
+    }
+
+    throw std::invalid_argument("Unknown JS value type");
+}
+
+JS::Value toValue(JSContext *context, const Variant& v)
+{
+    JS::Value value;
+    if (!v.valid())
+    {
+        value.setUndefined();
+        return value;
+    }
+
+    if (eFieldInt64 == v.type() || eFieldUint64 == v.type() || v.isFloatingPoint())
+    {
+        value.setNumber(variant_cast<double>(v));
+        return value;
+    }
+
+    if (eFieldBool == v.type())
+    {
+        value.setBoolean(variant_cast<bool>(v));
+        return value;
+    }
+
+    if (v.isIntegral())
+    {
+        value.setInt32(variant_cast<int>(v));
+        return value;
+    }
+
+    if (v.isString())
+    {
+        String s = variant_cast<String>(v);
+        value.setString(JS_NewStringCopyN(context, s.data(), s.length()));
+        return value;
+    }
+
+    if (v.isObject())
+    {
+
+    }
+
+    throw std::invalid_argument("Could not convert variant to JS value");
+}
+} // namespace details
+
 JSScriptThread::JSScriptThread(JSRuntime *parentRuntime, const ByteArray &bytecode,
                                const JSClass *global_class)
     : m_runtime(nullptr), m_context(nullptr), m_script(nullptr), m_global(nullptr),
       m_bRunning(false), m_bTerminating(false)
 {
     (void)parentRuntime;
-    m_runtime = JS_NewRuntime(8 * 1024 * 1024, JS_USE_HELPER_THREADS);
+    m_runtime = JS_NewRuntime(8 * 1024 * 1024, JS_NO_HELPER_THREADS);
     if (!m_runtime)
         throw std::runtime_error("Could not create JS runtime");
     JS_SetRuntimePrivate(m_runtime, this);
@@ -43,12 +121,18 @@ JSScriptThread::~JSScriptThread()
     }
 }
 
+void JSScriptThread::setCallFunction(const String &functionName, const VariantArray &args)
+{
+    m_functionName = functionName;
+    m_arguments = args;
+}
+
 bool JSScriptThread::running() const
 {
     return false;
 }
 
-void JSScriptThread::run()
+Variant JSScriptThread::run()
 {
     if (!m_script)
         throw std::runtime_error("Invalid script");
@@ -60,6 +144,14 @@ void JSScriptThread::run()
 
     m_bRunning = true;
     bool bRes = JS_ExecuteScript(m_context, m_global, m_script, &value);
+
+    if (bRes && !m_functionName.isNullOrEmpty()) {
+        auto values = m_arguments.map<JS::Value>([this](const Variant& v) {
+            return details::toValue(m_context, v);
+        });
+        bRes = JS_CallFunctionName(m_context, m_global, m_functionName.c_str(), values.size(),
+                                   values.data(), &value);
+    }
     m_bRunning = false;
     if (!bRes)
     {
@@ -69,7 +161,7 @@ void JSScriptThread::run()
             throw std::runtime_error("Execution failed");
     }
 
-    m_bRunning = false;
+    return details::fromValue(m_context, value);
 }
 
 bool JSScriptThread::abort()

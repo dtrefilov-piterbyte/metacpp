@@ -15,14 +15,19 @@ public:
                             const JSClass *m_global_class);
     ~JSScriptThread();
 
+    void setCallFunction(const String& functionName, const VariantArray& args);
+
     bool running() const override;
-    void run() override;
+    Variant run() override;
     virtual bool abort() override;
 private:
     void onError(const char *message, JSErrorReport *report);
     static void dispatchError(JSContext *ctx, const char *message, JSErrorReport *report);
     static JSBool operationCallback(JSContext *cx);
 private:
+    String m_functionName;
+    VariantArray m_arguments;
+    Variant m_result;
     JSRuntime *m_runtime;
     JSContext *m_context;
     JSScript *m_script;
