@@ -36,7 +36,23 @@ Variant fromValue(JSContext *context, const JS::Value& v)
 
     if (v.isObject())
     {
-        //JSObject& obj = v.toObject();
+        JSObject& obj = v.toObject();
+        if (JS_IsArrayObject(context, &obj))
+        {
+            uint32_t length = 0;
+            if (!JS_GetArrayLength(context, &obj, &length))
+                throw std::invalid_argument("Could not retrieve array value length");
+            VariantArray va;
+            va.reserve(length);
+            for (uint32_t i = 0; i < length; ++i)
+            {
+                JS::Value subval;
+                if (!JS_GetElement(context, &obj, i, &subval))
+                    throw std::invalid_argument("Could not get array element");
+                va.push_back(fromValue(context, subval));
+            }
+            return va;
+        }
         //JSClass *cl =JS_GetClass(&obj);
         //return Variant();
     }
@@ -78,6 +94,14 @@ JS::Value toValue(JSContext *context, const Variant& v)
         return value;
     }
 
+    if (v.isArray())
+    {
+        VariantArray a = variant_cast<VariantArray>(v);
+        auto values = a.map<jsval>([context](const Variant& v) { return toValue(context, v); });
+        value.setObject(*JS_NewArrayObject(context, values.size(), values.data()));
+        return value;
+    }
+
     if (v.isObject())
     {
 
@@ -93,7 +117,7 @@ JSScriptThread::JSScriptThread(JSRuntime *parentRuntime, const ByteArray &byteco
       m_bRunning(false), m_bTerminating(false)
 {
     (void)parentRuntime;
-    m_runtime = JS_NewRuntime(8 * 1024 * 1024, JS_NO_HELPER_THREADS);
+    m_runtime = JS_NewRuntime(8 * 1024 * 1024, JS_USE_HELPER_THREADS);
     if (!m_runtime)
         throw std::runtime_error("Could not create JS runtime");
     JS_SetRuntimePrivate(m_runtime, this);

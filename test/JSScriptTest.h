@@ -2,7 +2,7 @@
 #define JSSCRIPTTEST_H
 
 #include <gtest/gtest.h>
-#include "JSScriptEngine.h"
+#include "ScriptEngineBase.h"
 
 class JSScriptTest : public testing::Test
 {

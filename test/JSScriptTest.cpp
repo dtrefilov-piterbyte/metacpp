@@ -1,4 +1,6 @@
 #include "JSScriptTest.h"
+
+#ifdef HAVE_SPIDERMONKEY
 #include "JSScriptEngine.h"
 #include "ScriptThreadBase.h"
 #include <thread>
@@ -78,7 +80,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
     program->compile(ss, "filename");
     std::vector<std::thread> threads;
     std::vector<std::shared_ptr<metacpp::scripting::ScriptThreadBase>> scriptThreads;
-    const size_t numThreads = 5;
+    const size_t numThreads = 3;
 
     for (size_t i = 0; i < numThreads; ++i)
     {
@@ -101,8 +103,34 @@ TEST_F(JSScriptTest, testFunctionCall)
     auto program = m_engine->createProgram();
     std::istringstream ss("function f(a, b) { return (a * b).toString(); }");
     program->compile(ss, "filename");
-    auto thread = program->createThread("f", metacpp::VariantArray({ 2, 3.5 }));
+    auto thread = program->createThread("f", 2, 3.5);
     metacpp::Variant value = thread->run();
     ASSERT_TRUE(value.isString());
     EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "7");
 }
+
+TEST_F(JSScriptTest, testArrayResult)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("[ 1, 2.5, 'test' ]");
+    program->compile(ss, "filename");
+    metacpp::Variant value = program->createThread()->run();
+    ASSERT_TRUE(value.isArray());
+    auto array = metacpp::variant_cast<metacpp::VariantArray>(value);
+    ASSERT_EQ(array.size(), 3);
+    EXPECT_EQ(metacpp::variant_cast<int>(array[0]), 1);
+    EXPECT_EQ(metacpp::variant_cast<double>(array[1]), 2.5);
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(array[2]), "test");
+}
+
+TEST_F(JSScriptTest, testArrayArgument)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function len(a) { return a.length }");
+    program->compile(ss, "filename");
+    auto value = program->createThread("len", metacpp::Variant({ 12, "test" }))->run();
+    ASSERT_TRUE(value.isIntegral());
+    EXPECT_EQ(metacpp::variant_cast<int>(value), 2);
+}
+
+#endif
