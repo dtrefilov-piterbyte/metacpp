@@ -3,11 +3,36 @@
 #ifdef HAVE_SPIDERMONKEY
 #include "JSScriptEngine.h"
 #include "ScriptThreadBase.h"
+#include "Object.h"
 #include <thread>
+#include <stdexcept>
+
+class MyObject : public metacpp::Object
+{
+    int m_x;
+public:
+    MyObject(int x = 0) : m_x(x)
+    {
+    }
+
+    int x() const { return m_x; }
+
+    META_INFO_DECLARE(MyObject)
+
+};
+
+METHOD_INFO_BEGIN(MyObject)
+    METHOD(MyObject, x)
+METHOD_INFO_END(MyObject)
+
+REFLECTIBLE_M(MyObject)
+
+META_INFO(MyObject)
 
 void JSScriptTest::SetUp()
 {
     m_engine.reset(new metacpp::scripting::js::JSScriptEngine());
+    m_engine->registerClass(MyObject::staticMetaObject());
 }
 
 void JSScriptTest::TearDown()
@@ -39,7 +64,7 @@ TEST_F(JSScriptTest, testCompileFailure)
     EXPECT_THROW(program->compile(ss, "filename"), std::exception);
 }
 
-TEST_F(JSScriptTest, testCreateThread)
+TEST_F(JSScriptTest, testSimpleRun)
 {
     auto program = m_engine->createProgram();
     std::istringstream ss("function f() { return 1; }");
@@ -66,8 +91,8 @@ TEST_F(JSScriptTest, testTerminate)
     std::exception_ptr ex;
     std::thread th([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
     while (!thread->running())
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    thread->abort();
+        std::this_thread::yield();
+    thread->abort(0);
     if (th.joinable())
         th.join();
     ASSERT_TRUE((bool)ex);
@@ -76,7 +101,7 @@ TEST_F(JSScriptTest, testTerminate)
 
 TEST_F(JSScriptTest, testMultipleThreads)
 {
-    // test multiple scripts in same script engine running simultenioulsy
+    // test multiple threads in same script engine running simultenioulsy
     auto program = m_engine->createProgram();
     std::istringstream ss("while (1) { }");
     program->compile(ss, "filename");
@@ -90,15 +115,47 @@ TEST_F(JSScriptTest, testMultipleThreads)
         scriptThreads.push_back(thread);
         threads.emplace_back([&]{ try { thread->run();  } catch (...) {  } });
         while (!thread->running())
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            std::this_thread::yield();
     }
 
     for (size_t i = 0; i < numThreads; ++i)
     {
-        scriptThreads[i]->abort();
+        scriptThreads[i]->abort(0);
         if (threads[i].joinable())
             threads[i].join();
     }
+}
+
+TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
+{
+    // test failure running same thread simultiniously
+    auto program = m_engine->createProgram();
+    std::istringstream ss("while (1) { }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    std::exception_ptr ex = nullptr;
+    std::thread thMain([&]{ try { thread->run();  } catch (...) { } });
+    while (!thread->running())
+        std::this_thread::yield();
+    // supplementary thread will fail to start
+    std::thread thSupp([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
+
+    EXPECT_TRUE(thread->abort(1000));
+    thMain.join();
+    thSupp.join();
+
+    ASSERT_TRUE((bool)ex);
+    EXPECT_THROW(std::rethrow_exception(ex), std::runtime_error);
+}
+
+TEST_F(JSScriptTest, testSequentialRun)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return 1; }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    EXPECT_FALSE(thread->run().valid());
+    EXPECT_FALSE(thread->run().valid());
 }
 
 TEST_F(JSScriptTest, testFunctionCall)
@@ -161,6 +218,17 @@ TEST_F(JSScriptTest, testDateArgument)
     auto value = program->createThread("toISO", metacpp::DateTime(2001, metacpp::February, 1, 12, 59, 23))->run();
     ASSERT_TRUE(value.isString());
     EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "2001-02-01T09:59:23.000Z");
+}
+
+TEST_F(JSScriptTest, testMyObject)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return new MyObject(); }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f");
+    metacpp::Variant result = thread->run();
+    ASSERT_EQ(result.type(), eFieldObject);
+    ASSERT_NO_THROW(metacpp::variant_cast<MyObject *>(result));
 }
 
 #endif

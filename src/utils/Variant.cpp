@@ -15,6 +15,7 @@
 ****************************************************************************/
 #include "Variant.h"
 #include <stdexcept>
+#include "Object.h"
 
 namespace metacpp
 {
@@ -28,6 +29,12 @@ namespace detail
 
     VariantData::~VariantData()
     {
+        if (m_type == eFieldObject)
+        {
+            if (m_storage.m_object)
+                m_storage.m_object->metaObject()->
+                        destroyInstance(const_cast<Object *>(m_storage.m_object));
+        }
     }
 
     VariantData::VariantData(bool v)
@@ -86,6 +93,8 @@ namespace detail
         : m_type(eFieldObject)
     {
         m_storage.m_object = o;
+        if (o)
+            o->ref();
     }
 
     VariantData::VariantData(const Array<Variant> &a)
@@ -150,6 +159,7 @@ namespace detail
             break;
         case eFieldObject:
             copy->m_storage.m_object = m_storage.m_object;
+            m_storage.m_object->ref();
             break;
         default:
             break;

@@ -21,6 +21,11 @@
 namespace metacpp
 {
 
+namespace detail
+{
+class VariantData;
+}
+
 /** \brief Base class for objects supporting property and method reflection via MetaObject.
  *
  * All other object should derive from this class, must be default constructible and have
@@ -31,6 +36,9 @@ namespace metacpp
 class Object
 {
 public:
+    Object();
+    Object(const Object& other);
+
 	virtual ~Object();
 
 	/**
@@ -38,7 +46,6 @@ public:
 		\throws std::invalid_argument
 	*/
     void init();
-	
 
 #ifdef HAVE_JSONCPP
     /**
@@ -109,10 +116,45 @@ public:
     /** \brief Returns the MetaObject instance for the class */
     static const MetaObject *staticMetaObject();
 private:
+
+    // TODO: wrap with RefAwared<Object>
+    /** \brief Increments reference count to this object to prevent dangling pointers to this object
+     *
+     * Some objects may be stored in ref-aware containers (such as Variant or script objects).
+     * If user code is supposed to be using this kind of containers, it should not create and delete
+     * such objects directly, but instead use this code snippet:
+     *
+     * Variant v;
+     *
+     * // construct object and initialize it's reference count with 1
+     * Object *obj = MyObject::staticMetaObject()->createInstance();
+     *
+     * // Variant will capture existing object. It's reference count at this point is 2
+     * v = obj;
+     *
+     * // dereference object, the object will not be actually destroyed, but instead it's
+     * // reference count will be decreased to 1
+     * MyObject::staticMetaObject()->destroyInstance(obj);
+     *
+     * // variant get's initialized with another value, object previosly captured by it
+     * // is dereferenced and deleted
+     * v = 0;
+     */
+    unsigned ref() const;
+    /** \brief Decrements reference count to this object.
+     * \see Object::ref
+    */
+    unsigned deref() const;
+protected:
+    Object& operator=(const Object& rhs);
+private:
     Variant doInvoke(const String& methodName, const VariantArray& args, bool constness) const;
 private:
+    mutable std::atomic<unsigned> m_references;
     std::map<String, Variant> m_dynamicProperties;
     static const MetaObject ms_metaObject;
+    friend class MetaObject;
+    friend class detail::VariantData;
 };
 
 /** \brief Macro which must be presented in declaration of classes derived from metacpp::Object
@@ -120,22 +162,22 @@ private:
  */
 #define META_INFO_DECLARE(ObjName) \
     public: \
-        const MetaObject *metaObject() const override; \
-        static const MetaObject *staticMetaObject(); \
-        static Object *constructInstance(void *mem); \
+        const ::metacpp::MetaObject *metaObject() const override; \
+        static const ::metacpp::MetaObject *staticMetaObject(); \
+        static ::metacpp::Object *constructInstance(void *mem); \
         static void destructInstance(void *mem); \
     private: \
-        static const MetaObject ms_metaObject;
+        static const ::metacpp::MetaObject ms_metaObject;
 
 /** \brief Macro which must be presented in definition of classes derived from metacpp::Object
  * \relates metacpp::Object
  */
 #define META_INFO(ObjName) \
-    const MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
+    const ::metacpp::MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
         &ObjName::constructInstance, &ObjName::destructInstance); \
-    const MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
-    const MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
-    Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
+    const ::metacpp::MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
+    const ::metacpp::MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
+    ::metacpp::Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
     void ObjName::destructInstance(void *mem) { reinterpret_cast<ObjName *>(mem)->~ObjName(); }
 
 /** \brief Get offset of the field into the struct */

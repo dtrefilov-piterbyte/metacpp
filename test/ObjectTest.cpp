@@ -21,6 +21,15 @@ struct TestSubStruct : public Object
 {
     String name;
 
+    TestSubStruct(const String& name = String())
+        : name(name)
+    {
+    }
+
+    TestSubStruct(const TestSubStruct&)=default;
+
+    TestSubStruct& operator=(const TestSubStruct&)=default;
+
     META_INFO_DECLARE(TestSubStruct)
 };
 
@@ -157,10 +166,9 @@ void ObjectTest::testSerialization()
     t.doubleValue = 1231.123f;
 	t.strValue = "abdasdc";
 	t.substruct.name = "1231";
-    TestSubStruct item;
-    item.name = "12"; t.arrValue.push_back(item);
-    item.name = "asdj"; t.arrValue.push_back(item);
-    item.name = ""; t.arrValue.push_back(item);
+    t.arrValue.emplace_back("12");
+    t.arrValue.emplace_back("asdj");
+    t.arrValue.emplace_back("");
     t.optFloatValue = 2.5;
     t.datetimeValue = DateTime::fromString("1970-10-12 00:00:00");
     t2.fromJson(t.toJson());
@@ -384,7 +392,8 @@ namespace
 
     TEST_F(ObjectTest, invokeSuccessWithObjectParam)
     {
-        MyObject obj;
-        ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", &obj));
+        MyObject *obj = (MyObject *)MyObject::staticMetaObject()->createInstance();
+        ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", obj));
+        MyObject::staticMetaObject()->destroyInstance(obj);
     }
 }

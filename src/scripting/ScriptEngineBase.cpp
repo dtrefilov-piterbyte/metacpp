@@ -15,6 +15,16 @@ std::shared_ptr<ScriptProgramBase> ScriptEngineBase::createProgram()
     return std::shared_ptr<ScriptProgramBase>(createProgramImpl(), deleter);
 }
 
+void ScriptEngineBase::registerClass(const MetaObject *metaObject)
+{
+    m_registeredClasses.push_back(metaObject);
+}
+
+Array<const MetaObject *> ScriptEngineBase::registeredClasses() const
+{
+    return m_registeredClasses;
+}
+
 ScriptRuntimeError::ScriptRuntimeError(const char *message, const char *filename, uint32_t line, uint32_t column)
 {
     m_what = String(filename) + ":" + String::fromValue(line) + ":" + String::fromValue(column) + ":"

@@ -26,12 +26,18 @@ public:
     virtual ~ScriptEngineBase();
 
     std::shared_ptr<ScriptProgramBase> createProgram();
+
+    void registerClass(const MetaObject *metaObject);
+
+    Array<const MetaObject *> registeredClasses() const;
 protected:
 
     /** \brief Create a new instance of ScriptProgramBase corresponding to this type of VM */
     virtual ScriptProgramBase *createProgramImpl() = 0;
     /** \brief Finalize and destroy ScriptProgramBase previously created by createProgram */
     virtual void closeProgramImpl(ScriptProgramBase *program) = 0;
+private:
+    Array<const MetaObject *> m_registeredClasses;
 };
 
 } // namespace scripting

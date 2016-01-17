@@ -66,7 +66,14 @@ Variant fromValue(JSContext *context, const JS::Value& v)
 #endif
         }
 
-        return Variant();
+        JSScriptThread *thread = JSScriptThread::getRunningInstance(context);
+        if (!thread)
+            throw std::runtime_error("No script thread running");
+        const ClassInfo *classInfo = thread->findRegisteredClass(JS_GetClass(obj)->name);
+        if (!classInfo)
+            throw std::invalid_argument("Unsupported class");
+
+        return (Object *)JS_GetPrivate(obj);
     }
 
     throw std::invalid_argument("Unknown JS value type");
@@ -185,6 +192,18 @@ Variant JSScriptThread::run()
     if (!rt)
         throw std::runtime_error("Could not initialize JS runtime");
 
+    {
+        std::unique_lock<std::mutex> _guard(m_runMutex);
+        bool bExpectedRunning = false;
+        if (!m_bRunning.compare_exchange_strong(bExpectedRunning, true))
+            throw std::runtime_error("Thread is already running");
+
+        m_runtime = rt.get();
+    }
+
+    JS_SetRuntimePrivate(rt.get(), this);
+    m_exception = nullptr;
+
     std::unique_ptr<JSContext, std::function<void(JSContext *)> > cx
     { JS_NewContext(rt.get(), 8192),
                 [](JSContext *c) { if (c) JS_DestroyContext(c); } };
@@ -201,6 +220,8 @@ Variant JSScriptThread::run()
 
     JSAutoCompartment ac(cx.get(), global);
     JS_InitStandardClasses(cx.get(), global);
+    registerNativeClasses(cx.get(), global);
+
 #if MOZJS_MAJOR_VERSION == 24
     JS::RootedScript script(cx.get(), JS_DecodeScript(cx.get(), m_bytecode.data(), m_bytecode.size(),
                                                       nullptr, nullptr));
@@ -224,12 +245,9 @@ Variant JSScriptThread::run()
     JS_SetErrorReporter(cx.get(), JSScriptThread::dispatchError);
 #endif
 
-    JS_BeginRequest(cx.get());
-    JS_SetRuntimePrivate(rt.get(), this);
+    JSAutoRequest request(cx.get());
 
-    m_runtime = rt.get();
-    m_bRunning = true;
-    m_exception = nullptr;
+
 
 #if MOZJS_MAJOR_VERSION >= 31
     JS::RootedValue value(cx.get());
@@ -255,8 +273,9 @@ Variant JSScriptThread::run()
     m_bRunning = false;
     m_finishedVariable.notify_all();
 
+    Variant result = detail::fromValue(cx.get(), value);
+
     JS_SetRuntimePrivate(rt.get(), nullptr);
-    JS_EndRequest(cx.get());
 
     if (!bRes)
     {
@@ -266,11 +285,12 @@ Variant JSScriptThread::run()
             throw std::runtime_error("Execution failed");
     }
 
-    return detail::fromValue(cx.get(), value);
+    return result;
 }
 
-bool JSScriptThread::abort()
+bool JSScriptThread::abort(unsigned timeout_ms)
 {
+    std::unique_lock<std::mutex> _guard(m_runMutex);
     if (m_bRunning)
     {
         m_bTerminating = true;
@@ -279,12 +299,57 @@ bool JSScriptThread::abort()
 #else
         JS_TriggerOperationCallback(m_runtime);
 #endif
-        std::unique_lock<std::mutex> _guard(m_runMutex);
-        m_finishedVariable.wait(_guard, [this](){ return !m_bRunning; });
+
+        bool result = true;
+        auto predicate = [this]{ return !m_bRunning; };
+        if (timeout_ms)
+            result = m_finishedVariable.wait_for(_guard, std::chrono::milliseconds(timeout_ms),
+                predicate);
+        else
+            m_finishedVariable.wait(_guard, predicate);
+
         m_bTerminating = false;
+        return result;
     }
 
     return true;
+}
+
+bool JSScriptThread::wait(unsigned timeout_ms)
+{
+    std::unique_lock<std::mutex> _guard(m_runMutex);
+    if (m_bRunning)
+    {
+        bool result = true;
+        auto predicate = [this]{ return !m_bRunning; };
+        if (timeout_ms)
+            result = m_finishedVariable.wait_for(_guard, std::chrono::milliseconds(timeout_ms),
+                predicate);
+        else
+            m_finishedVariable.wait(_guard, predicate);
+        return result;
+    }
+
+    return true;
+
+}
+
+JSScriptThread *JSScriptThread::getRunningInstance(JSContext *cx)
+{
+    JSRuntime *rt = JS_GetRuntime(cx);
+    return reinterpret_cast<JSScriptThread *>(JS_GetRuntimePrivate(rt));
+}
+
+const detail::ClassInfo *JSScriptThread::findRegisteredClass(const String &name)
+{
+    auto it = std::find_if(m_registeredClasses.begin(), m_registeredClasses.end(),
+        [&](const detail::ClassInfo& ci)
+        {
+            return ci.class_.name == name;
+        });
+    if (it == m_registeredClasses.end())
+        return nullptr;
+    return it;
 }
 
 void JSScriptThread::onError(const char *message, JSErrorReport *report)
@@ -298,9 +363,9 @@ void JSScriptThread::onError(const char *message, JSErrorReport *report)
 
 void JSScriptThread::dispatchError(JSContext *ctx, const char *message, JSErrorReport *report)
 {
-    JSScriptThread *thread = reinterpret_cast<JSScriptThread *>
-            (JS_GetRuntimePrivate(JS_GetRuntime(ctx)));
-    thread->onError(message, report);
+    JSScriptThread *thread = JSScriptThread::getRunningInstance(ctx);
+    if (thread)
+        thread->onError(message, report);
 }
 
 #if MOZJS_MAJOR_VERSION >= 31
@@ -309,14 +374,81 @@ bool JSScriptThread::interruptCallback(JSContext *cx)
 JSBool JSScriptThread::operationCallback(JSContext *cx)
 #endif
 {
-    JSRuntime *runtime = JS_GetRuntime(cx);
-    JSScriptThread *thread = reinterpret_cast<JSScriptThread *>
-            (JS_GetRuntimePrivate(runtime));
-    if (thread->m_bTerminating) {
+    JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
+    if (thread && thread->m_bTerminating) {
         thread->m_exception = std::make_exception_ptr(TerminationException());
         return false;
     }
     return true;
+}
+
+void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject global)
+{
+    for (const MetaObject *mo : m_engine->registeredClasses())
+    {
+
+        m_registeredClasses.push_back(detail::ClassInfo());
+        detail::ClassInfo& classInfo = m_registeredClasses.back();
+        memset(&classInfo.class_, 0, sizeof(JSClass));
+        classInfo.metaObject = mo;
+        classInfo.class_.name = mo->name();
+        classInfo.class_.flags = JSCLASS_HAS_PRIVATE;
+        classInfo.class_.finalize = JSScriptThread::nativeObjectFinalize;
+
+        JS_InitClass(cx, global, JS::NullPtr(),
+            &classInfo.class_, JSScriptThread::nativeObjectConstruct, 1,
+                         nullptr, nullptr, nullptr, nullptr);
+    }
+}
+
+void JSScriptThread::nativeObjectFinalize(JSFreeOp *, JSObject *obj)
+{
+    Object *nativeObject = (Object *)JS_GetPrivate(obj);
+    if (nativeObject)
+    {
+        nativeObject->metaObject()->destroyInstance(nativeObject);
+    }
+}
+
+bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp)
+{
+    try
+    {
+        JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
+        if (!thread)
+            throw std::runtime_error("No script thread instance currently running");
+        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        String className = JSAutoByteString(cx,
+            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+
+        const detail::ClassInfo *ci = thread->findRegisteredClass(className);
+        if (!ci)
+            throw std::runtime_error("Could not find registered class");
+
+        JSObject *obj = JS_NewObjectForConstructor(cx, &ci->class_, args);
+
+        if (!obj)
+            return false;
+
+        Object *pNativeObject = ci->metaObject->createInstance();
+        if (pNativeObject == NULL) {
+            JS_ReportOutOfMemory(cx);
+            return false;
+        }
+        JS_SetPrivate(obj, (Object *)pNativeObject);
+
+#if MOZJS_MAJOR_VERSION >= 38
+        args.rval().setObject(*obj);
+#else
+        JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
+#endif
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "%s", e.what());
+        return false;
+    }
 }
 
 

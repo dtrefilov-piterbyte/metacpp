@@ -29,14 +29,36 @@
 namespace metacpp
 {
 
+Object::Object()
+    : m_references(0)
+{
+
+}
+
+Object::Object(const Object &other)
+    : m_references(0), m_dynamicProperties(other.m_dynamicProperties)
+{
+}
+
 Object::~Object()
 {
+    if (m_references)
+    {
+        std::cerr << "Destroying referenced object" << std::endl;
+        abort();
+    }
 }
 
 void Object::init()
 {
     InitVisitor vis;
-	vis.visit(this);
+    vis.visit(this);
+}
+
+Object &Object::operator=(const Object &rhs)
+{
+    m_dynamicProperties = rhs.m_dynamicProperties;
+    return *this;
 }
 
 #ifdef HAVE_JSONCPP
@@ -124,6 +146,16 @@ Variant Object::getProperty(const String &propName) const
 const MetaObject *Object::staticMetaObject()
 {
     return &ms_metaObject;
+}
+
+unsigned Object::ref() const
+{
+    return ++m_references;
+}
+
+unsigned Object::deref() const
+{
+    return --m_references;
 }
 
 Variant Object::doInvoke(const String &methodName, const VariantArray &args, bool constness) const

@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "MetaObject.h"
+#include "Object.h"
 #include <algorithm>
 #include <iostream>
 #include <mutex>
@@ -113,15 +114,20 @@ Object *MetaObject::createInstance() const
     if (!m_constructor)
         throw std::runtime_error("Have no appropriate class constructor");
     void *pMem = ::operator new(size());
-    return m_constructor(pMem);
+    Object *obj = m_constructor(pMem);
+    obj->ref();
+    return obj;
 }
 
 void MetaObject::destroyInstance(Object *object) const
 {
     if (!m_destructor)
         throw std::runtime_error("Have no appropriate class destructor");
-    m_destructor(object);
-    ::operator delete(object);
+    if (object && !object->deref())
+    {
+        m_destructor(object);
+        ::operator delete(object);
+    }
 }
 
 Variant MetaObject::invoke(const String &methodName, const VariantArray &args) const

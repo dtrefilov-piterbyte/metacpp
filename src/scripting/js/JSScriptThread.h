@@ -1,6 +1,7 @@
 #ifndef JSSCRIPTTHREAD_H
 #define JSSCRIPTTHREAD_H
 #include "ScriptThreadBase.h"
+#include "MetaObject.h"
 #include <jsapi.h>
 #include <stdexcept>
 #include <thread>
@@ -11,6 +12,21 @@ namespace scripting {
 namespace js {
 
 class JSScriptEngine;
+
+namespace detail
+{
+
+struct ClassInfo
+{
+    JSClass class_;
+    const MetaObject *metaObject;
+
+};
+
+Variant fromValue(JSContext *context, const JS::Value& v);
+JS::Value toValue(JSContext *context, const Variant& v);
+
+} // namespace detail
 
 class JSScriptThread : public ScriptThreadBase
 {
@@ -23,7 +39,11 @@ public:
 
     bool running() const override;
     Variant run() override;
-    virtual bool abort() override;
+    bool abort(unsigned timeout_ms) override;
+    bool wait(unsigned timeout_ms) override;
+
+    static JSScriptThread *getRunningInstance(JSContext *cx);
+    const detail::ClassInfo *findRegisteredClass(const String& name);
 private:
     void onError(const char *message, JSErrorReport *report);
     static void dispatchError(JSContext *ctx, const char *message, JSErrorReport *report);
@@ -32,6 +52,11 @@ private:
 #else
     static JSBool operationCallback(JSContext *cx);
 #endif
+
+    void registerNativeClasses(JSContext *cx, JS::HandleObject global);
+
+    static void nativeObjectFinalize(JSFreeOp* fop, JSObject *obj);
+    static bool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
 private:
     ByteArray m_bytecode;
     JSScriptEngine *m_engine;
@@ -44,6 +69,8 @@ private:
     std::atomic<bool> m_bRunning;
     std::atomic<bool> m_bTerminating;
     std::exception_ptr m_exception;
+
+    Array<detail::ClassInfo> m_registeredClasses;
 };
 
 } // namespace js

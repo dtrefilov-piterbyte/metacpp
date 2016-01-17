@@ -61,6 +61,7 @@ void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &fi
     uint32_t bytecodeLength = 0;
     void *pBytecode = JS_EncodeScript(cx.get(), script, &bytecodeLength);
     m_bytecode = ByteArray(reinterpret_cast<const uint8_t *>(pBytecode), bytecodeLength);
+    JS_free(cx.get(), pBytecode);
 }
 
 ScriptThreadBase *JSScriptProgram::createThreadImpl(const String &functionName, const VariantArray &args)

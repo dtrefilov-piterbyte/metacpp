@@ -238,6 +238,13 @@ namespace detail
             *(m_data + m_dwSize - 1) = v;
         }
 
+        template<typename... TArgs>
+        void _emplace_back(TArgs... args)
+        {
+            _resize(m_dwSize + 1);
+            new (m_data + m_dwSize - 1) T(args...);
+        }
+
         void _push_back(T&& v)
         {
             _resize(m_dwSize + 1);
@@ -277,6 +284,15 @@ namespace detail
             _resize(m_dwSize + 1);
             std::copy(m_data + i, m_data + m_dwSize - 1, m_data + i + 1);
             *(m_data + i) = v;
+        }
+
+        template<typename... TArgs>
+        void _emplace(size_t i, TArgs... args)
+        {
+            assert(i <= m_dwSize);
+            _resize(m_dwSize + 1);
+            std::copy(m_data + i, m_data + m_dwSize - 1, m_data + i + 1);
+            new (m_data + i)T(args...);
         }
 
         void _erase(size_t from, size_t to)
@@ -409,6 +425,10 @@ public:
     /** \brief Removes element from the begin of this array. Operation has complexity O(N), where N is a current array size. */
 	void pop_front() { this->detach(); this->m_d->_pop_front(); }
 
+    /** \brief Constructs element in-place at the end of this array */
+    template<typename... TArgs>
+    void emplace_back(TArgs... args) { this->detach(); this->m_d->_emplace_back(args...); }
+
     /** \brief Puts set of elements from an array into the end of this array */
     void append(const T *many, size_t n) {
         this->detach();
@@ -429,7 +449,7 @@ public:
         Array<TRes> res;
         res.reserve(size());
         for (size_t i = 0; i < size(); ++i)
-            res.push_back(functor((*this)[i]));
+            res.emplace_back(functor((*this)[i]));
         return res;
     }
 };
