@@ -1,7 +1,7 @@
 #include "JSScriptThread.h"
 #include "JSScriptEngine.h"
 #include "Object.h"
-#include <thread>
+#include <jsfriendapi.h>
 
 namespace metacpp
 {
@@ -10,8 +10,9 @@ namespace scripting
 namespace js
 {
 
-namespace details
+namespace detail
 {
+
 Variant fromValue(JSContext *context, const JS::Value& v)
 {
     if (v.isNullOrUndefined())
@@ -28,33 +29,44 @@ Variant fromValue(JSContext *context, const JS::Value& v)
 
     if (v.isString())
     {
-        size_t length;
-        auto pChars = reinterpret_cast<const char16_t *>
-                (JS_GetStringCharsZAndLength(context, v.toString(), &length));
-        return string_cast<String>(pChars, length);
+        return String(JSAutoByteString(context, v.toString()).ptr());
     }
 
     if (v.isObject())
     {
-        JSObject& obj = v.toObject();
-        if (JS_IsArrayObject(context, &obj))
+        JS::RootedObject obj(context, v.toObjectOrNull());
+        if (JS_IsArrayObject(context, obj))
         {
             uint32_t length = 0;
-            if (!JS_GetArrayLength(context, &obj, &length))
+            if (!JS_GetArrayLength(context, obj, &length))
                 throw std::invalid_argument("Could not retrieve array value length");
             VariantArray va;
             va.reserve(length);
             for (uint32_t i = 0; i < length; ++i)
             {
-                JS::Value subval;
-                if (!JS_GetElement(context, &obj, i, &subval))
+#if MOZJS_MAJOR_VERSION >=31
+                JS::RootedValue subval(context);
+#else
+                jsval subval;
+#endif
+
+                if (!JS_GetElement(context, obj, i, &subval))
                     throw std::invalid_argument("Could not get array element");
                 va.push_back(fromValue(context, subval));
             }
             return va;
         }
-        //JSClass *cl =JS_GetClass(&obj);
-        //return Variant();
+
+        if (JS_ObjectIsDate(context, obj))
+        {
+#if MOZJS_MAJOR_VERSION >= 38
+            return DateTime(static_cast<time_t>(::js::DateGetMsecSinceEpoch(context, obj) / 1E3 + 0.5));
+        #else
+            return DateTime(static_cast<time_t>(js_DateGetMsecSinceEpoch(obj) / 1E3 + 0.5));
+#endif
+        }
+
+        return Variant();
     }
 
     throw std::invalid_argument("Unknown JS value type");
@@ -97,8 +109,24 @@ JS::Value toValue(JSContext *context, const Variant& v)
     if (v.isArray())
     {
         VariantArray a = variant_cast<VariantArray>(v);
-        auto values = a.map<jsval>([context](const Variant& v) { return toValue(context, v); });
-        value.setObject(*JS_NewArrayObject(context, values.size(), values.data()));
+        JS::AutoValueVector values(context);
+        values.reserve(a.size());
+        for (const Variant& subval : a)
+            values.append(toValue(context, subval));
+#if MOZJS_MAJOR_VERSION >= 31
+        value.setObject(*JS_NewArrayObject(context, values));
+#else
+        value.setObject(*JS_NewArrayObject(context, static_cast<int>(values.length()),
+                                           values.begin()));
+#endif
+        return value;
+    }
+
+    if (v.isDateTime())
+    {
+        auto dt = variant_cast<DateTime>(v);
+        value.setObject(*JS_NewDateObject(context, dt.year(), static_cast<int>(dt.month()),
+                                          dt.day(), dt.hours(), dt.minutes(), dt.seconds()));
         return value;
     }
 
@@ -109,40 +137,18 @@ JS::Value toValue(JSContext *context, const Variant& v)
 
     throw std::invalid_argument("Could not convert variant to JS value");
 }
+
 } // namespace details
 
-JSScriptThread::JSScriptThread(JSRuntime *parentRuntime, const ByteArray &bytecode,
-                               const JSClass *global_class)
-    : m_runtime(nullptr), m_context(nullptr), m_script(nullptr), m_global(nullptr),
-      m_bRunning(false), m_bTerminating(false)
+JSScriptThread::JSScriptThread(const ByteArray &bytecode,
+                               JSScriptEngine *engine)
+    : m_bytecode(bytecode), m_engine(engine),
+      m_runtime(nullptr), m_bRunning(false), m_bTerminating(false)
 {
-    (void)parentRuntime;
-    m_runtime = JS_NewRuntime(8 * 1024 * 1024, JS_USE_HELPER_THREADS);
-    if (!m_runtime)
-        throw std::runtime_error("Could not create JS runtime");
-    JS_SetRuntimePrivate(m_runtime, this);
-    m_context = JS_NewContext(m_runtime, 8192);
-    if (!m_context)
-        throw std::runtime_error("Could not create context");
-    m_global = JS_NewGlobalObject(m_context, const_cast<JSClass *>(global_class), nullptr);
-    JS_EnterCompartment(m_context, m_global);
-    JS_InitStandardClasses(m_context, m_global);
-    m_script = JS_DecodeScript(m_context, bytecode.data(), bytecode.size(), nullptr, nullptr);
-    if (!m_script)
-        throw std::runtime_error("Could not decode compiled script");
-    JS_SetErrorReporter(m_context, JSScriptThread::dispatchError);
-    JS_SetOperationCallback(m_context, JSScriptThread::operationCallback);
 }
 
 JSScriptThread::~JSScriptThread()
 {
-    if (m_context) {
-        JS_LeaveCompartment(m_context, nullptr);
-        JS_DestroyContext(m_context);
-    }
-    if (m_runtime) {
-        JS_DestroyRuntime(m_runtime);
-    }
 }
 
 void JSScriptThread::setCallFunction(const String &functionName, const VariantArray &args)
@@ -153,30 +159,105 @@ void JSScriptThread::setCallFunction(const String &functionName, const VariantAr
 
 bool JSScriptThread::running() const
 {
-    return false;
+    return m_bRunning;
 }
 
 Variant JSScriptThread::run()
 {
-    if (!m_script)
-        throw std::runtime_error("Invalid script");
+    // SpiderMonkey is currently limiting to exactly one JSRuntime per thread
+    // We will reuse root runtime if we are executing in main thread
+    std::unique_ptr<JSRuntime, std::function<void(JSRuntime *)> > rt
+    {
+        m_engine->isInMainThread() ? m_engine->rootRuntime() :
+#if MOZJS_MAJOR_VERSION >= 38
+            JS_NewRuntime(JS::DefaultHeapMaxBytes, JS::DefaultNurseryBytes,
+                m_engine->rootRuntime()),
+#else
+            JS_NewRuntime(32 * 1024 * 1024, JS_USE_HELPER_THREADS),
+#endif
+        [this](JSRuntime *r) {
+            if (r && !m_engine->isInMainThread()) {
+                JS_DestroyRuntime(r);
+            }
+        }
+    };
 
-    JS_SetRuntimeThread(m_runtime);
+    if (!rt)
+        throw std::runtime_error("Could not initialize JS runtime");
+
+    std::unique_ptr<JSContext, std::function<void(JSContext *)> > cx
+    { JS_NewContext(rt.get(), 8192),
+                [](JSContext *c) { if (c) JS_DestroyContext(c); } };
+    if (!cx)
+        throw std::runtime_error("Could not create JS context");
+
+#if MOZJS_MAJOR_VERSION >= 31
+    JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(), m_engine->globalClass(), nullptr,
+        JS::FireOnNewGlobalHook));
+#else
+    JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(),
+        const_cast<JSClass *>(m_engine->globalClass()), nullptr));
+#endif
+
+    JSAutoCompartment ac(cx.get(), global);
+    JS_InitStandardClasses(cx.get(), global);
+#if MOZJS_MAJOR_VERSION == 24
+    JS::RootedScript script(cx.get(), JS_DecodeScript(cx.get(), m_bytecode.data(), m_bytecode.size(),
+                                                      nullptr, nullptr));
+#elif MOZJS_MAJOR_VERSION == 31
+    JS::RootedScript script(cx.get(), JS_DecodeScript(cx.get(), m_bytecode.data(), m_bytecode.size(),
+                                                      nullptr));
+#else
+    JS::RootedScript script(cx.get(), JS_DecodeScript(cx.get(), m_bytecode.data(), m_bytecode.size()));
+#endif
+    if (!script)
+        throw std::runtime_error("Could not decode compiled script");
+#if MOZJS_MAJOR_VERSION >= 31
+    JS_SetInterruptCallback(rt.get(), JSScriptThread::interruptCallback);
+#else
+    JS_SetOperationCallback(cx.get(), JSScriptThread::operationCallback);
+#endif
+
+#if MOZJS_MAJOR_VERSION >= 38
+    JS_SetErrorReporter(rt.get(), JSScriptThread::dispatchError);
+#else
+    JS_SetErrorReporter(cx.get(), JSScriptThread::dispatchError);
+#endif
+
+    JS_BeginRequest(cx.get());
+    JS_SetRuntimePrivate(rt.get(), this);
+
+    m_runtime = rt.get();
+    m_bRunning = true;
     m_exception = nullptr;
 
-    JS::Value value;
-
-    m_bRunning = true;
-    bool bRes = JS_ExecuteScript(m_context, m_global, m_script, &value);
+#if MOZJS_MAJOR_VERSION >= 31
+    JS::RootedValue value(cx.get());
+#else
+    jsval value;
+#endif
+    bool bRes = JS_ExecuteScript(cx.get(), global, script, &value);
 
     if (bRes && !m_functionName.isNullOrEmpty()) {
-        auto values = m_arguments.map<JS::Value>([this](const Variant& v) {
-            return details::toValue(m_context, v);
-        });
-        bRes = JS_CallFunctionName(m_context, m_global, m_functionName.c_str(), values.size(),
-                                   values.data(), &value);
+
+        JS::AutoValueVector values(cx.get());
+        values.reserve(m_arguments.size());
+        for (const Variant& subval : m_arguments)
+            values.append(detail::toValue(cx.get(), subval));
+#if MOZJS_MAJOR_VERSION >= 31
+        bRes = JS_CallFunctionName(cx.get(), global, m_functionName.c_str(), values, &value);
+#else
+        bRes = JS_CallFunctionName(cx.get(), global, m_functionName.c_str(),
+                                   static_cast<unsigned>(values.length()), values.begin(), &value);
+#endif
     }
+
     m_bRunning = false;
+    m_finishedVariable.notify_all();
+
+    JS_SetRuntimePrivate(rt.get(), nullptr);
+    JS_EndRequest(cx.get());
+
     if (!bRes)
     {
         if (m_exception)
@@ -185,26 +266,33 @@ Variant JSScriptThread::run()
             throw std::runtime_error("Execution failed");
     }
 
-    return details::fromValue(m_context, value);
+    return detail::fromValue(cx.get(), value);
 }
 
 bool JSScriptThread::abort()
 {
-    m_bTerminating = true;
-    JS_TriggerOperationCallback(m_runtime);
-    uint32_t ctr = 0;
-    while (m_bRunning)
+    if (m_bRunning)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        if (ctr++ >= 50)
-            return false;
+        m_bTerminating = true;
+#if MOZJS_MAJOR_VERSION >= 31
+        JS_RequestInterruptCallback(m_runtime);
+#else
+        JS_TriggerOperationCallback(m_runtime);
+#endif
+        std::unique_lock<std::mutex> _guard(m_runMutex);
+        m_finishedVariable.wait(_guard, [this](){ return !m_bRunning; });
+        m_bTerminating = false;
     }
+
     return true;
 }
 
 void JSScriptThread::onError(const char *message, JSErrorReport *report)
 {
-    m_exception = std::make_exception_ptr(
+    if (m_bTerminating)
+        m_exception = std::make_exception_ptr(TerminationException());
+    else
+        m_exception = std::make_exception_ptr(
                 ScriptRuntimeError(message, report->filename, report->lineno, report->column));
 }
 
@@ -215,16 +303,20 @@ void JSScriptThread::dispatchError(JSContext *ctx, const char *message, JSErrorR
     thread->onError(message, report);
 }
 
+#if MOZJS_MAJOR_VERSION >= 31
+bool JSScriptThread::interruptCallback(JSContext *cx)
+#else
 JSBool JSScriptThread::operationCallback(JSContext *cx)
+#endif
 {
     JSRuntime *runtime = JS_GetRuntime(cx);
     JSScriptThread *thread = reinterpret_cast<JSScriptThread *>
             (JS_GetRuntimePrivate(runtime));
     if (thread->m_bTerminating) {
         thread->m_exception = std::make_exception_ptr(TerminationException());
-        return JS_FALSE;
+        return false;
     }
-    return JS_TRUE;
+    return true;
 }
 
 

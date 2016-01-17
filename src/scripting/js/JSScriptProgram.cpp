@@ -1,5 +1,6 @@
 #include "JSScriptProgram.h"
 #include "JSScriptThread.h"
+#include "JSScriptEngine.h"
 
 namespace metacpp
 {
@@ -8,8 +9,8 @@ namespace scripting
 namespace js
 {
 
-JSScriptProgram::JSScriptProgram(JSRuntime *runtime, const JSClass *global_class)
-    : m_runtime(runtime), m_global_class(global_class)
+JSScriptProgram::JSScriptProgram(JSScriptEngine *engine)
+    : m_engine(engine)
 {
 }
 
@@ -30,25 +31,36 @@ void JSScriptProgram::compile(std::istream &is, const String &filename)
 
 void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &filename)
 {
+    JS_AbortIfWrongThread(m_engine->rootRuntime());
     std::unique_ptr<JSContext, std::function<void(JSContext *)> > cx
-    { JS_NewContext(m_runtime, 8192),
+    { JS_NewContext(m_engine->rootRuntime(), 8192),
                 [](JSContext *c) { if (c) JS_DestroyContext(c); } };
     if (!cx)
         throw std::runtime_error("Could not create JS context");
 
+#if MOZJS_MAJOR_VERSION >= 31
+    JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(), m_engine->globalClass(), nullptr,
+        JS::FireOnNewGlobalHook));
+#else
+    JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(),
+        const_cast<JSClass *>(m_engine->globalClass()), nullptr));
+#endif
+    JSAutoCompartment ac(cx.get(), global);
     JS::CompileOptions options(cx.get());
     options.setFileAndLine(filename.c_str(), 1);
-    JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(),
-                                                         const_cast<JSClass *>(m_global_class), nullptr));
-    {
-        JSAutoCompartment ac(cx.get(), global);
-        JSScript *script = JS::Compile(cx.get(), global, options, reinterpret_cast<const char *>(pBuffer), size);
-        if (!script)
-            throw std::runtime_error("Could not compile");
-        uint32_t bytecodeLength = 0;
-        void *pBytecode = JS_EncodeScript(cx.get(), script, &bytecodeLength);
-        m_bytecode = ByteArray(reinterpret_cast<const uint8_t *>(pBytecode), bytecodeLength);
-    }
+#if MOZJS_MAJOR_VERSION >= 38
+    JS::RootedScript script(cx.get());
+    if (!JS::Compile(cx.get(), global, options, reinterpret_cast<const char *>(pBuffer), size, &script))
+        throw std::runtime_error("Could not compile");
+#else
+    JS::RootedScript script(cx.get(), JS::Compile(cx.get(), global, options,
+        reinterpret_cast<const char *>(pBuffer), size));
+    if (!script)
+        throw std::runtime_error("Could not compile");
+#endif
+    uint32_t bytecodeLength = 0;
+    void *pBytecode = JS_EncodeScript(cx.get(), script, &bytecodeLength);
+    m_bytecode = ByteArray(reinterpret_cast<const uint8_t *>(pBytecode), bytecodeLength);
 }
 
 ScriptThreadBase *JSScriptProgram::createThreadImpl(const String &functionName, const VariantArray &args)
@@ -56,7 +68,7 @@ ScriptThreadBase *JSScriptProgram::createThreadImpl(const String &functionName, 
     std::lock_guard<std::mutex> _guard(m_threadsMutex);
     if (m_bytecode.empty())
         throw std::runtime_error("Program must be compiled first");
-    JSScriptThread *thread =  new JSScriptThread(m_runtime, m_bytecode, m_global_class);
+    JSScriptThread *thread =  new JSScriptThread(m_bytecode, m_engine);
     thread->setCallFunction(functionName, args);
     m_threads.push_back(thread);
     return thread;

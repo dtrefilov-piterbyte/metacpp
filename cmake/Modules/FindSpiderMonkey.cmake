@@ -16,12 +16,12 @@ find_path(SPIDERMONKEY_INCLUDE_DIR
   PATHS
    ${SPIDERMONKEY_PossibleIncludePaths}
   PATH_SUFFIXES
-    mozjs-24
+    mozjs-38 mozjs-31 mozjs-24
     )
 
 find_library(
     SPIDERMONKEY_BASE_LIBRARY
-    NAMES mozjs-24)
+    NAMES mozjs-38 mozjs-31 mozjs-24)
 
 set(SPIDERMONKEY_LIBRARIES ${SPIDERMONKEY_BASE_LIBRARY})
 set(CMAKE_REQUIRED_INCLUDES ${SPIDERMONKEY_INCLUDE_DIR})

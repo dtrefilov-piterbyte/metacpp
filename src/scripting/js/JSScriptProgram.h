@@ -13,10 +13,12 @@ namespace scripting
 namespace js
 {
 
+class JSScriptEngine;
+
 class JSScriptProgram : public ScriptProgramBase
 {
 public:
-    explicit JSScriptProgram(JSRuntime *runtime, const JSClass *global_class);
+    explicit JSScriptProgram(JSScriptEngine *engine);
     ~JSScriptProgram();
 
     void compile(std::istream& source, const String& filename) override;
@@ -26,8 +28,7 @@ protected:
                                        const VariantArray& args = VariantArray()) override;
     void closeThreadImpl(ScriptThreadBase *thread) override;
 private:
-    JSRuntime *m_runtime;
-    const JSClass *m_global_class;
+    JSScriptEngine *m_engine;
     ByteArray m_bytecode;
     std::mutex m_threadsMutex;
     Array<ScriptThreadBase *> m_threads;

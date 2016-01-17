@@ -4,6 +4,7 @@
 #include "ScriptEngineBase.h"
 #include "JSScriptProgram.h"
 #include <jsapi.h>
+#include <thread>
 
 namespace metacpp {
 namespace scripting {
@@ -14,14 +15,19 @@ class JSScriptEngine : public ScriptEngineBase
 public:
     explicit JSScriptEngine();
     ~JSScriptEngine();
+
+    JSRuntime *rootRuntime() const;
+    const JSClass *globalClass() const;
+    bool isInMainThread() const;
 protected:
     ScriptProgramBase *createProgramImpl() override;
     void closeProgramImpl(ScriptProgramBase *program) override;
 private:
-    Array<JSScriptProgram *> m_programs;
+    Array<ScriptProgramBase *> m_programs;
     mutable std::mutex m_programsMutex;
     JSRuntime *m_runtime;
-    JSClass m_global_class;
+    JSClass m_globalClass;
+    std::thread::id m_mainThreadId;
 };
 
 } // namespace js

@@ -36,7 +36,7 @@ namespace sqlite
 class SqliteConnector : public SqlConnectorBase
 {
 public:
-    SqliteConnector(const String& connectionUri);
+    explicit SqliteConnector(const String& connectionUri);
     ~SqliteConnector();
 
     // test database connectivity, initialize connection pool
