@@ -19,6 +19,7 @@ namespace detail
 struct ClassInfo
 {
     JSClass class_;
+    JSObject *classObject, *ctorObject;
     const MetaObject *metaObject;
 
 };
@@ -54,17 +55,27 @@ private:
 #endif
 
     void registerNativeClasses(JSContext *cx, JS::HandleObject global);
+    void unregisterNativeClasses(JSContext *cx);
 
     static void nativeObjectFinalize(JSFreeOp* fop, JSObject *obj);
+#if MOZJS_MAJOR_VERSION >= 31
     static bool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
     static bool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
     static bool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp);
-    static bool nativeObjectGetter(JSContext *cx, unsigned argc, jsval *vp);
-    static bool nativeObjectSetter(JSContext *cx, unsigned argc, jsval *vp);
     static bool nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                     JS::MutableHandleValue vp);
+                                          JS::MutableHandleValue vp);
     static bool nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                           bool strict, JS::MutableHandleValue vp);
+                                          bool strict, JS::MutableHandleValue vp);
+#else
+    static JSBool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
+    static JSBool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
+    static JSBool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp);
+
+    static JSBool nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                                          JS::MutableHandleValue vp);
+    static JSBool nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                                          JSBool strict, JS::MutableHandleValue vp);
+#endif
 
 private:
     ByteArray m_bytecode;

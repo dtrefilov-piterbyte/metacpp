@@ -104,6 +104,7 @@ TEST_F(JSScriptTest, testThrow)
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
 }
 
+#if MOZJS_MAJOR_VERSION >= 38
 TEST_F(JSScriptTest, testTerminate)
 {
     auto program = m_engine->createProgram();
@@ -169,6 +170,7 @@ TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
     ASSERT_TRUE((bool)ex);
     EXPECT_THROW(std::rethrow_exception(ex), std::runtime_error);
 }
+#endif
 
 TEST_F(JSScriptTest, testSequentialRun)
 {

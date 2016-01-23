@@ -164,7 +164,15 @@ JS::Value toValue(JSContext *context, Variant v)
                 throw std::invalid_argument("Class is not registered");
             }
 
-            JS::RootedObject object(context, JS_NewObject(context, &ci->class_));
+            jsval classValue;
+            classValue.setObjectOrNull(ci->ctorObject);
+#if MOZJS_MAJOR_VERSION >= 31
+            JS::RootedObject object(context, JS_NewObjectForConstructor(context,
+                &ci->class_, JS::CallArgsFromVp(1, &classValue)));
+#else
+            JS::RootedObject object(context, JS_NewObjectForConstructor(context,
+                const_cast<JSClass *>(&ci->class_), &classValue));
+#endif
 
             detail::NativeObjectWrapper *wrapper = new detail::NativeObjectWrapper;
             wrapper->nativeObject = nativeObject;
@@ -247,7 +255,13 @@ Variant JSScriptThread::run()
 
     std::unique_ptr<JSContext, std::function<void(JSContext *)> > cx
     { JS_NewContext(rt.get(), 8192),
-                [](JSContext *c) { if (c) JS_DestroyContext(c); } };
+        [this](JSContext *c)
+        {
+            unregisterNativeClasses(c);
+            if (c)
+                JS_DestroyContext(c);
+        }
+    };
     if (!cx)
         throw std::runtime_error("Could not create JS context");
 
@@ -427,25 +441,38 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
 {
     for (const MetaObject *mo : m_engine->registeredClasses())
     {
-
-        m_registeredClasses.push_back(detail::ClassInfo());
+        m_registeredClasses.emplace_back(detail::ClassInfo());
         detail::ClassInfo& classInfo = m_registeredClasses.back();
         memset(&classInfo.class_, 0, sizeof(JSClass));
         classInfo.metaObject = mo;
         classInfo.class_.name = mo->name();
         classInfo.class_.flags = JSCLASS_HAS_PRIVATE;
+        classInfo.class_.addProperty = JS_PropertyStub;
+#if MOZJS_MAJOR_VERSION < 38
+        classInfo.class_.enumerate = JS_EnumerateStub;
+        classInfo.class_.resolve = JS_ResolveStub;
+        classInfo.class_.delProperty = JS_DeletePropertyStub;
+        classInfo.class_.convert = JS_ConvertStub;
+#endif
         classInfo.class_.getProperty = JSScriptThread::nativeObjectDynamicGetter;
         classInfo.class_.setProperty = JSScriptThread::nativeObjectDynamicSetter;
         classInfo.class_.finalize = JSScriptThread::nativeObjectFinalize;
-
-        JS::RootedObject classObject(cx, JS_InitClass(cx, global, JS::NullPtr(),
-            &classInfo.class_, nullptr, 0,
-                         nullptr, nullptr, nullptr, nullptr));
+#if MOZJS_MAJOR_VERSION >= 31
+        classInfo.classObject = JS_InitClass(cx, global, JS::NullPtr(),
+            &classInfo.class_, nullptr, 0, nullptr, nullptr, nullptr, nullptr);
+#else
+        classInfo.classObject = JS_InitClass(cx, global, nullptr,
+            &classInfo.class_, nullptr, 0, nullptr, nullptr, nullptr, nullptr);
+#endif
 
         JSFunction *ctorFunc = JS_DefineFunction(cx, global, mo->name(),
             JSScriptThread::nativeObjectConstruct, 1, JSPROP_READONLY | JSPROP_PERMANENT |
                                                  JSPROP_ENUMERATE | JSFUN_CONSTRUCTOR);
-        JS::RootedObject ctorObject(cx, JS_GetFunctionObject(ctorFunc));
+
+        classInfo.ctorObject = JS_GetFunctionObject(ctorFunc);
+
+        JS::RootedObject classObject(cx, classInfo.classObject);
+        JS::RootedObject ctorObject(cx, classInfo.ctorObject);
 
         JS_LinkConstructorAndPrototype(cx, ctorObject, classObject);
 
@@ -464,17 +491,13 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
                     metaCall->numArguments(), JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE);
             }
         }
-
-        // define class properties
-        for (size_t i = 0; i < mo->totalFields(); ++i)
-        {
-            const MetaFieldBase *field = mo->field(i);
-            JS::RootedObject value(cx);
-            JS_DefineProperty(cx, classObject, field->name(), value, JSPROP_READONLY | JSPROP_PERMANENT |
-                JSPROP_ENUMERATE | JSPROP_SHARED, &JSScriptThread::nativeObjectGetter,
-                &JSScriptThread::nativeObjectSetter);
-        }
     }
+}
+
+void JSScriptThread::unregisterNativeClasses(JSContext *cx)
+{
+    (void)cx;
+    m_registeredClasses.clear();
 }
 
 void JSScriptThread::nativeObjectFinalize(JSFreeOp *, JSObject *obj)
@@ -491,7 +514,11 @@ void JSScriptThread::nativeObjectFinalize(JSFreeOp *, JSObject *obj)
     }
 }
 
+#if MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp)
+#else
+JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp)
+#endif
 {
     try
     {
@@ -513,7 +540,11 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
         if (!ci)
             throw std::runtime_error("Could not find registered class");
 
-        JSObject *obj = JS_NewObject(cx, &ci->class_);
+#if MOZJS_MAJOR_VERSION >= 31
+        JSObject *obj = JS_NewObjectForConstructor(cx, const_cast<JSClass *>(&ci->class_), args);
+#else
+        JSObject *obj = JS_NewObjectForConstructor(cx, const_cast<JSClass *>(&ci->class_), vp);
+#endif
 
         if (!obj)
             return false;
@@ -529,7 +560,7 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
 
         JS_SetPrivate(obj, wrapper);
 
-#if MOZJS_MAJOR_VERSION >= 38
+#if MOZJS_MAJOR_VERSION >= 31
         args.rval().setObject(*obj);
 #else
         JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
@@ -543,7 +574,11 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
     }
 }
 
+#if MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+#else
+JSBool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+#endif
 {
     try
     {
@@ -570,7 +605,11 @@ bool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsv
     }
 }
 
+#if MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+#else
+JSBool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+#endif
 {
     try
     {
@@ -601,53 +640,23 @@ bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, 
     }
 }
 
-bool JSScriptThread::nativeObjectGetter(JSContext *cx, unsigned argc, jsval *vp)
-{
-    try
-    {
-        if (argc != 0)
-            throw std::runtime_error("Illegal number of arguments for getter");
-        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-        String propName = JSAutoByteString(cx, JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
-        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
-        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
-        args.rval().set(detail::toValue(cx, wrapper->nativeObject->getProperty(propName)));
-        return true;
-    }
-    catch (const std::exception& e)
-    {
-        JS_ReportError(cx, "Native getter failed: %s", e.what());
-        return false;
-    }
-}
-
-bool JSScriptThread::nativeObjectSetter(JSContext *cx, unsigned argc, jsval *vp)
-{
-    try
-    {
-        if (argc != 1)
-            throw std::runtime_error("Illegal number of arguments for setter");
-        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-        String propName = JSAutoByteString(cx, JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
-        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
-        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
-        wrapper->nativeObject->setProperty(propName, detail::fromValue(cx, args[0]));
-        return true;
-    }
-    catch (const std::exception& e)
-    {
-        JS_ReportError(cx, "Native setter failed: %s", e.what());
-        return false;
-    }
-}
-
+#if MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectDynamicGetter(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp)
+#else
+JSBool JSScriptThread::nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp)
+#endif
 {
     try
     {
+#if MOZJS_MAJOR_VERSION >=31
         JS::RootedValue idValue(cx);
         if (!JS_IdToValue(cx, id, &idValue))
             throw std::runtime_error("Bad property id");
+#else
+        jsval idValue;
+        if (!JS_IdToValue(cx, id, &idValue))
+            throw std::runtime_error("Bad property id");
+#endif
         String propName = variant_cast<String>(detail::fromValue(cx, idValue));
         auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(obj);
         // method properties
@@ -658,19 +667,29 @@ bool JSScriptThread::nativeObjectDynamicGetter(JSContext *cx, JS::HandleObject o
     }
     catch (const std::exception& e)
     {
-        JS_ReportError(cx, "Native getter failed: %s", e.what());
+        JS_ReportError(cx, "Native dynamic getter failed: %s", e.what());
         return false;
     }
 }
 
+#if MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectDynamicSetter(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict, JS::MutableHandleValue vp)
+#else
+JSBool JSScriptThread::nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JSBool strict, JS::MutableHandleValue vp)
+#endif
 {
     try
     {
         (void)strict;
+#if MOZJS_MAJOR_VERSION >=31
         JS::RootedValue idValue(cx);
         if (!JS_IdToValue(cx, id, &idValue))
             throw std::runtime_error("Bad property id");
+#else
+        jsval idValue;
+        if (!JS_IdToValue(cx, id, &idValue))
+            throw std::runtime_error("Bad property id");
+#endif
         String propName = variant_cast<String>(detail::fromValue(cx, idValue));
         auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(obj);
         wrapper->nativeObject->setProperty(propName, detail::fromValue(cx, vp));
@@ -678,7 +697,7 @@ bool JSScriptThread::nativeObjectDynamicSetter(JSContext *cx, JS::HandleObject o
     }
     catch (const std::exception& e)
     {
-        JS_ReportError(cx, "Native setter failed: %s", e.what());
+        JS_ReportError(cx, "Native dynamic setter failed: %s", e.what());
         return false;
     }
 }
