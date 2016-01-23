@@ -130,7 +130,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
     program->compile(ss, "filename");
     std::vector<std::thread> threads;
     std::vector<metacpp::SharedObjectPointer<metacpp::scripting::ScriptThreadBase>> scriptThreads;
-    const size_t numThreads = 10;
+    const size_t numThreads = 3;
 
     for (size_t i = 0; i < numThreads; ++i)
     {
@@ -143,7 +143,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
 
     for (size_t i = 0; i < numThreads; ++i)
     {
-        scriptThreads[i]->abort(0);
+        scriptThreads[i]->abort(1000);
         if (threads[i].joinable())
             threads[i].join();
     }
