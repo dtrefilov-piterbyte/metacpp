@@ -59,7 +59,7 @@ namespace detail
         explicit VariantData(const double& v);
         explicit VariantData(const String& v);
         explicit VariantData(const DateTime& v);
-        explicit VariantData(const Object *o);
+        explicit VariantData(Object *o);
         explicit VariantData(const Array<Variant>& a);
 
         EFieldType type() const;
@@ -83,11 +83,11 @@ namespace detail
             uint64_t m_uint64;
             float m_float;
             double m_double;
-            const Object *m_object;
         } m_storage;
         String m_string;
         DateTime m_datetime;
         Array<Variant> m_array;
+        SharedObjectPointer<Object> m_object;
     };
 } // namespace detail
 
@@ -135,7 +135,10 @@ public:
     Variant(const String& v);
     /** \brief Constructs a new instance of the metacpp::DateTime variant */
     Variant(const DateTime& v);
-    /** \brief Constructs a new instance of the metacpp::Object * variant */
+    /** \brief Constructs a new instance of the metacpp::Object * variant.
+     * Variant will take the ownership and will be responsible to delete the object with
+     * default deleter
+    */
     Variant(Object *o);
     /** \brief Constructs a new instance of the VariantArray variant */
     Variant(const Array<Variant>& a);
@@ -201,7 +204,7 @@ public:
     /** \brief Checks if this variant stores a VariantArray * */
     bool isArray() const;
 
-    void *buffer();
+    const void *buffer() const;
 private:
     detail::VariantData *getData() const;
 };

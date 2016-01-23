@@ -67,9 +67,9 @@ protected:
     /** \brief Constructs a query using specified syntax */
     virtual String buildQuery(SqlSyntax syntax) = 0;
     /** \brief Create statement implementation */
-    std::shared_ptr<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
+    SharedObjectPointer<connectors::SqlStatementImpl> createImpl(SqlTransaction &transaction);
 protected:
-    std::shared_ptr<connectors::SqlStatementImpl> m_impl;
+    SharedObjectPointer<connectors::SqlStatementImpl> m_impl;
     VariantArray m_literals;
 };
 

@@ -13,6 +13,14 @@ namespace js
 namespace detail
 {
 
+struct NativeObjectWrapper {
+    Object *nativeObject;
+    enum {
+        OwnershipGC,
+        OwnershipVariant
+    } ownership;
+};
+
 Variant fromValue(JSContext *context, const JS::Value& v)
 {
     if (v.isNullOrUndefined())
@@ -73,7 +81,13 @@ Variant fromValue(JSContext *context, const JS::Value& v)
         if (!classInfo)
             throw std::invalid_argument("Unsupported class");
 
-        return (Object *)JS_GetPrivate(obj);
+        auto wrapper = (NativeObjectWrapper *)JS_GetPrivate(obj);
+        if (wrapper) {
+            wrapper->ownership = NativeObjectWrapper::OwnershipVariant;
+            return wrapper->nativeObject;
+        }
+        else
+            return (Object *)nullptr;
     }
 
     throw std::invalid_argument("Unknown JS value type");
@@ -403,10 +417,15 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
 
 void JSScriptThread::nativeObjectFinalize(JSFreeOp *, JSObject *obj)
 {
-    Object *nativeObject = (Object *)JS_GetPrivate(obj);
-    if (nativeObject)
+    auto nativeObjectWrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(obj);
+    if (nativeObjectWrapper)
     {
-        nativeObject->metaObject()->destroyInstance(nativeObject);
+        if (nativeObjectWrapper->ownership == detail::NativeObjectWrapper::OwnershipGC)
+        {
+            Object *nativeObject = nativeObjectWrapper->nativeObject;
+            nativeObject->metaObject()->destroyInstance(nativeObject);
+        }
+        delete nativeObjectWrapper;
     }
 }
 
@@ -435,7 +454,11 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
             JS_ReportOutOfMemory(cx);
             return false;
         }
-        JS_SetPrivate(obj, (Object *)pNativeObject);
+        detail::NativeObjectWrapper *wrapper = new detail::NativeObjectWrapper;
+        wrapper->nativeObject = pNativeObject;
+        wrapper->ownership = detail::NativeObjectWrapper::OwnershipGC;
+
+        JS_SetPrivate(obj, wrapper);
 
 #if MOZJS_MAJOR_VERSION >= 38
         args.rval().setObject(*obj);

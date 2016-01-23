@@ -29,12 +29,6 @@ namespace detail
 
     VariantData::~VariantData()
     {
-        if (m_type == eFieldObject)
-        {
-            if (m_storage.m_object)
-                m_storage.m_object->metaObject()->
-                        destroyInstance(const_cast<Object *>(m_storage.m_object));
-        }
     }
 
     VariantData::VariantData(bool v)
@@ -89,12 +83,10 @@ namespace detail
     {
     }
 
-    VariantData::VariantData(const Object *o)
+    VariantData::VariantData(Object *o)
         : m_type(eFieldObject)
     {
-        m_storage.m_object = o;
-        if (o)
-            o->ref();
+        m_object.reset(o);
     }
 
     VariantData::VariantData(const Array<Variant> &a)
@@ -119,10 +111,6 @@ namespace detail
         case eFieldUint64: return &m_storage.m_uint64;
         case eFieldFloat: return &m_storage.m_float;
         case eFieldDouble: return &m_storage.m_double;
-        case eFieldObject: return &m_storage.m_object;
-        case eFieldDateTime: return &m_datetime;
-        case eFieldString: return &m_string;
-        case eFieldArray: return &m_array;
         default:
             throw std::runtime_error("Unknown variant type");
         }
@@ -158,8 +146,7 @@ namespace detail
             copy->m_storage.m_double = m_storage.m_double;
             break;
         case eFieldObject:
-            copy->m_storage.m_object = m_storage.m_object;
-            m_storage.m_object->ref();
+            copy->m_object = m_object;
             break;
         default:
             break;
@@ -273,7 +260,7 @@ namespace detail
         switch (m_type)
         {
         case eFieldObject:
-            return const_cast<Object *>(m_storage.m_object);
+            return m_object.get();
         default:
             throw std::invalid_argument("Variant is not of Object type");
         }
@@ -374,7 +361,7 @@ bool Variant::isArray() const
     return data->type() == eFieldArray;
 }
 
-void *Variant::buffer()
+const void *Variant::buffer() const
 {
     detail::VariantData *data = this->getData();
     return data->buffer();

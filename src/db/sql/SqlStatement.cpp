@@ -35,13 +35,13 @@ SqlStatementBase::~SqlStatementBase()
 
 }
 
-std::shared_ptr<connectors::SqlStatementImpl> SqlStatementBase::createImpl(SqlTransaction& transaction)
+SharedObjectPointer<connectors::SqlStatementImpl> SqlStatementBase::createImpl(SqlTransaction& transaction)
 {
     auto transactionImpl = transaction.impl();
     connectors::SqlStatementImpl *stmt = transactionImpl->createStatement(type(), buildQuery(transaction.connector()->sqlSyntax()));
     if (!stmt)
         throw std::runtime_error("Failed to create statement");
-    std::shared_ptr<connectors::SqlStatementImpl> impl(stmt,
+    SharedObjectPointer<connectors::SqlStatementImpl> impl(stmt,
         [transactionImpl](connectors::SqlStatementImpl *stmt){ transactionImpl->closeStatement(stmt); });
     return m_impl = impl;
 }

@@ -106,28 +106,28 @@ bool MySqlTransactionImpl::bindValues(SqlStatementImpl *statement, const Variant
             {
             case eFieldBool:
                 bind.buffer_type = MYSQL_TYPE_TINY;
-                bind.buffer = v.buffer();
+                bind.buffer = const_cast<void *>(v.buffer());
                 break;
             case eFieldUint:
                 bind.is_unsigned = true; // fall through
             case eFieldInt:
             case eFieldEnum:
                 bind.buffer_type = MYSQL_TYPE_LONG;
-                bind.buffer = v.buffer();
+                bind.buffer = const_cast<void *>(v.buffer());
                 break;
             case eFieldUint64:
                 bind.is_unsigned = true; // fall through
             case eFieldInt64:
                 bind.buffer_type = MYSQL_TYPE_LONGLONG;
-                bind.buffer = v.buffer();
+                bind.buffer = const_cast<void *>(v.buffer());
                 break;
             case eFieldFloat:
                 bind.buffer_type = MYSQL_TYPE_FLOAT;
-                bind.buffer = v.buffer();
+                bind.buffer = const_cast<void *>(v.buffer());
                 break;
             case eFieldDouble:
                 bind.buffer_type = MYSQL_TYPE_DOUBLE;
-                bind.buffer = v.buffer();
+                bind.buffer = const_cast<void *>(v.buffer());
                 break;
             case eFieldString: {
                 const String *pStr = reinterpret_cast<const String *>(v.buffer());

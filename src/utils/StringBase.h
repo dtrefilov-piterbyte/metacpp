@@ -420,18 +420,18 @@ public:
     /** \brief Gets a const reference to the character at given position */
     const_reference operator[](size_t i) const { assert(i < length()); return this->m_d->_data()[i];  }
     /** \brief Gets a reference to the character at given position */
-    reference operator[](size_t i) { assert(i < length()); this->detach(); return this->m_d->_data()[i];  }
+    reference operator[](size_t i) { assert(i < length()); this->detachOrInitialize(); return this->m_d->_data()[i];  }
 
     /** \brief Gets length of this string in characters (excluding terminating null character) */
 	size_t size() const { return length(); }
     /** \brief Gets current length of the buffer used to store value of this string */
 	size_t capacity() const { return this->m_d ? this->m_d->_capacity() - 1 : 0; }
     /** \brief Ensures buffer is capable to store string value of the given length */
-    void reserve(size_t length) { this->detach(); this->m_d->_reserve(length + 1); }
+    void reserve(size_t length) { this->detachOrInitialize(); this->m_d->_reserve(length + 1); }
     /** \brief Squeezes buffer to it's minimum possible length capable to store current string value */
-	void squeeze() { this->detach(); this->m_d->_squeeze(); }
+    void squeeze() { this->detachOrInitialize(); this->m_d->_squeeze(); }
     /** \brief Sets string length to the given value terminating it with null character */
-	void resize(size_t size) { this->detach(); this->m_d->_resize(size + 1); }
+    void resize(size_t size) { this->detachOrInitialize(); this->m_d->_resize(size + 1); }
 
     /** \brief Gets a reference to the first character in the string. String should not be null or empty. */
     reference front() { assert(size()); return *begin(); }
@@ -443,9 +443,9 @@ public:
     const_reference back() const { assert(size()); return *(end() - 1); }
 
     /** \brief Gets an iterator pointing to the first character in the string. */
-    iterator begin() { this->detach(); return isNull() ? ms_empty.begin() : this->m_d->_data(); }
+    iterator begin() { this->detachOrInitialize(); return isNull() ? ms_empty.begin() : this->m_d->_data(); }
     /** \brief Gets an iterator pointing to the null terminating character in the string. */
-    iterator end() { this->detach(); return isNull() ? ms_empty.end() : (this->m_d->_data() + this->m_d->_length()); }
+    iterator end() { this->detachOrInitialize(); return isNull() ? ms_empty.end() : (this->m_d->_data() + this->m_d->_length()); }
     /** \brief Gets a const iterator pointing to the first character in the string. */
     const_iterator begin() const { return isNull() ? ms_empty.begin() : this->m_d->_data(); }
     /** \brief Gets a const iterator pointing to the null terminating character in the string. */
@@ -456,7 +456,7 @@ public:
 	{
 		if (str && *str)
 		{
-			this->detach();
+            this->detachOrInitialize();
 			this->m_d->_append(str, length);
 		}
 	}

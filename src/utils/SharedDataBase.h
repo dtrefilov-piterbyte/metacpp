@@ -17,12 +17,10 @@
 #define SHAREDDATABASE_H
 #include <atomic>
 #include <type_traits>
+#include <memory>
 
 namespace metacpp
 {
-
-template<typename T> class SharedDataPointer;
-template<typename T> class SharedPointer;
 
 /**
     \brief SharedDataBase represents an implicitly shared object
@@ -42,42 +40,57 @@ public:
     /** \brief create a deep copy of the object */
     virtual SharedDataBase *clone() const = 0;
 protected:
-    template<typename T>
+    template<typename>
     friend class SharedDataPointer;
+    template<typename>
+    friend class SharedObjectPointer;
     SharedDataBase();
     SharedDataBase(const SharedDataBase&)=delete;
 private:
     mutable std::atomic<int> m_count;
 };
 
-template<typename T>
-class SharedData : public SharedDataBase
+template<typename TObj>
+class SharedObjectDataBase : public SharedDataBase
 {
-    template<typename T1>
-    friend class SharedPointer;
 public:
-    SharedDataBase *clone() const override
+    ~SharedObjectDataBase() = default;
+
+    virtual TObj *get() const = 0;
+    virtual void reset(TObj *) = 0;
+};
+
+template<typename TObj, typename Deleter = std::default_delete<TObj> >
+class SharedObjectData : public SharedObjectDataBase<TObj>
+{
+public:
+    explicit SharedObjectData(TObj *pObj = nullptr, const Deleter deleter = Deleter())
+        : m_obj(pObj), m_deleter(deleter)
     {
-        return new SharedData<T>(m_data);
     }
 
-    template<typename... TArgs>
-    explicit SharedData(TArgs... args)
-        : m_data(args...)
+    SharedDataBase *clone() const
     {
+        return new SharedObjectData(m_obj, m_deleter);
     }
 
-    explicit SharedData(const T& data = T())
-        : m_data(data)
+    ~SharedObjectData()
     {
+        if (m_obj)
+            m_deleter(m_obj);
     }
 
-    ~SharedData()
-    {
+    TObj *get() const override { return m_obj; }
+
+    void reset(TObj *obj) override {
+        if (m_obj)
+            m_deleter(m_obj);
+        m_obj = obj;
     }
 
 private:
-    T m_data;
+    TObj *m_obj;
+    Deleter m_deleter;
 };
 
 } // namespace metacpp

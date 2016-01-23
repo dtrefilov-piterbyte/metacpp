@@ -367,7 +367,7 @@ public:
 	}
 
     /** \brief Gets the pointer to the raw buffer */
-	T *data() { this->detach(); return this->m_d->_data(); }
+    T *data() { this->detachOrInitialize(); return this->m_d->_data(); }
     /** \brief Gets the pointer to the readonly raw buffer */
 	const T *data() const { return this->m_d ? this->m_d->_data() : nullptr; }
     /** \brief Gets number of elements in the array */
@@ -377,24 +377,24 @@ public:
     /** \brief Gets maximum number of arguments that may be fitted into this array without need of expanding buffers */
 	size_t capacity() const { return this->m_d ? this->m_d->_capacity() : 0; }
     /** \brief Ensures that array may fit given number of arguments */
-	void reserve(size_t size) { this->detach(); this->m_d->_reserve(size); }
+    void reserve(size_t size) { this->detachOrInitialize(); this->m_d->_reserve(size); }
     /** \brief Resizes array to the given number of arguments.
      *
      * If current size of the array exceeds given number, the array is truncted to the specified value,
      * if array size is smaller than given size, the array is expanded with default constructed elements
      */
-	void resize(size_t size) { this->detach(); this->m_d->_resize(size); }
+    void resize(size_t size) { this->detachOrInitialize(); this->m_d->_resize(size); }
     /** \brief Sqeezes allocated buffers to the minimum size to fit array data */
-	void squeeze() { this->detach(); this->m_d->_squeeze(); }
+    void squeeze() { this->detachOrInitialize(); this->m_d->_squeeze(); }
     /** \brief Removes one element at the specified position */
-    void erase(size_t i) { this->detach(); this->m_d->_erase(i, i + 1); }
+    void erase(size_t i) { this->detachOrInitialize(); this->m_d->_erase(i, i + 1); }
     /** \brief Removes element in the inclusive range between specified positions */
-    void erase(size_t from, size_t to) { this->detach(); this->m_d->_erase(from, to); }
+    void erase(size_t from, size_t to) { this->detachOrInitialize(); this->m_d->_erase(from, to); }
     /** \brief Removes one element pointed by specified iterator */
     void erase(const_iterator it) { erase(it - begin()); }
 
     /** \brief Gets reference to the element at specified index */
-	reference operator[](size_t i) { this->detach(); assert(i < size()); return this->m_d->_data()[i]; }
+    reference operator[](size_t i) { this->detachOrInitialize(); assert(i < size()); return this->m_d->_data()[i]; }
     /** \brief Gets const reference to the element at specified index */
 	const_reference operator[](size_t i) const { assert(i < size()); return this->m_d->_data()[i]; }
 
@@ -408,30 +408,30 @@ public:
 	const_reference back() const { assert(size()); return *(end() - 1); }
 
     /** \brief Gets an STL iterator pointing to the begin of this array */
-	iterator begin() { this->detach(); return this->m_d->_data(); }
+    iterator begin() { this->detachOrInitialize(); return this->m_d->_data(); }
     /** \brief Gets an STL iterator pointing to the end of this array */
-	iterator end() { this->detach(); return this->m_d->_data() + this->m_d->_size(); }
+    iterator end() { this->detachOrInitialize(); return this->m_d->_data() + this->m_d->_size(); }
     /** \brief Gets an const STL iterator pointing to the begin of this array */
 	const_iterator begin() const { return this->m_d->_data(); }
     /** \brief Gets an const STL iterator pointing to the end of this array */
 	const_iterator end() const { return this->m_d->_data() + this->m_d->_size(); }
 
     /** \brief Puts given element into the end of this array. Operation has complexity O(1). */
-	void push_back(const T& v) { this->detach(); this->m_d->_push_back(v); }
+    void push_back(const T& v) { this->detachOrInitialize(); this->m_d->_push_back(v); }
     /** \brief Puts given element into the begin of this array. Operation has complexity O(N), where N is a current array size. */
-	void push_front(const T& v) { this->detach(); this->m_d->_push_front(v); }
+    void push_front(const T& v) { this->detachOrInitialize(); this->m_d->_push_front(v); }
     /** \brief Removes element from the end of this array. Operation has complexity O(1) */
-	void pop_back() { this->detach(); this->m_d->_pop_back(); }
+    void pop_back() { this->detachOrInitialize(); this->m_d->_pop_back(); }
     /** \brief Removes element from the begin of this array. Operation has complexity O(N), where N is a current array size. */
-	void pop_front() { this->detach(); this->m_d->_pop_front(); }
+    void pop_front() { this->detachOrInitialize(); this->m_d->_pop_front(); }
 
     /** \brief Constructs element in-place at the end of this array */
     template<typename... TArgs>
-    void emplace_back(TArgs... args) { this->detach(); this->m_d->_emplace_back(args...); }
+    void emplace_back(TArgs... args) { this->detachOrInitialize(); this->m_d->_emplace_back(args...); }
 
     /** \brief Puts set of elements from an array into the end of this array */
     void append(const T *many, size_t n) {
-        this->detach();
+        this->detachOrInitialize();
         reserve(size() + n);
         for (size_t i = 0; i < n; ++i) this->m_d->_push_back(many[i]);
     }

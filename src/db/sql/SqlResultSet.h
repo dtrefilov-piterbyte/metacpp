@@ -40,7 +40,7 @@ namespace detail
     {
     public:
         SqlResultSetData(SqlTransaction& transaction,
-                     std::shared_ptr<connectors::SqlStatementImpl> statement,
+                     SharedObjectPointer<connectors::SqlStatementImpl> statement,
                      SqlStorable *storable);
         virtual ~SqlResultSetData();
         SqlResultIterator begin();
@@ -52,7 +52,7 @@ namespace detail
         friend class SqlResultIterator;
 
         SqlTransaction& m_transaction;
-        std::shared_ptr<connectors::SqlStatementImpl> m_statement;
+        SharedObjectPointer<connectors::SqlStatementImpl> m_statement;
         SqlStorable *m_storable;
         mutable SqlResultIterator m_endIterator;
         mutable SqlResultIterator m_iterator;
@@ -68,7 +68,7 @@ public:
      * Passes ownership of stmt to the constructed SqlResultSet
     */
     SqlResultSet(SqlTransaction& transaction,
-                 std::shared_ptr<connectors::SqlStatementImpl> statement,
+                 SharedObjectPointer<connectors::SqlStatementImpl> statement,
                  SqlStorable *storable);
     virtual ~SqlResultSet();
     /** \brief Returns iterator pointing to the begin of this set */

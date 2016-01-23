@@ -27,7 +27,7 @@ namespace detail
 {
 
     SqlResultSetData::SqlResultSetData(SqlTransaction& transaction,
-                                       std::shared_ptr<connectors::SqlStatementImpl> statement,
+                                       SharedObjectPointer<connectors::SqlStatementImpl> statement,
                                        SqlStorable *storable)
         : m_transaction(transaction), m_statement(statement), m_storable(storable),
           m_endIterator(this, ROW_ID_PAST_THE_END), m_iterator(this, ROW_ID_INVALID)
@@ -78,7 +78,7 @@ namespace detail
 
 } // namespace detail
 
-SqlResultSet::SqlResultSet(SqlTransaction &transaction, std::shared_ptr<connectors::SqlStatementImpl> statement, SqlStorable *storable)
+SqlResultSet::SqlResultSet(SqlTransaction &transaction, SharedObjectPointer<connectors::SqlStatementImpl> statement, SqlStorable *storable)
     : SharedDataPointer(new detail::SqlResultSetData(transaction, statement, storable))
 {
 

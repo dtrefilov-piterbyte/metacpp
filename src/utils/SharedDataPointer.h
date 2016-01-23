@@ -101,6 +101,7 @@ namespace metacpp
         SharedDataPointer& swap(const SharedDataPointer& o)
         {
             std::swap(m_d, o.m_d);
+            return *this;
         }
 
         void clear()
@@ -122,42 +123,71 @@ namespace metacpp
                 if (!m_d->deref()) delete m_d;
                 m_d = new_d;
             }
+        }
+
+        template<typename... TArgs>
+        void detachOrInitialize(TArgs... args)
+        {
+            if (m_d)
+            {
+                if (m_d->count() == 1) return;
+                T *new_d = reinterpret_cast<T *>(m_d->clone());
+                if (!m_d->deref()) delete m_d;
+                m_d = new_d;
+            }
             else
-                m_d = new T();
+                m_d = new T(args...);
         }
 
 		T *m_d;
 	};
 
-    /** \brief Template class holding a shared reference to T */
     template<typename T>
-    class SharedPointer final : private SharedDataPointer<SharedData<T> >
+    class SharedObjectPointer : protected SharedDataPointer<SharedObjectDataBase<T> >
     {
     public:
-        SharedPointer()
+        SharedObjectPointer() = default;
+
+        template<typename Deleter = std::default_delete<T> >
+        explicit SharedObjectPointer(T *pObj, const Deleter& deleter = Deleter())
+            : SharedDataPointer<SharedObjectDataBase<T> >(new SharedObjectData<T, Deleter>(pObj, deleter))
         {
         }
 
-        explicit SharedPointer(const T& from)
-            : SharedDataPointer<SharedData<T> >(new SharedData<T>(from))
-        {
+        ~SharedObjectPointer() = default;
+
+        T *get() const {
+            return this->m_d ? this->m_d->get() : nullptr;
         }
 
-        template<typename... TArgs>
-        explicit SharedPointer(TArgs... args)
-            : SharedDataPointer<SharedData<T> >(new SharedData<T>(args...))
-        {
+        void reset(T *pObj) {
+            if (this->m_d)
+            {
+                this->detach();
+                this->m_d->reset(pObj);
+            }
+            else
+                this->m_d = new SharedObjectData<T>(pObj);
         }
 
-        T *operator*() const { return &this->m_d->m_data; }
-        T *operator->() const { return &this->m_d->m_data; }
+        void swap(const SharedObjectPointer& other)
+        {
+            std::swap(this->m_d, other.m_d);
+        }
+
+        operator bool() const {
+            return get() != nullptr;
+        }
+
+        T& operator*() const {
+            assert(this->m_d);
+            return *this->m_d->get();
+        }
+
+        T *operator->() const {
+            return get();
+        }
     };
-
-    template<typename T, typename... TArgs>
-    SharedPointer<T> MakeShared(TArgs... args)
-    {
-        return SharedPointer<T>(args...);
-    }
 
 } // namespace metacpp
 #endif // SHAREDDATAPOINTER_H

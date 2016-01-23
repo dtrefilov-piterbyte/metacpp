@@ -322,7 +322,8 @@ DateTime &DateTime::addSeconds(int seconds)
 {
     time_t time = getData()->toStdTime();
     time += seconds;
-    this->m_d->deref();
+    if (!this->m_d->deref())
+        delete this->m_d;
     this->m_d = new detail::DateTimeData(time);
     return *this;
 }

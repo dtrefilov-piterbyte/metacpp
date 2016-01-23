@@ -392,8 +392,6 @@ namespace
 
     TEST_F(ObjectTest, invokeSuccessWithObjectParam)
     {
-        MyObject *obj = (MyObject *)MyObject::staticMetaObject()->createInstance();
-        ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", obj));
-        MyObject::staticMetaObject()->destroyInstance(obj);
+        ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", new MyObject()));
     }
 }

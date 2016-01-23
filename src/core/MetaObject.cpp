@@ -115,7 +115,6 @@ Object *MetaObject::createInstance() const
         throw std::runtime_error("Have no appropriate class constructor");
     void *pMem = ::operator new(size());
     Object *obj = m_constructor(pMem);
-    obj->ref();
     return obj;
 }
 
@@ -123,7 +122,7 @@ void MetaObject::destroyInstance(Object *object) const
 {
     if (!m_destructor)
         throw std::runtime_error("Have no appropriate class destructor");
-    if (object && !object->deref())
+    if (object)
     {
         m_destructor(object);
         ::operator delete(object);
