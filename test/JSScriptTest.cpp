@@ -240,7 +240,7 @@ TEST_F(JSScriptTest, testDateArgument)
     auto program = m_engine->createProgram();
     std::istringstream ss("function toStdTime(dt) { return dt.getTime() }");
     program->compile(ss, "filename");
-    auto value = program->createThread("toStdTime", metacpp::DateTime(2001, metacpp::February, 1, 12, 59, 23))->run();
+    auto value = program->createThread("toStdTime", metacpp::DateTime(981021563))->run();
     EXPECT_EQ(metacpp::variant_cast<time_t>(value), 981021563000);
 }
 
