@@ -158,6 +158,7 @@ IF(GTEST_FOUND)
     IF(SQLITE3_FOUND)
         ADD_TEST("SqliteTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=SqliteTest*")
     ENDIF(SQLITE3_FOUND)
+    ADD_TEST("JSScriptTest" "${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}-test" "--gtest_filter=JSScriptTest*")
 ENDIF(GTEST_FOUND)
 
 FIND_PACKAGE(Doxygen)
