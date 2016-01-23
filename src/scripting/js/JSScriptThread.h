@@ -24,7 +24,7 @@ struct ClassInfo
 };
 
 Variant fromValue(JSContext *context, const JS::Value& v);
-JS::Value toValue(JSContext *context, const Variant& v);
+JS::Value toValue(JSContext *context, Variant v);
 
 } // namespace detail
 
@@ -57,6 +57,8 @@ private:
 
     static void nativeObjectFinalize(JSFreeOp* fop, JSObject *obj);
     static bool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp);
 private:
     ByteArray m_bytecode;
     JSScriptEngine *m_engine;

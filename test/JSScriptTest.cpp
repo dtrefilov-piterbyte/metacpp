@@ -16,6 +16,12 @@ public:
     }
 
     int x() const { return m_x; }
+    void setX(int newX) { m_x = newX; }
+
+    static metacpp::String foo() { return "foo"; }
+    static metacpp::String foo(const metacpp::String& arg) { return "foo" + arg; }
+
+    static metacpp::String className() { return MyObject::staticMetaObject()->name(); }
 
     META_INFO_DECLARE(MyObject)
 
@@ -23,6 +29,10 @@ public:
 
 METHOD_INFO_BEGIN(MyObject)
     METHOD(MyObject, x)
+    METHOD(MyObject, setX)
+    METHOD(MyObject, className)
+    SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)())
+    SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)(const metacpp::String&))
 METHOD_INFO_END(MyObject)
 
 REFLECTIBLE_M(MyObject)
@@ -151,11 +161,12 @@ TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
 TEST_F(JSScriptTest, testSequentialRun)
 {
     auto program = m_engine->createProgram();
-    std::istringstream ss("function f() { return 1; }");
+    std::istringstream ss("function foo() { return 1; }\nfunction bar() { return 2; }");
     program->compile(ss, "filename");
-    auto thread = program->createThread();
-    EXPECT_FALSE(thread->run().valid());
-    EXPECT_FALSE(thread->run().valid());
+    auto thread1 = program->createThread("foo");
+    auto thread2 = program->createThread("bar");
+    EXPECT_EQ(metacpp::variant_cast<int>(thread1->run()), 1);
+    EXPECT_EQ(metacpp::variant_cast<int>(thread2->run()), 2);
 }
 
 TEST_F(JSScriptTest, testFunctionCall)
@@ -220,7 +231,7 @@ TEST_F(JSScriptTest, testDateArgument)
     EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "2001-02-01T09:59:23.000Z");
 }
 
-TEST_F(JSScriptTest, testMyObject)
+TEST_F(JSScriptTest, testObjectResult)
 {
     auto program = m_engine->createProgram();
     std::istringstream ss("function f() { return new MyObject(); }");
@@ -229,6 +240,92 @@ TEST_F(JSScriptTest, testMyObject)
     metacpp::Variant result = thread->run();
     ASSERT_EQ(result.type(), eFieldObject);
     ASSERT_NO_THROW(metacpp::variant_cast<MyObject *>(result));
+}
+
+TEST_F(JSScriptTest, testObjectArgument)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { }");
+    program->compile(ss, "filename");
+    metacpp::Object *obj = new MyObject();
+    auto thread = program->createThread("f", obj);
+    thread->run();
+}
+
+TEST_F(JSScriptTest, testObjectPassThrough)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj; }");
+    program->compile(ss, "filename");
+    MyObject *obj = new MyObject();
+    auto thread = program->createThread("f", obj);
+    metacpp::Variant result = thread->run();
+    ASSERT_EQ(result.type(), eFieldObject);
+    ASSERT_EQ(metacpp::variant_cast<MyObject *>(result), obj);
+}
+
+TEST_F(JSScriptTest, testObjectOwnMethodCall)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj.x() }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f", new MyObject(12378));
+    ASSERT_EQ(metacpp::variant_cast<int>(thread->run()), 12378);
+}
+
+TEST_F(JSScriptTest, testObjectStaticMethodCall)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.className() }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "MyObject");
+}
+
+TEST_F(JSScriptTest, testLinkProtoConstructor)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { var obj = new MyObject(); obj.setX(25); return obj; }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    metacpp::Variant result = thread->run();
+    ASSERT_EQ(result.type(), eFieldObject);
+    MyObject *obj;
+    ASSERT_NO_THROW(obj = metacpp::variant_cast<MyObject *>(result));
+    ASSERT_EQ(obj->x(), 25);
+}
+
+TEST_F(JSScriptTest, testOverloadedCallFoo)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.foo() }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "foo");
+}
+
+TEST_F(JSScriptTest, testOverloadedCallFooBar)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(arg) { return MyObject.foo(arg) }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f", "bar");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "foobar");
+}
+
+TEST_F(JSScriptTest, testMethodNotFound)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.foo(\'bar\', \'extraArg\') }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
 }
 
 #endif

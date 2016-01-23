@@ -8,7 +8,7 @@ namespace metacpp {
 namespace scripting {
 
 class ScriptRuntimeError
-        : std::exception
+        : public std::exception
 {
 public:
     ScriptRuntimeError(const char *message, const char *filename,

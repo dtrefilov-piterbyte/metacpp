@@ -93,7 +93,7 @@ Variant fromValue(JSContext *context, const JS::Value& v)
     throw std::invalid_argument("Unknown JS value type");
 }
 
-JS::Value toValue(JSContext *context, const Variant& v)
+JS::Value toValue(JSContext *context, Variant v)
 {
     JS::Value value;
     if (!v.valid())
@@ -153,7 +153,33 @@ JS::Value toValue(JSContext *context, const Variant& v)
 
     if (v.isObject())
     {
+        Object *nativeObject = v.extractObject();
+        if (nativeObject)
+        {
+            auto thread = JSScriptThread::getRunningInstance(context);
 
+            auto ci = thread->findRegisteredClass(nativeObject->metaObject()->name());
+            if (!ci) {
+                throw std::invalid_argument("Class is not registered");
+            }
+
+            JS::RootedObject object(context, JS_NewObject(context, &ci->class_));
+
+            detail::NativeObjectWrapper *wrapper = new detail::NativeObjectWrapper;
+            wrapper->nativeObject = nativeObject;
+            wrapper->ownership = detail::NativeObjectWrapper::OwnershipGC;
+
+            JS_SetPrivate(object, wrapper);
+
+            value.setObject(*object);
+
+            return value;
+        }
+        else
+        {
+            value.setNull();
+            return value;
+        }
     }
 
     throw std::invalid_argument("Could not convert variant to JS value");
@@ -409,9 +435,31 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
         classInfo.class_.flags = JSCLASS_HAS_PRIVATE;
         classInfo.class_.finalize = JSScriptThread::nativeObjectFinalize;
 
-        JS_InitClass(cx, global, JS::NullPtr(),
-            &classInfo.class_, JSScriptThread::nativeObjectConstruct, 1,
-                         nullptr, nullptr, nullptr, nullptr);
+        JS::RootedObject classObject(cx, JS_InitClass(cx, global, JS::NullPtr(),
+            &classInfo.class_, nullptr, 0,
+                         nullptr, nullptr, nullptr, nullptr));
+
+        JSFunction *ctorFunc = JS_DefineFunction(cx, global, mo->name(),
+            JSScriptThread::nativeObjectConstruct, 1, JSPROP_READONLY | JSPROP_PERMANENT |
+                                                 JSPROP_ENUMERATE | JSFUN_CONSTRUCTOR);
+        JS::RootedObject ctorObject(cx, JS_GetFunctionObject(ctorFunc));
+
+        JS_LinkConstructorAndPrototype(cx, ctorObject, classObject);
+
+        for (size_t i = 0; i < mo->totalMethods(); ++i)
+        {
+            const MetaCallBase *metaCall = mo->method(i);
+            if (metaCall->type() == eMethodOwn)
+            {
+                JS_DefineFunction(cx, classObject, metaCall->name(), &JSScriptThread::nativeObjectOwnMethodCall,
+                    metaCall->numArguments(), JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE);
+            }
+            else if (metaCall->type() == eMethodStatic)
+            {
+                JS_DefineFunction(cx, ctorObject, metaCall->name(), &JSScriptThread::nativeObjectStaticMethodCall,
+                    metaCall->numArguments(), JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE);
+            }
+        }
     }
 }
 
@@ -437,6 +485,10 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
         JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+
+        if (!args.isConstructing())
+            throw std::runtime_error("Native should be called as constructor");
+
         String className = JSAutoByteString(cx,
             JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
 
@@ -444,7 +496,7 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
         if (!ci)
             throw std::runtime_error("Could not find registered class");
 
-        JSObject *obj = JS_NewObjectForConstructor(cx, &ci->class_, args);
+        JSObject *obj = JS_NewObject(cx, &ci->class_);
 
         if (!obj)
             return false;
@@ -470,6 +522,64 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
     catch (const std::exception& e)
     {
         JS_ReportError(cx, "%s", e.what());
+        return false;
+    }
+}
+
+bool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+{
+    try
+    {
+        JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
+        if (!thread)
+            throw std::runtime_error("No script thread instance currently running");
+        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        String methodName = JSAutoByteString(cx,
+            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
+        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
+        VariantArray nativeArgs;
+        nativeArgs.reserve(args.length());
+        for (unsigned i = 0; i < args.length(); ++i)
+            nativeArgs.emplace_back(detail::fromValue(cx, args[i]));
+        JS::Value result = detail::toValue(cx, wrapper->nativeObject->invoke(methodName, nativeArgs));
+        args.rval().set(result);
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native call failed: %s", e.what());
+        return false;
+    }
+}
+
+bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+{
+    try
+    {
+        JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
+        if (!thread)
+            throw std::runtime_error("No script thread instance currently running");
+        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        String className = JSAutoByteString(cx,
+            JS_GetFunctionId(JS_ValueToFunction(cx, args.thisv()))).ptr();
+        String methodName = JSAutoByteString(cx,
+            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+        auto ci = thread->findRegisteredClass(className);
+        if (!ci)
+            throw std::runtime_error("Class not registered");
+        VariantArray nativeArgs;
+        nativeArgs.reserve(args.length());
+        for (unsigned i = 0; i < args.length(); ++i)
+            nativeArgs.emplace_back(detail::fromValue(cx, args[i]));
+        JS::Value result = detail::toValue(cx, ci->metaObject->invoke(methodName, nativeArgs));
+        args.rval().set(result);
+        return true;
+
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native call failed: %s", e.what());
         return false;
     }
 }

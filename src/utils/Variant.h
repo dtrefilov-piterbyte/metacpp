@@ -66,6 +66,7 @@ namespace detail
         template<typename T>
         T value() const;
         void *buffer();
+        Object *extractObject();
 
         SharedDataBase *clone() const override;
     private:
@@ -204,7 +205,10 @@ public:
     /** \brief Checks if this variant stores a VariantArray * */
     bool isArray() const;
 
+    /** \brief Returns pointer to the stored data of the corresponding type (only for POD types) */
     const void *buffer() const;
+    /** \brief Extract an object holded by this Variant and invalidates it */
+    Object *extractObject();
 private:
     detail::VariantData *getData() const;
 };

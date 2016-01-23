@@ -116,6 +116,13 @@ namespace detail
         }
     }
 
+    Object *VariantData::extractObject()
+    {
+        if (m_type != eFieldObject)
+            throw std::runtime_error("Not an object variant");
+        return m_object.extract();
+    }
+
     SharedDataBase *VariantData::clone() const
     {
         VariantData *copy = new VariantData();
@@ -365,6 +372,14 @@ const void *Variant::buffer() const
 {
     detail::VariantData *data = this->getData();
     return data->buffer();
+}
+
+Object *Variant::extractObject()
+{
+    // NOTE: detach is not needed since we require invalidation of all instances
+    // holding the same object
+    detail::VariantData *data = this->getData();
+    return data->extractObject();
 }
 
 detail::VariantData *Variant::getData() const

@@ -58,6 +58,7 @@ public:
 
     virtual TObj *get() const = 0;
     virtual void reset(TObj *) = 0;
+    virtual TObj *extract() = 0;
 };
 
 template<typename TObj, typename Deleter = std::default_delete<TObj> >
@@ -71,7 +72,8 @@ public:
 
     SharedDataBase *clone() const
     {
-        return new SharedObjectData(m_obj, m_deleter);
+        throw std::runtime_error("Cannot clone SharedDataBase");
+        //return new SharedObjectData(m_obj, m_deleter);
     }
 
     ~SharedObjectData()
@@ -86,6 +88,13 @@ public:
         if (m_obj)
             m_deleter(m_obj);
         m_obj = obj;
+    }
+
+    TObj *extract() override
+    {
+        TObj *result = m_obj;
+        m_obj = nullptr;
+        return result;
     }
 
 private:

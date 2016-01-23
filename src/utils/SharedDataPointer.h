@@ -20,6 +20,10 @@
 
 namespace metacpp
 {
+    namespace detail
+    {
+    class VariantData;
+    }
     /** \brief Template class holding a shared reference to SharedDataBase */
     template<typename T>
     class SharedDataPointer {
@@ -187,6 +191,14 @@ namespace metacpp
         T *operator->() const {
             return get();
         }
+    private:
+
+        T *extract() {
+            this->detach(); // will throw an exception if there's more than one instance pointing to the object
+            return this->m_d ? this->m_d->extract() : nullptr;
+        }
+
+        friend class detail::VariantData;
     };
 
 } // namespace metacpp
