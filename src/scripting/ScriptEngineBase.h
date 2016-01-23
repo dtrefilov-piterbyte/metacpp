@@ -25,7 +25,7 @@ public:
     ScriptEngineBase();
     virtual ~ScriptEngineBase();
 
-    std::shared_ptr<ScriptProgramBase> createProgram();
+    SharedObjectPointer<ScriptProgramBase> createProgram();
 
     void registerClass(const MetaObject *metaObject);
 

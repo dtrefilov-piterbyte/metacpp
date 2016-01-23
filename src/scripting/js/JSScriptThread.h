@@ -59,6 +59,13 @@ private:
     static bool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
     static bool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
     static bool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectGetter(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectSetter(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                     JS::MutableHandleValue vp);
+    static bool nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                           bool strict, JS::MutableHandleValue vp);
+
 private:
     ByteArray m_bytecode;
     JSScriptEngine *m_engine;

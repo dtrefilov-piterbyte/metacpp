@@ -9,10 +9,10 @@ ScriptEngineBase::ScriptEngineBase() {
 ScriptEngineBase::~ScriptEngineBase() {
 }
 
-std::shared_ptr<ScriptProgramBase> ScriptEngineBase::createProgram()
+SharedObjectPointer<ScriptProgramBase> ScriptEngineBase::createProgram()
 {
     auto deleter = [this](ScriptProgramBase *program) { closeProgramImpl(program); };
-    return std::shared_ptr<ScriptProgramBase>(createProgramImpl(), deleter);
+    return SharedObjectPointer<ScriptProgramBase>(createProgramImpl(), deleter);
 }
 
 void ScriptEngineBase::registerClass(const MetaObject *metaObject)

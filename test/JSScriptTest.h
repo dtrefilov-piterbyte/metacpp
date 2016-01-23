@@ -14,6 +14,7 @@ public:
     static void TearDownTestCase();
 
     std::unique_ptr<metacpp::scripting::ScriptEngineBase> m_engine;
+    metacpp::SharedObjectPointer<metacpp::scripting::ScriptProgramBase> m_program;
 };
 
 #endif // JSSCRIPTTEST_H

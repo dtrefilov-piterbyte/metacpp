@@ -7,16 +7,21 @@
 #include <thread>
 #include <stdexcept>
 
-class MyObject : public metacpp::Object
+
+struct MyObject : public metacpp::Object
 {
-    int m_x;
-public:
-    MyObject(int x = 0) : m_x(x)
+    int xValue;
+    metacpp::String stringValue;
+    metacpp::Array<double> arrayValue;
+    Nullable<float> optValue;
+    metacpp::DateTime dateValue;
+
+    MyObject(int x = 0) : xValue(x)
     {
     }
 
-    int x() const { return m_x; }
-    void setX(int newX) { m_x = newX; }
+    int x() const { return xValue; }
+    void setX(int newX) { xValue = newX; }
 
     static metacpp::String foo() { return "foo"; }
     static metacpp::String foo(const metacpp::String& arg) { return "foo" + arg; }
@@ -24,8 +29,15 @@ public:
     static metacpp::String className() { return MyObject::staticMetaObject()->name(); }
 
     META_INFO_DECLARE(MyObject)
-
 };
+
+STRUCT_INFO_BEGIN(MyObject)
+    FIELD(MyObject, xValue)
+    FIELD(MyObject, stringValue)
+    FIELD(MyObject, arrayValue)
+    FIELD(MyObject, optValue)
+    FIELD(MyObject, dateValue)
+STRUCT_INFO_END(MyObject)
 
 METHOD_INFO_BEGIN(MyObject)
     METHOD(MyObject, x)
@@ -35,7 +47,7 @@ METHOD_INFO_BEGIN(MyObject)
     SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)(const metacpp::String&))
 METHOD_INFO_END(MyObject)
 
-REFLECTIBLE_M(MyObject)
+REFLECTIBLE_FM(MyObject)
 
 META_INFO(MyObject)
 
@@ -116,7 +128,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
     std::istringstream ss("while (1) { }");
     program->compile(ss, "filename");
     std::vector<std::thread> threads;
-    std::vector<std::shared_ptr<metacpp::scripting::ScriptThreadBase>> scriptThreads;
+    std::vector<metacpp::SharedObjectPointer<metacpp::scripting::ScriptThreadBase>> scriptThreads;
     const size_t numThreads = 10;
 
     for (size_t i = 0; i < numThreads; ++i)
@@ -326,6 +338,50 @@ TEST_F(JSScriptTest, testMethodNotFound)
     // script engine takes object ownership
     auto thread = program->createThread("f");
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testSetProperty)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("obj = MyObject(); obj.xValue = 12; if (obj.x() !== 12) throw Error()");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread();
+    thread->run();
+}
+
+TEST_F(JSScriptTest, testGetProperty)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("obj = MyObject(); if (obj.xValue !== 0) throw Error()");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread();
+    thread->run();
+}
+
+TEST_F(JSScriptTest, testSetDynamicProperty)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { obj = MyObject(); obj.newProp = \'foo\'; return obj; }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    auto result = thread->run();
+    auto obj = metacpp::variant_cast<MyObject *>(result);
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(obj->getProperty("newProp")), "foo");
+}
+
+TEST_F(JSScriptTest, testGetDynamicProperty)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj[\'`123!@#\']; }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    MyObject *obj = new MyObject();
+    obj->setProperty("`123!@#", "bar");
+    auto thread = program->createThread("f", obj);
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "bar");
 }
 
 #endif

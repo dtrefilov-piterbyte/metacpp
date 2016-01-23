@@ -77,7 +77,8 @@ Variant fromValue(JSContext *context, const JS::Value& v)
         JSScriptThread *thread = JSScriptThread::getRunningInstance(context);
         if (!thread)
             throw std::runtime_error("No script thread running");
-        const ClassInfo *classInfo = thread->findRegisteredClass(JS_GetClass(obj)->name);
+        auto cl = JS_GetClass(obj);
+        const ClassInfo *classInfo = thread->findRegisteredClass(cl->name);
         if (!classInfo)
             throw std::invalid_argument("Unsupported class");
 
@@ -433,6 +434,8 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
         classInfo.metaObject = mo;
         classInfo.class_.name = mo->name();
         classInfo.class_.flags = JSCLASS_HAS_PRIVATE;
+        classInfo.class_.getProperty = JSScriptThread::nativeObjectDynamicGetter;
+        classInfo.class_.setProperty = JSScriptThread::nativeObjectDynamicSetter;
         classInfo.class_.finalize = JSScriptThread::nativeObjectFinalize;
 
         JS::RootedObject classObject(cx, JS_InitClass(cx, global, JS::NullPtr(),
@@ -446,6 +449,7 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
 
         JS_LinkConstructorAndPrototype(cx, ctorObject, classObject);
 
+        // define class methods
         for (size_t i = 0; i < mo->totalMethods(); ++i)
         {
             const MetaCallBase *metaCall = mo->method(i);
@@ -459,6 +463,16 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
                 JS_DefineFunction(cx, ctorObject, metaCall->name(), &JSScriptThread::nativeObjectStaticMethodCall,
                     metaCall->numArguments(), JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE);
             }
+        }
+
+        // define class properties
+        for (size_t i = 0; i < mo->totalFields(); ++i)
+        {
+            const MetaFieldBase *field = mo->field(i);
+            JS::RootedObject value(cx);
+            JS_DefineProperty(cx, classObject, field->name(), value, JSPROP_READONLY | JSPROP_PERMANENT |
+                JSPROP_ENUMERATE | JSPROP_SHARED, &JSScriptThread::nativeObjectGetter,
+                &JSScriptThread::nativeObjectSetter);
         }
     }
 }
@@ -481,13 +495,16 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
 {
     try
     {
+        // TODO: custom ctors
+        if (argc != 0)
+            throw std::invalid_argument("Bad number of arguments in constructor");
         JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
         JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
-        if (!args.isConstructing())
-            throw std::runtime_error("Native should be called as constructor");
+        //if (!args.isConstructing())
+        //    throw std::runtime_error("Native should be called as constructor");
 
         String className = JSAutoByteString(cx,
             JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
@@ -521,7 +538,7 @@ bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *
     }
     catch (const std::exception& e)
     {
-        JS_ReportError(cx, "%s", e.what());
+        JS_ReportError(cx, "Native constructor failed: %s", e.what());
         return false;
     }
 }
@@ -584,7 +601,87 @@ bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, 
     }
 }
 
+bool JSScriptThread::nativeObjectGetter(JSContext *cx, unsigned argc, jsval *vp)
+{
+    try
+    {
+        if (argc != 0)
+            throw std::runtime_error("Illegal number of arguments for getter");
+        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        String propName = JSAutoByteString(cx, JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
+        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
+        args.rval().set(detail::toValue(cx, wrapper->nativeObject->getProperty(propName)));
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native getter failed: %s", e.what());
+        return false;
+    }
+}
 
+bool JSScriptThread::nativeObjectSetter(JSContext *cx, unsigned argc, jsval *vp)
+{
+    try
+    {
+        if (argc != 1)
+            throw std::runtime_error("Illegal number of arguments for setter");
+        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        String propName = JSAutoByteString(cx, JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
+        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
+        wrapper->nativeObject->setProperty(propName, detail::fromValue(cx, args[0]));
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native setter failed: %s", e.what());
+        return false;
+    }
+}
+
+bool JSScriptThread::nativeObjectDynamicGetter(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp)
+{
+    try
+    {
+        JS::RootedValue idValue(cx);
+        if (!JS_IdToValue(cx, id, &idValue))
+            throw std::runtime_error("Bad property id");
+        String propName = variant_cast<String>(detail::fromValue(cx, idValue));
+        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(obj);
+        // method properties
+        if (wrapper->nativeObject->metaObject()->methodByName(propName))
+            return JS_PropertyStub(cx, obj, id, vp);
+        vp.set(detail::toValue(cx, wrapper->nativeObject->getProperty(propName)));
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native getter failed: %s", e.what());
+        return false;
+    }
+}
+
+bool JSScriptThread::nativeObjectDynamicSetter(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict, JS::MutableHandleValue vp)
+{
+    try
+    {
+        (void)strict;
+        JS::RootedValue idValue(cx);
+        if (!JS_IdToValue(cx, id, &idValue))
+            throw std::runtime_error("Bad property id");
+        String propName = variant_cast<String>(detail::fromValue(cx, idValue));
+        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(obj);
+        wrapper->nativeObject->setProperty(propName, detail::fromValue(cx, vp));
+        return true;
+    }
+    catch (const std::exception& e)
+    {
+        JS_ReportError(cx, "Native setter failed: %s", e.what());
+        return false;
+    }
+}
 
 } // namespace js
 } // namespace scripting

@@ -11,10 +11,10 @@ ScriptProgramBase::ScriptProgramBase() {
 ScriptProgramBase::~ScriptProgramBase() {
 }
 
-std::shared_ptr<ScriptThreadBase> ScriptProgramBase::createThread(const String &functionName, const VariantArray &args)
+SharedObjectPointer<ScriptThreadBase> ScriptProgramBase::createThread(const String &functionName, const VariantArray &args)
 {
     auto deleter = [this](ScriptThreadBase *thread) { closeThreadImpl(thread); };
-    return std::shared_ptr<ScriptThreadBase>(createThreadImpl(functionName, args), deleter);
+    return SharedObjectPointer<ScriptThreadBase>(createThreadImpl(functionName, args), deleter);
 }
 
 void ScriptProgramBase::compile(const String& sourceFile) {
