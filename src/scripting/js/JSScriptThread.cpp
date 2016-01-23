@@ -147,7 +147,8 @@ JS::Value toValue(JSContext *context, Variant v)
     if (v.isDateTime())
     {
         auto dt = variant_cast<DateTime>(v);
-        value.setObject(*JS_NewDateObjectMsec(context, dt.toStdTime() * 1E3));
+        value.setObject(*JS_NewDateObject(context, dt.year(), static_cast<int>(dt.month()),
+                                          dt.day(), dt.hours(), dt.minutes(), dt.seconds()));
         return value;
     }
 

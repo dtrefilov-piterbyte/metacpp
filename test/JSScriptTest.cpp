@@ -130,7 +130,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
     program->compile(ss, "filename");
     std::vector<std::thread> threads;
     std::vector<metacpp::SharedObjectPointer<metacpp::scripting::ScriptThreadBase>> scriptThreads;
-    const size_t numThreads = 3;
+    const size_t numThreads = 10;
 
     for (size_t i = 0; i < numThreads; ++i)
     {
@@ -143,7 +143,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
 
     for (size_t i = 0; i < numThreads; ++i)
     {
-        scriptThreads[i]->abort(1000);
+        scriptThreads[i]->abort(0);
         if (threads[i].joinable())
             threads[i].join();
     }
@@ -238,11 +238,10 @@ TEST_F(JSScriptTest, testDateResult)
 TEST_F(JSScriptTest, testDateArgument)
 {
     auto program = m_engine->createProgram();
-    std::istringstream ss("function toISO(dt) { return dt.toISOString() }");
+    std::istringstream ss("function toStdTime(dt) { return dt.getTime() }");
     program->compile(ss, "filename");
-    auto value = program->createThread("toISO", metacpp::DateTime(static_cast<time_t>(0)))->run();
-    ASSERT_TRUE(value.isString());
-    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "1970-01-01T00:00:00.000Z");
+    auto value = program->createThread("toStdTime", metacpp::DateTime(2001, metacpp::February, 1, 12, 59, 23))->run();
+    EXPECT_EQ(metacpp::variant_cast<time_t>(value), 981021563000);
 }
 
 TEST_F(JSScriptTest, testObjectResult)
