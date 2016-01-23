@@ -104,7 +104,7 @@ TEST_F(JSScriptTest, testThrow)
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
 }
 
-#if MOZJS_MAJOR_VERSION >= 38
+#ifdef MT_SPIDERMONKEY
 TEST_F(JSScriptTest, testTerminate)
 {
     auto program = m_engine->createProgram();
@@ -115,7 +115,7 @@ TEST_F(JSScriptTest, testTerminate)
     std::thread th([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
     while (!thread->running())
         std::this_thread::yield();
-    thread->abort(0);
+    thread->abort(1000);
     if (th.joinable())
         th.join();
     ASSERT_TRUE((bool)ex);
@@ -143,7 +143,7 @@ TEST_F(JSScriptTest, testMultipleThreads)
 
     for (size_t i = 0; i < numThreads; ++i)
     {
-        scriptThreads[i]->abort(0);
+        scriptThreads[i]->abort(1000);
         if (threads[i].joinable())
             threads[i].join();
     }
