@@ -83,7 +83,7 @@ Variant fromValue(JSContext *context, const JS::Value& v)
             throw std::invalid_argument("Unsupported class");
 
         auto wrapper = (NativeObjectWrapper *)JS_GetPrivate(obj);
-        if (wrapper) {
+        if (wrapper && wrapper->ownership == NativeObjectWrapper::OwnershipGC) {
             wrapper->ownership = NativeObjectWrapper::OwnershipVariant;
             return wrapper->nativeObject;
         }
@@ -192,6 +192,84 @@ JS::Value toValue(JSContext *context, Variant v)
 
     throw std::invalid_argument("Could not convert variant to JS value");
 }
+
+VariantArray wrapInArguments(JSContext *cx, const JS::CallArgs& args)
+{
+    VariantArray result;
+    result.reserve(args.length());
+    for (size_t i = 0; i < args.length(); ++i)
+        result.emplace_back(fromValue(cx, args[i]));
+    return result;
+}
+
+void wrapOutArguments(JSContext *cx, VariantArray& args, jsval *values)
+{
+    for (size_t i = 0 ; i < args.size(); ++i) {
+        Variant arg = args[i];
+        JS::RootedValue value(cx, values[i]);
+
+        if (arg.isObject())
+        {
+            arg.extractObject();
+            JS::RootedObject obj(cx, value.toObjectOrNull());
+            auto wrapper = (NativeObjectWrapper *)JS_GetPrivate(obj);
+            // Give object ownership back to the garbage collector
+            if (wrapper && wrapper->ownership == NativeObjectWrapper::OwnershipVariant) {
+                wrapper->ownership = NativeObjectWrapper::OwnershipGC;
+            }
+        }
+        else if (arg.isArray())
+        {
+            if (!JS_IsArrayObject(cx, value))
+                throw std::runtime_error("Argument is not an array");
+            JS::RootedObject valueObj(cx, value.toObjectOrNull());
+            Array<JS::Value> valuesArg;
+            VariantArray arrayArg = variant_cast<VariantArray>(arg);
+            valuesArg.reserve(arrayArg.size());
+            for (size_t j = 0; j < arrayArg.size(); ++j)
+            {
+#if MOZJS_MAJOR_VERSION >=31
+                JS::RootedValue subval(cx);
+#else
+                jsval subval;
+#endif
+                if (!JS_GetElement(cx, valueObj, j, &subval))
+                    throw std::runtime_error("Could not get array element");
+                valuesArg.push_back(subval);
+            }
+            wrapOutArguments(cx, arrayArg, valuesArg.data());
+        }
+    }
+}
+
+class ArgumentWrapper {
+public:
+    ArgumentWrapper(JSContext *cx, unsigned argc, jsval *vp)
+        : m_cx(cx),
+          m_callArgs(JS::CallArgsFromVp(argc, vp)),
+          m_nativeArgs(wrapInArguments(cx, m_callArgs))
+    {
+    }
+
+    ~ArgumentWrapper()
+    {
+        try
+        {
+            wrapOutArguments(m_cx, m_nativeArgs, m_callArgs.array());
+        }
+        catch (...)
+        {
+        }
+    }
+
+    JS::CallArgs& callArgs() { return m_callArgs; }
+    VariantArray& nativeArgs() { return m_nativeArgs; }
+
+private:
+    JSContext *m_cx;
+    JS::CallArgs m_callArgs;
+    VariantArray m_nativeArgs;
+};
 
 } // namespace details
 
@@ -403,7 +481,7 @@ const detail::ClassInfo *JSScriptThread::findRegisteredClass(const String &name)
         });
     if (it == m_registeredClasses.end())
         return nullptr;
-    return it;
+    return &*it;
 }
 
 void JSScriptThread::onError(const char *message, JSErrorReport *report)
@@ -440,7 +518,7 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
 {
     for (const MetaObject *mo : m_engine->registeredClasses())
     {
-        m_registeredClasses.emplace_back(detail::ClassInfo());
+        m_registeredClasses.push_back(detail::ClassInfo());
         detail::ClassInfo& classInfo = m_registeredClasses.back();
         memset(&classInfo.class_, 0, sizeof(JSClass));
         classInfo.metaObject = mo;
@@ -457,6 +535,7 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
         classInfo.class_.setProperty = JSScriptThread::nativeObjectDynamicSetter;
         classInfo.class_.finalize = JSScriptThread::nativeObjectFinalize;
 #if MOZJS_MAJOR_VERSION >= 31
+
         classInfo.classObject = JS_InitClass(cx, global, JS::NullPtr(),
             &classInfo.class_, nullptr, 0, nullptr, nullptr, nullptr, nullptr);
 #else
@@ -467,7 +546,6 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
         JSFunction *ctorFunc = JS_DefineFunction(cx, global, mo->name(),
             JSScriptThread::nativeObjectConstruct, 1, JSPROP_READONLY | JSPROP_PERMANENT |
                                                  JSPROP_ENUMERATE | JSFUN_CONSTRUCTOR);
-
         classInfo.ctorObject = JS_GetFunctionObject(ctorFunc);
 
         JS::RootedObject classObject(cx, classInfo.classObject);
@@ -584,17 +662,14 @@ JSBool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, j
         JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
-        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        detail::ArgumentWrapper argWrapper(cx, argc, vp);
         String methodName = JSAutoByteString(cx,
-            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
-        JS::RootedObject this_(cx, args.thisv().toObjectOrNull());
-        auto wrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
-        VariantArray nativeArgs;
-        nativeArgs.reserve(args.length());
-        for (unsigned i = 0; i < args.length(); ++i)
-            nativeArgs.emplace_back(detail::fromValue(cx, args[i]));
-        JS::Value result = detail::toValue(cx, wrapper->nativeObject->invoke(methodName, nativeArgs));
-        args.rval().set(result);
+            JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().calleev()))).ptr();
+        JS::RootedObject this_(cx, argWrapper.callArgs().thisv().toObjectOrNull());
+        auto objectWrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
+        JS::Value result = detail::toValue(cx, objectWrapper->nativeObject->invoke(methodName,
+            argWrapper.nativeArgs()));
+        argWrapper.callArgs().rval().set(result);
         return true;
     }
     catch (const std::exception& e)
@@ -615,20 +690,17 @@ JSBool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc
         JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
-        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+        detail::ArgumentWrapper argWrapper(cx, argc, vp);
         String className = JSAutoByteString(cx,
-            JS_GetFunctionId(JS_ValueToFunction(cx, args.thisv()))).ptr();
+            JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().thisv()))).ptr();
         String methodName = JSAutoByteString(cx,
-            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+            JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().calleev()))).ptr();
         auto ci = thread->findRegisteredClass(className);
         if (!ci)
             throw std::runtime_error("Class not registered");
-        VariantArray nativeArgs;
-        nativeArgs.reserve(args.length());
-        for (unsigned i = 0; i < args.length(); ++i)
-            nativeArgs.emplace_back(detail::fromValue(cx, args[i]));
-        JS::Value result = detail::toValue(cx, ci->metaObject->invoke(methodName, nativeArgs));
-        args.rval().set(result);
+        JS::Value result = detail::toValue(cx, ci->metaObject->invoke(methodName,
+            argWrapper.nativeArgs()));
+        argWrapper.callArgs().rval().set(result);
         return true;
 
     }

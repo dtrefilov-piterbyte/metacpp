@@ -319,7 +319,7 @@ namespace
             return String::fromValue(v);
         }
 
-        static String objName(const Object *obj)
+        static String objName(const MyObject *obj)
         {
             return obj->metaObject()->name();
         }

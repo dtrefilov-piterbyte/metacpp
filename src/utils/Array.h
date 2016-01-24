@@ -73,7 +73,7 @@ namespace detail
 
         static T *Reallocate(T *data, size_t newSize, size_t oldSize)
         {
-            T *newData = new T[newSize];
+            T *newData = newSize ? new T[newSize] : nullptr;
             if (data)
             {
                 std::copy_n(data, std::min(newSize, oldSize), newData);
@@ -207,8 +207,8 @@ namespace detail
             if (m_dwAllocatedSize != m_dwSize)
             {
                 m_data = (T *)m_traits.reallocCb(m_data, m_dwSize, m_dwAllocatedSize);
-                if (!m_data)
-                    throw std::bad_alloc("Out of memory");
+                if (m_dwSize && !m_data)
+                    throw std::bad_alloc();
                 m_dwAllocatedSize = m_dwSize;
             }
         }
@@ -339,7 +339,7 @@ public:
     /** \brief Constructs a new empty array */
     Array()
         : Base(new detail::ArrayData<T>())
-	{
+    {
 	}
 
     /** \brief Constructs a new array from the existing. Both arrays shares the same data buffer
@@ -440,7 +440,7 @@ public:
     void append(const Array& other) { this->append(other.data(), other.size()); }
 
     /** \brief Empties this array */
-    void clear() { resize(0); }
+    void clear() { resize(0); squeeze(); }
 
     /** \brief Applies functor to each element in this array and returns a new array of results */
     template<typename TRes>

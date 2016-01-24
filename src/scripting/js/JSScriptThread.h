@@ -21,7 +21,6 @@ struct ClassInfo
     JSClass class_;
     JSObject *classObject, *ctorObject;
     const MetaObject *metaObject;
-
 };
 
 Variant fromValue(JSContext *context, const JS::Value& v);

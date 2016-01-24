@@ -1,6 +1,7 @@
 #include "JSScriptTest.h"
 
 #ifdef HAVE_SPIDERMONKEY
+#include <js-config.h>
 #include "JSScriptEngine.h"
 #include "ScriptThreadBase.h"
 #include "Object.h"
@@ -11,7 +12,7 @@
 struct MyObject : public metacpp::Object
 {
     int xValue;
-    metacpp::String stringValue;
+    metacpp::String name;
     metacpp::Array<double> arrayValue;
     Nullable<float> optValue;
     metacpp::DateTime dateValue;
@@ -27,13 +28,19 @@ struct MyObject : public metacpp::Object
     static metacpp::String foo(const metacpp::String& arg) { return "foo" + arg; }
 
     static metacpp::String className() { return MyObject::staticMetaObject()->name(); }
+    static metacpp::String objClassName(const Object *obj) { return obj->metaObject()->name(); }
+    static metacpp::VariantArray getNames(const metacpp::VariantArray& objects) {
+        return objects.map<metacpp::Variant>([](const metacpp::Variant& v) {
+            return metacpp::variant_cast<MyObject *>(v)->name;
+        });
+    }
 
     META_INFO_DECLARE(MyObject)
 };
 
 STRUCT_INFO_BEGIN(MyObject)
     FIELD(MyObject, xValue)
-    FIELD(MyObject, stringValue)
+    FIELD(MyObject, name)
     FIELD(MyObject, arrayValue)
     FIELD(MyObject, optValue)
     FIELD(MyObject, dateValue)
@@ -43,6 +50,8 @@ METHOD_INFO_BEGIN(MyObject)
     METHOD(MyObject, x)
     METHOD(MyObject, setX)
     METHOD(MyObject, className)
+    METHOD(MyObject, objClassName)
+    METHOD(MyObject, getNames)
     SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)())
     SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)(const metacpp::String&))
 METHOD_INFO_END(MyObject)
@@ -104,7 +113,8 @@ TEST_F(JSScriptTest, testThrow)
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
 }
 
-#ifdef MT_SPIDERMONKEY
+// Threads are not terminatable
+#ifdef JS_THREADSAFE
 TEST_F(JSScriptTest, testTerminate)
 {
     auto program = m_engine->createProgram();
@@ -339,6 +349,40 @@ TEST_F(JSScriptTest, testMethodNotFound)
     // script engine takes object ownership
     auto thread = program->createThread("f");
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testPassObject)
+{
+    // test a native call recieving an object, object should still be GC collectible
+    // after the function call
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { obj = MyObject();"
+                          " result = MyObject.objClassName(obj);"
+                          " obj.xValue = 12; " // check the object is still accessible from script
+                          " return result; }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "MyObject");
+}
+
+TEST_F(JSScriptTest, testPassObjectArray)
+{
+    // same as above for array of objects
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { foo = MyObject(); bar = MyObject();"
+                          " foo.name = \'foo\'; bar.name = \'bar\';"
+                          " result = MyObject.getNames([foo, bar]);"
+                          " if (foo.name !== \'foo\') throw Error();"
+                          " if (bar.name !== \'bar\') throw Error();"
+                          " return result; }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f");
+    auto result = metacpp::variant_cast<metacpp::VariantArray>(thread->run());
+    ASSERT_EQ(result.size(), 2);
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(result[0]), "foo");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(result[1]), "bar");
 }
 
 TEST_F(JSScriptTest, testSetProperty)

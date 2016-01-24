@@ -14,6 +14,7 @@
 * limitations under the License.                                            *
 ****************************************************************************/
 #include "StringBase.h"
+#include "Variant.h"
 #include <climits>
 #include <locale>
 
@@ -352,6 +353,145 @@ namespace detail
     WString string_cast<WString>(const std::basic_string<char16_t>& str)
     {
         return str;
+    }
+
+    template<>
+    StringBase<char> StringBase<char>::format(const char *fmt, const VariantArray& args)
+    {
+        const char *p = fmt;
+        char buffer[256];
+        size_t i = 0;
+        String result;
+        while (*p) {
+            if (*p == '%') {
+                String subformat;
+                subformat.reserve(10);
+                subformat.append(*p);
+                if (*(p + 1) == '%')
+                {
+                    result.append('%');
+                    p++;
+                    continue;
+                }
+                for (;;)
+                {
+                    EFieldType argType = eFieldVoid;
+                    ++p;
+                    switch (*p)
+                    {
+                    case 0:
+                        throw std::invalid_argument("Unexpected end of format string");
+                    default:
+                        throw std::invalid_argument("Invalid character in format string");
+                    // flags
+                    case '-':
+                    case '+':
+                    case ' ':
+                    case '#':
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                    case '.':
+                    case '*':
+                        break;
+
+                    // specifiers
+                    case 's':
+                        argType = eFieldString;
+                        break;
+                    case 'c':
+                        argType = eFieldInt;
+                        break;
+                    case 'd':
+                    case 'i':
+                    case 'u':
+                    case 'o':
+                    case 'x':
+                    case 'X':
+                        argType = subformat.contains("ll") ? eFieldUint64 : eFieldUint;
+                        break;
+                    case 'f':
+                    case 'F':
+                    case 'e':
+                    case 'E':
+                    case 'g':
+                    case 'G':
+                    case 'a':
+                    case 'A':
+                        argType = eFieldDouble;
+                        break;
+                    case 'p':
+                        argType = eFieldObject;
+                        break;
+                    }
+                    subformat.append(*p);
+
+                    if (argType == eFieldVoid)
+                        continue;
+                    if (i >= args.size())
+                        throw std::invalid_argument("Not enogh arguments for the given format");
+                    Variant arg = args[i++];
+                    int nChars = -1;
+
+                    switch (argType)
+                    {
+                    default:
+                        throw std::runtime_error("Unhandled argument type");
+                    case eFieldString:
+                        result.append(variant_cast<String>(arg));
+                        nChars = 0;
+                        break;
+                    case eFieldInt:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       variant_cast<int32_t>(arg));
+                        break;
+                    case eFieldUint:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       variant_cast<uint32_t>(arg));
+                        break;
+                    case eFieldInt64:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       variant_cast<int64_t>(arg));
+                        break;
+                    case eFieldUint64:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       variant_cast<uint64_t>(arg));
+                        break;
+                    case eFieldDouble:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       variant_cast<double>(arg));
+                        break;
+                    case eFieldObject:
+                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
+                                                       arg.buffer());
+                        break;
+                    }
+                    if (nChars < 0)
+                        throw std::runtime_error("Generic format error");
+                    if (nChars)
+                        result.append(buffer, nChars);
+
+                    break;
+                }
+            } else {
+                result.append(*p);
+            }
+            p++;
+        }
+        return result;
+    }
+
+    template<>
+    StringBase<char16_t> StringBase<char16_t>::format(const char16_t *format, const VariantArray& args)
+    {
+        return string_cast<WString>(String::format(string_cast<String>(format).c_str(), args));
     }
 
     std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const String& str)

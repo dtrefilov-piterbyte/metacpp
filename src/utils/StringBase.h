@@ -33,6 +33,8 @@ namespace metacpp
 template<typename T>
 class StringBase;
 
+class Variant;
+
 /** \brief String in native system encoding (ANSI on Windows platforms and UTF-8 on linux)
  * \relates metacpp::StringBase
  */
@@ -647,6 +649,7 @@ public:
         return *this;
     }
 
+    static StringBase format(const T *format, const Array<Variant>& args);
 private:
     static StringBase<T> ms_null;
     static StringBase<T> ms_empty;

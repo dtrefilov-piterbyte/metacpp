@@ -111,6 +111,7 @@ namespace detail
         case eFieldUint64: return &m_storage.m_uint64;
         case eFieldFloat: return &m_storage.m_float;
         case eFieldDouble: return &m_storage.m_double;
+        case eFieldObject: return m_object.get();
         default:
             throw std::runtime_error("Unknown variant type");
         }
