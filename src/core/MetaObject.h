@@ -37,9 +37,7 @@ class MetaObject
 {
 public:
     /** \brief Constructs a new instance of MetaObject with given descriptor, constructor and desctructor callbacks */
-    explicit MetaObject(const MetaInfoDescriptor *descriptor,
-                        Object *(*constructor)(void *mem) = nullptr,
-                        void (*destructor)(void *mem) = nullptr);
+    explicit MetaObject(const MetaInfoDescriptor *descriptor);
     ~MetaObject(void);
 
     /** \brief Returns a name of the class */
@@ -65,8 +63,18 @@ public:
     /** \brief Gets a size of the class  */
     size_t size() const;
 
-    /** \brief Creates a new instance of the object of corresponding class */
-    Object *createInstance() const;
+    /** \brief Creates a new instance of the object of corresponding class
+     *  with given arguments passed to it's constructor via VariantArray */
+    Object *createInstance(const VariantArray& args) const;
+
+    /** \brief Creates a new instance of the object of corresponding class
+     * with specified arguments passed to it's constructor
+    */
+    template<typename... TArgs>
+    Object *createInstance(TArgs... args) const {
+        return createInstance({ args... });
+    }
+
     /** \brief Destroys instance of the object previously created with createInstance */
     void destroyInstance(Object *object) const;
 
@@ -88,8 +96,6 @@ private:
     mutable std::vector<std::unique_ptr<MetaCallBase> > m_methods;
     mutable std::unique_ptr<const MetaObject> m_super;
     mutable std::mutex m_mutex;
-    Object *(*m_constructor)(void *mem);
-    void (*m_destructor)(void *mem);
 };
 
 /** \brief Abstract base class representing property reflection info */

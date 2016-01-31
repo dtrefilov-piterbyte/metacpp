@@ -666,26 +666,21 @@ JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval
 {
     try
     {
-        // TODO: custom ctors
-        if (argc != 0)
-            throw std::invalid_argument("Bad number of arguments in constructor");
         JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
-        JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
-        //if (!args.isConstructing())
-        //    throw std::runtime_error("Native should be called as constructor");
-
+        detail::ArgumentWrapper argWrapper(cx, argc, vp);
         String className = JSAutoByteString(cx,
-            JS_GetFunctionId(JS_ValueToFunction(cx, args.calleev()))).ptr();
+            JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().calleev()))).ptr();
 
         const detail::ClassInfo *ci = thread->findRegisteredClass(className);
         if (!ci)
             throw std::runtime_error("Could not find registered class");
 
 #if MOZJS_MAJOR_VERSION >= 31
-        JSObject *obj = JS_NewObjectForConstructor(cx, const_cast<JSClass *>(&ci->class_), args);
+        JSObject *obj = JS_NewObjectForConstructor(cx, const_cast<JSClass *>(&ci->class_),
+                                                   argWrapper.callArgs());
 #else
         JSObject *obj = JS_NewObjectForConstructor(cx, const_cast<JSClass *>(&ci->class_), vp);
 #endif
@@ -693,7 +688,7 @@ JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval
         if (!obj)
             return false;
 
-        Object *pNativeObject = ci->metaObject->createInstance();
+        Object *pNativeObject = ci->metaObject->createInstance(argWrapper.nativeArgs());
         if (pNativeObject == NULL) {
             JS_ReportOutOfMemory(cx);
             return false;
@@ -705,7 +700,7 @@ JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval
         JS_SetPrivate(obj, wrapper);
 
 #if MOZJS_MAJOR_VERSION >= 31
-        args.rval().setObject(*obj);
+        argWrapper.callArgs().rval().setObject(*obj);
 #else
         JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(obj));
 #endif

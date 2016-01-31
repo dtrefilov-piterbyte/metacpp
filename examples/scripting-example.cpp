@@ -5,13 +5,14 @@
 // That is our program inside a program
 const char szScriptProgram[] = R"#(
 var pt = new Point();
+console.printPoint(pt);
 pt.x = pt.y = 5
-console.log("Point created { x = %d, y = %d }", [ pt.x, pt.y ]);
+var pt2 = new Point(2, 3)
+console.printPoint(pt2);
 pt.addX(12);
 pt.addY(-29);
 console.log("Point moved { x = %d, y = %d }", [ pt.x, pt.y ]);
-// GC objects can be passed to native functions
-console.printPoint(pt);
+console.log("Distance between points now: %g", [ pt.distanceTo(pt2) ])
 // attempt to call a function with incompatible parameters will raise an exception
 try
 {
@@ -29,11 +30,23 @@ using namespace metacpp::scripting::js;
 // Define our reflectible classes.
 
 struct Point : public Object {
+    explicit Point(int x = 0, int y = 0)
+        : x(x), y(y)
+    {
+    }
+
     // All properties and methods exposed to the script engine must be public
-    int x = 0, y = 0;
+    int x, y;
 
     void addX(int v) { x += v; }
     void addY(int v) { y += v; }
+    // Euclidean distance between two points
+    double distanceTo(Point *other) const
+    {
+        double dx = x - other->x;
+        double dy = y - other->y;
+        return sqrt(pow(dx, 2) + pow(dy, 2));
+    }
 
     // this macro simply declares service function for the object introspection
     // and also for dynamic object instantiation and destruction
@@ -42,8 +55,11 @@ struct Point : public Object {
 
 // Declare exposed object methods
 METHOD_INFO_BEGIN(Point)
+    CONSTRUCTOR(Point)
+    CONSTRUCTOR(Point, int, int)
     METHOD(Point, addX)
     METHOD(Point, addY)
+    METHOD(Point, distanceTo)
 METHOD_INFO_END(Point)
 
 // And properties

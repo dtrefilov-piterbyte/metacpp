@@ -133,8 +133,6 @@ private:
     public: \
         const ::metacpp::MetaObject *metaObject() const override; \
         static const ::metacpp::MetaObject *staticMetaObject(); \
-        static ::metacpp::Object *constructInstance(void *mem); \
-        static void destructInstance(void *mem); \
     private: \
         static const ::metacpp::MetaObject ms_metaObject;
 
@@ -142,12 +140,9 @@ private:
  * \relates metacpp::Object
  */
 #define META_INFO(ObjName) \
-    const ::metacpp::MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName), \
-        &ObjName::constructInstance, &ObjName::destructInstance); \
+    const ::metacpp::MetaObject ObjName::ms_metaObject(&REFLECTIBLE_DESCRIPTOR(ObjName)); \
     const ::metacpp::MetaObject *ObjName::metaObject() const { return &ms_metaObject; } \
-    const ::metacpp::MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; } \
-    ::metacpp::Object *ObjName::constructInstance(void *mem) { return new (mem) ObjName(); } \
-    void ObjName::destructInstance(void *mem) { reinterpret_cast<ObjName *>(mem)->~ObjName(); }
+    const ::metacpp::MetaObject *ObjName::staticMetaObject() { return &ms_metaObject; }
 
 /** \brief Get offset of the field into the struct */
 template<typename TObj, typename TField>

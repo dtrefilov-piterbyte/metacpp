@@ -331,6 +331,8 @@ namespace
     };
 
     METHOD_INFO_BEGIN(MyObject)
+        CONSTRUCTOR(MyObject)
+        CONSTRUCTOR(MyObject, int)
         SIGNATURE_METHOD(MyObject, foo, int (*)(int, const float&))
         SIGNATURE_METHOD(MyObject, foo, void (*)(void))
         SIGNATURE_METHOD(MyObject, bar, float (MyObject::*)(int, const double&) const)
@@ -393,5 +395,25 @@ namespace
     TEST_F(ObjectTest, invokeSuccessWithObjectParam)
     {
         ASSERT_EQ("MyObject", MyObject::staticMetaObject()->invoke<String>("objName", new MyObject()));
+    }
+
+    TEST_F(ObjectTest, createInstanceDefault)
+    {
+        MyObject *obj = dynamic_cast<MyObject *>(MyObject::staticMetaObject()->createInstance());
+        EXPECT_EQ(obj->x(), 0);
+        MyObject::staticMetaObject()->destroyInstance(obj);
+    }
+
+    TEST_F(ObjectTest, createInstanceParameter)
+    {
+        MyObject *obj = dynamic_cast<MyObject *>(MyObject::staticMetaObject()->createInstance(42));
+        EXPECT_EQ(obj->x(), 42);
+        MyObject::staticMetaObject()->destroyInstance(obj);
+    }
+
+    TEST_F(ObjectTest, createInstanceFailure)
+    {
+        EXPECT_THROW(MyObject::staticMetaObject()->createInstance("a string"),
+                     MethodNotFoundException);
     }
 }

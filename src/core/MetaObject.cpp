@@ -22,10 +22,8 @@
 namespace metacpp
 {
 
-MetaObject::MetaObject(const MetaInfoDescriptor *descriptor,
-                       Object *(*constructor)(void *), void (*destructor)(void *))
-    : m_descriptor(descriptor), m_initialized(false),
-      m_constructor(constructor), m_destructor(destructor)
+MetaObject::MetaObject(const MetaInfoDescriptor *descriptor)
+    : m_descriptor(descriptor), m_initialized(false)
 {
 }
 
@@ -109,24 +107,33 @@ size_t MetaObject::size() const
     return m_descriptor->m_dwSize;
 }
 
-Object *MetaObject::createInstance() const
+Object *MetaObject::createInstance(const VariantArray &args) const
 {
-    if (!m_constructor)
-        throw std::runtime_error("Have no appropriate class constructor");
+    prepare();
     void *pMem = ::operator new(size());
-    Object *obj = m_constructor(pMem);
-    return obj;
+    for (auto& method : m_methods)
+    {
+        if (eMethodConstructor == method->type() && args.size() == method->numArguments())
+        {
+            try
+            {
+                return method->invoker()->invoke(pMem, args).extractObject();
+            }
+            catch (const BindArgumentException& /*ex*/)
+            {
+                continue;
+            }
+        }
+    }
+    ::operator delete(pMem);
+    throw MethodNotFoundException(String("Cannot find appropriate constructor").c_str());
 }
 
 void MetaObject::destroyInstance(Object *object) const
 {
-    if (!m_destructor)
-        throw std::runtime_error("Have no appropriate class destructor");
+    // delete using virtual destructor
     if (object)
-    {
-        m_destructor(object);
-        ::operator delete(object);
-    }
+        delete object;
 }
 
 Variant MetaObject::invoke(const String &methodName, const VariantArray &args) const
@@ -496,6 +503,7 @@ std::unique_ptr<MetaCallBase> MetaCallFactory::createInstance(const MethodInfoDe
     switch (descriptor->m_eType)
     {
     case eMethodOwn:
+    case eMethodConstructor:
         result.reset(new MetaCallOwn(descriptor));
         break;
     case eMethodStatic:

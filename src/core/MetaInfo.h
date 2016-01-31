@@ -380,6 +380,24 @@ namespace
         }
     };
 
+    template<typename TObj, typename Tuple, bool Done, int Total, int... N>
+    struct ccall_impl
+    {
+        static TObj *call(void *mem, Tuple&& t)
+        {
+            return ccall_impl<TObj, Tuple, Total == 1 + sizeof...(N), Total, N..., sizeof...(N)>::call(mem, std::forward<Tuple>(t));
+        }
+    };
+
+    template<typename TObj, typename Tuple, int Total, int... N>
+    struct ccall_impl<TObj, Tuple, true, Total, N...>
+    {
+        static TObj *call(void *mem, Tuple&& t)
+        {
+            return new (mem) TObj(std::get<N>(std::forward<Tuple>(t))...);
+        }
+    };
+
     template<typename THead, typename TTail>
     struct argtuple_impl;
 
@@ -599,6 +617,37 @@ private:
     TFunction m_method;
 };
 
+/** \brief Helper class for invokation of object constructors
+ */
+template<typename TObj, typename... TArgs>
+class ConstructorInvoker : public MetaInvokerBase
+{
+private:
+
+    TObj *doInvoke(void *mem, const metacpp::Array<metacpp::Variant>& argList) const
+    {
+        typedef typename argtuple<TArgs...>::type ttype;
+        ttype args;
+        if (sizeof...(TArgs) != argList.size())
+            throw BindArgumentException(metacpp::String("Invalid number of arguments, " +
+                                               metacpp::String::fromValue(sizeof...(TArgs)) + " expected").c_str());
+        unpack_impl<0, 0 == sizeof...(TArgs), ttype>::unpack_arguments(args, argList);
+        return ccall_impl<TObj, ttype, 0 == std::tuple_size<ttype>::value, std::tuple_size<ttype>::value>
+                ::call(mem, std::forward<ttype>(args));
+    }
+
+public:
+    /** \brief Construct a new instance of FunctionInvoker with given func */
+    explicit ConstructorInvoker()
+    {
+    }
+    /** \brief Overrides MetaInvokerBase::invoke */
+    metacpp::Variant invoke(const void *mem, const metacpp::Array<metacpp::Variant>& argList) const override
+    {
+        return doInvoke(const_cast<void *>(mem), argList);
+    }
+};
+
 namespace detail
 {
     template<typename TRes, typename... TArgs>
@@ -626,9 +675,10 @@ namespace detail
 */
 enum EMethodType
 {
-    eMethodNone,    /**< \brief Invalid type */
-    eMethodStatic,  /**< \brief Static method */
-    eMethodOwn      /**< \brief Own method */
+    eMethodNone,            /**< \brief Invalid type */
+    eMethodStatic,          /**< \brief Static method */
+    eMethodOwn,             /**< \brief Own method */
+    eMethodConstructor      /**< \brief Object constructor */
 };
 
 /** \brief Structure describing reflection method and providing a way for it's invokation */
@@ -679,6 +729,18 @@ namespace detail
         static std::unique_ptr<MetaInvokerBase> createInvoker(TRes (TObj::*function)(TArgs...) const)
         {
             return std::move(std::unique_ptr<MetaInvokerBase>(new ConstMethodInvoker<TRes, TObj, TArgs...>(function)));
+        }
+    };
+
+    template<typename TObj, typename... TArgs>
+    struct ConstructorInfoHelper
+    {
+        static constexpr EMethodType type() { return eMethodConstructor; }
+        static constexpr bool constness() { return false; }
+        static constexpr size_t numArguments() { return sizeof...(TArgs); }
+        static std::unique_ptr<MetaInvokerBase> createInvoker()
+        {
+            return std::move(std::unique_ptr<MetaInvokerBase>(new ConstructorInvoker<TObj, TArgs...>()));
         }
     };
 } // namespace detail
@@ -732,6 +794,19 @@ struct MetaInfoDescriptor
  * \see METHOD_INFO_BEGIN, METHOD_INFO_END, NAMED_METHOD, METHOD
  */
 #define SIGNATURE_METHOD(obj, method, signature) NAMED_METHOD(#method, static_cast<signature>(&obj::method))
+
+/** \brief Puts a constructor descriptor into the list
+ * \relates MetaInfoDescriptor
+ * \see METHOD_INFO_BEGIN, METHOD_INFO_END, NAMED_METHOD, SIGNATURE_METHOD
+ */
+#define CONSTRUCTOR(object, ...) \
+    { \
+        /* name     */   #object, \
+        /* type */       ::detail::ConstructorInfoHelper<object, ##__VA_ARGS__>::type(), \
+        /* constness */  ::detail::ConstructorInfoHelper<object, ##__VA_ARGS__>::constness(), \
+        /* num args */   ::detail::ConstructorInfoHelper<object, ##__VA_ARGS__>::numArguments(), \
+        /* invoker */    ::detail::ConstructorInfoHelper<object, ##__VA_ARGS__>::createInvoker() \
+    },
 
 /** \brief Starts a list of property descriptors
  * \relates MetaInfoDescriptor
