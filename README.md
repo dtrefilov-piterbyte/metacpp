@@ -6,4 +6,5 @@ A project providing ways of object introspection in C++.
 Base functionality:
 * Object reflection and introspection
 * Object serialization
-* [Type-safe C++ ORM](https://github.com/the-alien/metacpp/wiki/orm-overlook)
+* Type-safe C++ ORM
+* Javascript bindings (using SpiderMonkey engine)
