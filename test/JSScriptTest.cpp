@@ -268,6 +268,18 @@ TEST_F(JSScriptTest, testObjectCreate)
     EXPECT_EQ(obj->x(), 0);
 }
 
+TEST_F(JSScriptTest, testObjectCtorCall)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.call(); }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f");
+    metacpp::Variant result = thread->run();
+    ASSERT_EQ(result.type(), eFieldObject);
+    MyObject *obj =metacpp::variant_cast<MyObject *>(result);
+    EXPECT_EQ(obj->x(), 0);
+}
+
 TEST_F(JSScriptTest, testObjectCreateParameter)
 {
     auto program = m_engine->createProgram();
@@ -321,6 +333,36 @@ TEST_F(JSScriptTest, testObjectOwnMethodCall)
     ASSERT_EQ(metacpp::variant_cast<int>(thread->run()), 12378);
 }
 
+TEST_F(JSScriptTest, testObjectOwnMethodCallOnUndefinedThis)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj.x.call() }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f", new MyObject(12378));
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testObjectOwnMethodCallOnInvalidObject)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj.x.call(new Object()) }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f", new MyObject(12378));
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testObjectOwnMethodCallOnValidObject)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(obj) { return obj.x.call(obj) }");
+    program->compile(ss, "filename");
+    // script engine takes object ownership
+    auto thread = program->createThread("f", new MyObject(12378));
+    thread->run();
+}
+
 TEST_F(JSScriptTest, testObjectStaticMethodCall)
 {
     auto program = m_engine->createProgram();
@@ -330,17 +372,31 @@ TEST_F(JSScriptTest, testObjectStaticMethodCall)
     ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "MyObject");
 }
 
-TEST_F(JSScriptTest, testLinkProtoConstructor)
+TEST_F(JSScriptTest, testObjectStaticMethodCallOnUndefined)
 {
     auto program = m_engine->createProgram();
-    std::istringstream ss("function f() { var obj = new MyObject(); obj.setX(25); return obj; }");
+    std::istringstream ss("function f() { return MyObject.className.call(undefined) }");
     program->compile(ss, "filename");
     auto thread = program->createThread("f");
-    metacpp::Variant result = thread->run();
-    ASSERT_EQ(result.type(), eFieldObject);
-    MyObject *obj;
-    ASSERT_NO_THROW(obj = metacpp::variant_cast<MyObject *>(result));
-    ASSERT_EQ(obj->x(), 25);
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testObjectStaticMethodCallOnInvalidProto)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.className.call(undefined, Object) }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f");
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
+TEST_F(JSScriptTest, testObjectStaticMethodCallOnValidProto)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return MyObject.className.call(undefined, MyObject) }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f");
+    ASSERT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "MyObject");
 }
 
 TEST_F(JSScriptTest, testOverloadedCallFoo)

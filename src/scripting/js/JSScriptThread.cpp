@@ -727,8 +727,19 @@ JSBool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, j
         detail::ArgumentWrapper argWrapper(cx, argc, vp);
         String methodName = JSAutoByteString(cx,
             JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().calleev()))).ptr();
-        JS::RootedObject this_(cx, argWrapper.callArgs().thisv().toObjectOrNull());
+        JS::RootedValue thisv(cx, argWrapper.callArgs().thisv());
+        if (!thisv.get().isObject())
+            throw std::invalid_argument("Own methods must be called on a object");
+
+        JS::RootedObject this_(cx, thisv.get().toObjectOrNull());
+        if (!JS_IsNative(this_.get()))
+            throw std::invalid_argument("Not a native object provided as this argument");
+
         auto objectWrapper = (detail::NativeObjectWrapper *)JS_GetPrivate(this_);
+        if (!objectWrapper)
+            throw std::invalid_argument("Invalid private");
+
+
         JS::Value result = detail::toValue(cx, objectWrapper->nativeObject->invoke(methodName,
             argWrapper.nativeArgs()));
         argWrapper.callArgs().rval().set(result);
@@ -752,17 +763,34 @@ JSBool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc
         JSScriptThread *thread = JSScriptThread::getRunningInstance(cx);
         if (!thread)
             throw std::runtime_error("No script thread instance currently running");
+
+        auto args = JS::CallArgsFromVp(argc, vp);
+        JS::RootedValue calleev(cx, args.calleev());
+        JS::RootedValue thisv(cx, args.thisv());
+        if (!thisv.isObject() || JS_IsGlobalObject(thisv.toObjectOrNull()))
+        {
+            if (!argc)
+                throw std::runtime_error("Function requires more than 0 parameters");
+            argc--;
+            vp++;
+        }
         detail::ArgumentWrapper argWrapper(cx, argc, vp);
+        if (!argWrapper.callArgs().thisv().isObject() ||
+            !JS_ObjectIsFunction(cx, argWrapper.callArgs().thisv().toObjectOrNull()))
+            throw std::invalid_argument("Static cannot be called without prototype");
+
         String className = JSAutoByteString(cx,
             JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().thisv()))).ptr();
-        String methodName = JSAutoByteString(cx,
-            JS_GetFunctionId(JS_ValueToFunction(cx, argWrapper.callArgs().calleev()))).ptr();
         auto ci = thread->findRegisteredClass(className);
         if (!ci)
             throw std::runtime_error("Class not registered");
+
+        String methodName = JSAutoByteString(cx,
+            JS_GetFunctionId(JS_ValueToFunction(cx, calleev))).ptr();
+
         JS::Value result = detail::toValue(cx, ci->metaObject->invoke(methodName,
             argWrapper.nativeArgs()));
-        argWrapper.callArgs().rval().set(result);
+        args.rval().set(result);
         return true;
 
     }
@@ -781,6 +809,9 @@ JSBool JSScriptThread::nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject
 {
     try
     {
+        if (!JS_IsNative(obj))
+            throw std::invalid_argument("Not a native object");
+
 #if MOZJS_MAJOR_VERSION >=31
         JS::RootedValue idValue(cx);
         if (!JS_IdToValue(cx, id, &idValue))
@@ -815,6 +846,9 @@ JSBool JSScriptThread::nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject
 {
     try
     {
+        if (!JS_IsNative(obj))
+            throw std::invalid_argument("Not a native object");
+
 #if MOZJS_MAJOR_VERSION >=31
         JS::RootedValue idValue(cx);
         if (!JS_IdToValue(cx, id, &idValue))
