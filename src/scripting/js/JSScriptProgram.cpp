@@ -40,17 +40,21 @@ void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &fi
 
 #if MOZJS_MAJOR_VERSION >= 31
     JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(), m_engine->globalClass(), nullptr,
-        JS::FireOnNewGlobalHook));
+        JS::FireOnNewGlobalHook, JS::CompartmentOptions()));
 #else
     JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(),
         const_cast<JSClass *>(m_engine->globalClass()), nullptr));
 #endif
-    JSAutoCompartment ac(cx.get(), global);
+    JS_EnterCompartment(cx.get(), global);
     JS::CompileOptions options(cx.get());
     options.setFileAndLine(filename.c_str(), 1);
 #if MOZJS_MAJOR_VERSION >= 38
     JS::RootedScript script(cx.get());
+#if MOZJS_MAJOR_VERSION >= 46
+    if (!JS::CompileForNonSyntacticScope(cx.get(), options, reinterpret_cast<const char *>(pBuffer), size, &script))
+#else
     if (!JS::Compile(cx.get(), global, options, reinterpret_cast<const char *>(pBuffer), size, &script))
+#endif
         throw std::runtime_error("Could not compile");
 #else
     JS::RootedScript script(cx.get(), JS::Compile(cx.get(), global, options,

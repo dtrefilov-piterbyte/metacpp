@@ -1,5 +1,8 @@
 #include "JSScriptEngine.h"
 #include "JSScriptProgram.h"
+#if MOZJS_MAJOR_VERSION >= 46
+#include <js/Initialization.h>
+#endif
 
 namespace metacpp {
 namespace scripting {

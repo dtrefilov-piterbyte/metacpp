@@ -3,6 +3,17 @@
 #include "Object.h"
 #include <jsfriendapi.h>
 
+#if MOZJS_MAJOR_VERSION >= 46
+namespace js {
+
+// temp
+void ReportOutOfMemory(ExclusiveContext* cxArg)
+{
+}
+
+}
+#endif
+
 namespace metacpp
 {
 namespace scripting
@@ -43,7 +54,12 @@ Variant fromValue(JSContext *context, const JS::Value& v)
     if (v.isObject())
     {
         JS::RootedObject obj(context, v.toObjectOrNull());
+#if MOZJS_MAJOR_VERSION >= 46
+        bool bRes;
+        if (JS_IsArrayObject(context, obj, &bRes) && bRes)
+#else
         if (JS_IsArrayObject(context, obj))
+#endif
         {
             uint32_t length = 0;
             if (!JS_GetArrayLength(context, obj, &length))
@@ -65,6 +81,16 @@ Variant fromValue(JSContext *context, const JS::Value& v)
             return va;
         }
 
+#if MOZJS_MAJOR_VERSION >= 46
+        if (JS_ObjectIsDate(context, obj, &bRes) && bRes)
+        {
+            double msec = 0;
+            if (::js::DateGetMsecSinceEpoch(context, obj, &msec))
+                return DateTime(static_cast<time_t>(msec / 1E3 + 0.5));
+            else
+                return DateTime();
+        }
+#else
         if (JS_ObjectIsDate(context, obj))
         {
 #if MOZJS_MAJOR_VERSION >= 38
@@ -73,6 +99,7 @@ Variant fromValue(JSContext *context, const JS::Value& v)
             return DateTime(static_cast<time_t>(js_DateGetMsecSinceEpoch(obj) / 1E3 + 0.5));
 #endif
         }
+#endif
 
         JSScriptThread *thread = JSScriptThread::getRunningInstance(context);
         if (!thread)
@@ -147,8 +174,13 @@ JS::Value toValue(JSContext *context, Variant v)
     if (v.isDateTime())
     {
         auto dt = variant_cast<DateTime>(v);
+#if MOZJS_MAJOR_VERSION >= 46
+        value.setObject(*JS_NewDateObject(context, dt.year(), dt.month(), dt.day(),
+                                          dt.hours(), dt.minutes(), dt.seconds()));
+#else
         value.setObject(*JS_NewDateObjectMsec(context, dt.toStdTime() * 1E3));
         return value;
+#endif
     }
 
     if (v.isObject())
@@ -163,7 +195,7 @@ JS::Value toValue(JSContext *context, Variant v)
                 throw std::invalid_argument("Class is not registered");
             }
 
-            jsval classValue;
+            JS::Value classValue;
             classValue.setObjectOrNull(ci->ctorObject);
 #if MOZJS_MAJOR_VERSION >= 31
             JS::RootedObject object(context, JS_NewObjectForConstructor(context,
@@ -202,7 +234,7 @@ VariantArray wrapInArguments(JSContext *cx, const JS::CallArgs& args)
     return result;
 }
 
-void wrapOutArguments(JSContext *cx, VariantArray& args, jsval *values)
+void wrapOutArguments(JSContext *cx, VariantArray& args, JS::Value *values)
 {
     for (size_t i = 0 ; i < args.size(); ++i) {
         Variant arg = args[i];
@@ -220,9 +252,14 @@ void wrapOutArguments(JSContext *cx, VariantArray& args, jsval *values)
         }
         else if (arg.isArray())
         {
-            if (!JS_IsArrayObject(cx, value))
-                throw std::runtime_error("Argument is not an array");
             JS::RootedObject valueObj(cx, value.toObjectOrNull());
+#if MOZJS_MAJOR_VERSION >= 46
+            bool bRes = false;
+            if (!JS_IsArrayObject(cx, valueObj, &bRes) && bRes)
+#else
+            if (!JS_IsArrayObject(cx, valueObj))
+#endif
+                throw std::runtime_error("Argument is not an array");
             Array<JS::Value> valuesArg;
             VariantArray arrayArg = variant_cast<VariantArray>(arg);
             valuesArg.reserve(arrayArg.size());
@@ -244,7 +281,7 @@ void wrapOutArguments(JSContext *cx, VariantArray& args, jsval *values)
 
 class ArgumentWrapper {
 public:
-    ArgumentWrapper(JSContext *cx, unsigned argc, jsval *vp)
+    ArgumentWrapper(JSContext *cx, unsigned argc, JS::Value *vp)
         : m_cx(cx),
           m_callArgs(JS::CallArgsFromVp(argc, vp)),
           m_nativeArgs(wrapInArguments(cx, m_callArgs))
@@ -271,6 +308,26 @@ private:
     VariantArray m_nativeArgs;
 };
 
+ClassInfo::ClassInfo(JSRuntime *runtime)
+    : runtime(runtime)
+{
+    JS_AddExtraGCRootsTracer(runtime, ClassInfo::Trace, this);
+}
+
+ClassInfo::~ClassInfo()
+{
+    JS_RemoveExtraGCRootsTracer(runtime, ClassInfo::Trace, this);
+}
+
+void ClassInfo::Trace(JSTracer *trc, void *data)
+{
+    ClassInfo *ci = reinterpret_cast<ClassInfo *>(data);
+    if (ci->classObject)
+        JS_CallObjectTracer(trc, &ci->classObject, "ClassObject");
+    if (ci->ctorObject)
+        JS_CallObjectTracer(trc, &ci->ctorObject, "CtorObject");
+}
+
 } // namespace details
 
 JSScriptThread::JSScriptThread(const ByteArray &bytecode,
@@ -282,6 +339,7 @@ JSScriptThread::JSScriptThread(const ByteArray &bytecode,
 
 JSScriptThread::~JSScriptThread()
 {
+    unregisterNativeClasses();
 }
 
 void JSScriptThread::setCallFunction(const String &functionName, const VariantArray &args)
@@ -334,9 +392,11 @@ Variant JSScriptThread::run()
     { JS_NewContext(rt.get(), 8192),
         [this](JSContext *c)
         {
-            unregisterNativeClasses(c);
+            unregisterNativeClasses();
             if (c)
+            {
                 JS_DestroyContext(c);
+            }
         }
     };
     if (!cx)
@@ -344,13 +404,13 @@ Variant JSScriptThread::run()
 
 #if MOZJS_MAJOR_VERSION >= 31
     JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(), m_engine->globalClass(), nullptr,
-        JS::FireOnNewGlobalHook));
+        JS::FireOnNewGlobalHook, JS::CompartmentOptions()));
 #else
     JS::RootedObject global(cx.get(), JS_NewGlobalObject(cx.get(),
         const_cast<JSClass *>(m_engine->globalClass()), nullptr));
 #endif
 
-    JSAutoCompartment ac(cx.get(), global);
+    JS_EnterCompartment(cx.get(), global);
     JS_InitStandardClasses(cx.get(), global);
     registerNativeClasses(cx.get(), global);
 
@@ -386,7 +446,11 @@ Variant JSScriptThread::run()
 #else
     jsval value;
 #endif
+#if MOZJS_MAJOR_VERSION >= 46
+    bool bRes = JS_ExecuteScript(cx.get(), script, &value);
+#else
     bool bRes = JS_ExecuteScript(cx.get(), global, script, &value);
+#endif
 
     if (bRes && !m_functionName.isNullOrEmpty()) {
 
@@ -407,6 +471,7 @@ Variant JSScriptThread::run()
 
     Variant result = detail::fromValue(cx.get(), value);
 
+    JS_LeaveCompartment(cx.get(), nullptr);
     JS_SetRuntimePrivate(rt.get(), nullptr);
 
     if (!bRes)
@@ -475,13 +540,13 @@ JSScriptThread *JSScriptThread::getRunningInstance(JSContext *cx)
 const detail::ClassInfo *JSScriptThread::findRegisteredClass(const String &name)
 {
     auto it = std::find_if(m_registeredClasses.begin(), m_registeredClasses.end(),
-        [&](const detail::ClassInfo& ci)
+        [&](const detail::ClassInfo *ci)
         {
-            return ci.class_.name == name;
+            return ci->class_.name == name;
         });
     if (it == m_registeredClasses.end())
         return nullptr;
-    return &*it;
+    return *it;
 }
 
 void JSScriptThread::onError(const char *message, JSErrorReport *report)
@@ -518,14 +583,14 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
 {
     for (const MetaObject *mo : m_engine->registeredClasses())
     {
-        m_registeredClasses.push_back(detail::ClassInfo());
-        detail::ClassInfo& classInfo = m_registeredClasses.back();
+        m_registeredClasses.emplace_back(new detail::ClassInfo(m_runtime));
+        detail::ClassInfo& classInfo = *m_registeredClasses.back();
         memset(&classInfo.class_, 0, sizeof(JSClass));
         classInfo.metaObject = mo;
         classInfo.class_.name = mo->name();
         classInfo.class_.flags = JSCLASS_HAS_PRIVATE;
-        classInfo.class_.addProperty = JS_PropertyStub;
 #if MOZJS_MAJOR_VERSION < 38
+        classInfo.class_.addProperty = JS_PropertyStub;
         classInfo.class_.enumerate = JS_EnumerateStub;
         classInfo.class_.resolve = JS_ResolveStub;
         classInfo.class_.delProperty = JS_DeletePropertyStub;
@@ -571,9 +636,11 @@ void JSScriptThread::registerNativeClasses(JSContext *cx, JS::HandleObject globa
     }
 }
 
-void JSScriptThread::unregisterNativeClasses(JSContext *cx)
+void JSScriptThread::unregisterNativeClasses()
 {
-    (void)cx;
+    for (auto ci : m_registeredClasses) {
+        delete ci;
+    }
     m_registeredClasses.clear();
 }
 
@@ -592,7 +659,7 @@ void JSScriptThread::nativeObjectFinalize(JSFreeOp *, JSObject *obj)
 }
 
 #if MOZJS_MAJOR_VERSION >= 31
-bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp)
+bool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, JS::Value *vp)
 #else
 JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp)
 #endif
@@ -652,7 +719,7 @@ JSBool JSScriptThread::nativeObjectConstruct(JSContext *cx, unsigned argc, jsval
 }
 
 #if MOZJS_MAJOR_VERSION >= 31
-bool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+bool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, JS::Value *vp)
 #else
 JSBool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp)
 #endif
@@ -680,7 +747,7 @@ JSBool JSScriptThread::nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, j
 }
 
 #if MOZJS_MAJOR_VERSION >= 31
-bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp)
+bool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, JS::Value *vp)
 #else
 JSBool JSScriptThread::nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp)
 #endif
@@ -743,7 +810,9 @@ JSBool JSScriptThread::nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject
     }
 }
 
-#if MOZJS_MAJOR_VERSION >= 31
+#if MOZJS_MAJOR_VERSION >= 46
+bool JSScriptThread::nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp, JS::ObjectOpResult& result)
+#elif MOZJS_MAJOR_VERSION >= 31
 bool JSScriptThread::nativeObjectDynamicSetter(JSContext *cx, JS::HandleObject obj, JS::HandleId id, bool strict, JS::MutableHandleValue vp)
 #else
 JSBool JSScriptThread::nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id, JSBool strict, JS::MutableHandleValue vp)
@@ -751,7 +820,6 @@ JSBool JSScriptThread::nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject
 {
     try
     {
-        (void)strict;
 #if MOZJS_MAJOR_VERSION >=31
         JS::RootedValue idValue(cx);
         if (!JS_IdToValue(cx, id, &idValue))

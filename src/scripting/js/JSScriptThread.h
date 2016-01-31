@@ -18,9 +18,14 @@ namespace detail
 
 struct ClassInfo
 {
+    JSRuntime *runtime;
     JSClass class_;
-    JSObject *classObject, *ctorObject;
+    JS::Heap<JSObject *> classObject, ctorObject;
     const MetaObject *metaObject;
+
+    explicit ClassInfo(JSRuntime *runtime);
+    ~ClassInfo();
+    static void Trace(JSTracer *trc, void *data);
 };
 
 Variant fromValue(JSContext *context, const JS::Value& v);
@@ -54,17 +59,23 @@ private:
 #endif
 
     void registerNativeClasses(JSContext *cx, JS::HandleObject global);
-    void unregisterNativeClasses(JSContext *cx);
+    void unregisterNativeClasses();
 
     static void nativeObjectFinalize(JSFreeOp* fop, JSObject *obj);
 #if MOZJS_MAJOR_VERSION >= 31
-    static bool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
-    static bool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
-    static bool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, jsval *vp);
+    static bool nativeObjectConstruct(JSContext *cx, unsigned argc, JS::Value *vp);
+    static bool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, JS::Value *vp);
+    static bool nativeObjectStaticMethodCall(JSContext *cx, unsigned argc, JS::Value *vp);
     static bool nativeObjectDynamicGetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                                           JS::MutableHandleValue vp);
+
+#if MOZJS_MAJOR_VERSION >= 46
+    static bool nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
+                   JS::MutableHandleValue vp, JS::ObjectOpResult& result);
+#else
     static bool nativeObjectDynamicSetter(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                                           bool strict, JS::MutableHandleValue vp);
+#endif
 #else
     static JSBool nativeObjectConstruct(JSContext *cx, unsigned argc, jsval *vp);
     static JSBool nativeObjectOwnMethodCall(JSContext *cx, unsigned argc, jsval *vp);
@@ -89,7 +100,7 @@ private:
     std::atomic<bool> m_bTerminating;
     std::exception_ptr m_exception;
 
-    Array<detail::ClassInfo> m_registeredClasses;
+    Array<detail::ClassInfo *> m_registeredClasses;
 };
 
 } // namespace js

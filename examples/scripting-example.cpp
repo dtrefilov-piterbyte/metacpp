@@ -4,7 +4,23 @@
 
 // That is our program inside a program
 const char szScriptProgram[] = R"#(
-function f() { }
+var pt = new Point();
+pt.x = pt.y = 5
+console.log("Point created { x = %d, y = %d }", [ pt.x, pt.y ]);
+pt.addX(12);
+pt.addY(-29);
+console.log("Point moved { x = %d, y = %d }", [ pt.x, pt.y ]);
+// GC objects can be passed to native functions
+console.printPoint(pt);
+// attempt to call a function with incompatible parameters will raise an exception
+try
+{
+    pt.addX('12');  // function can't be called with string parameter
+}
+catch (err)
+{
+    console.error("Exception raised: %s", [ err.toString() ]);
+}
 )#";
 
 using namespace metacpp;
@@ -17,7 +33,7 @@ struct Point : public Object {
     int x = 0, y = 0;
 
     void addX(int v) { x += v; }
-    void addY(int v) { x += v; }
+    void addY(int v) { y += v; }
 
     // this macro simply declares service function for the object introspection
     // and also for dynamic object instantiation and destruction
@@ -66,6 +82,10 @@ struct console : public Object {
         std::cerr << "Error: " << String::format(fmt.c_str(), args) << std::endl;
     }
 
+    static void printPoint(const Point *pt) {
+        std::cout << "Point { x = " << pt->x << ", y = " << pt->y << " }" << std::endl;
+    }
+
     META_INFO_DECLARE(console)
 };
 
@@ -74,6 +94,7 @@ METHOD_INFO_BEGIN(console)
     METHOD(console, info)
     METHOD(console, warn)
     METHOD(console, error)
+    METHOD(console, printPoint)
 METHOD_INFO_END(console)
 
 REFLECTIBLE_M(console)
