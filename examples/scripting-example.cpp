@@ -5,8 +5,8 @@
 // That is our program inside a program
 const char szScriptProgram[] = R"#(
 var pt = new Point();
-console.printPoint(pt);
 pt.x = pt.y = 5
+console.printPoint(pt);
 var pt2 = new Point(2, 3)
 console.printPoint(pt2);
 pt.addX(12);

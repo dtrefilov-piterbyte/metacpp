@@ -95,7 +95,7 @@ Variant fromValue(JSContext *context, const JS::Value& v)
         {
 #if MOZJS_MAJOR_VERSION >= 38
             return DateTime(static_cast<time_t>(::js::DateGetMsecSinceEpoch(context, obj) / 1E3 + 0.5));
-        #else
+#else
             return DateTime(static_cast<time_t>(js_DateGetMsecSinceEpoch(obj) / 1E3 + 0.5));
 #endif
         }

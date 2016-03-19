@@ -17,11 +17,12 @@
 #include "Variant.h"
 #include <climits>
 #include <locale>
+#include <iomanip>
 
 #ifdef _WIN32
 #include <windows.h>
 
-// brokes numeric limits
+// breaks numeric limits
 #ifdef max
 #undef max
 #endif
@@ -492,6 +493,75 @@ namespace detail
     StringBase<char16_t> StringBase<char16_t>::format(const char16_t *format, const VariantArray& args)
     {
         return string_cast<WString>(String::format(string_cast<String>(format).c_str(), args));
+    }
+
+    template<>
+    StringBase<char> StringBase<char>::urldecode() const
+    {
+        static const char xlat[256] = {
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            0, 1, 2, 3, 4, 5, 6, 7,  8, 9,-1,-1,-1,-1,-1,-1,
+            -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,10,11,12,13,14,15,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1,
+            -1,-1,-1,-1,-1,-1,-1,-1, -1,-1,-1,-1,-1,-1,-1,-1
+        };
+        StringBase<char> result;
+        result.reserve(size());
+        for (const char *p = data(); *p; ++p) {
+            if ((*p == '%') && p[1] && p[2]) {
+                const char c1 = xlat[(unsigned)p[1]], c2 = xlat[(unsigned)p[2]];
+                if (c1 < 0 || c2 < 0)
+                    throw std::invalid_argument("Invalid percent encoded character sequence");
+                result.append((c1 << 4) | c2);
+                p += 2;
+            }
+            else if (*p == '+')
+                result.append(' ');
+            else
+                result.append(*p);
+        }
+        return result;
+    }
+
+    template<>
+    StringBase<char16_t> StringBase<char16_t>::urldecode() const
+    {
+        return string_cast<WString>(string_cast<String>(*this).urldecode());
+    }
+
+    template<>
+    StringBase<char> StringBase<char>::urlencode() const
+    {
+        OutputStringStream ss;
+        ss << std::hex << std::uppercase << std::setfill('0');
+
+        for (const char *p = data(); *p; ++p) {
+            if (*p == ' ')
+                ss << '+';
+            else if (isalnum(*p) || *p == '-' || *p == '_' || *p == '.' || *p == '~')
+                ss << *p;
+            else {
+                ss << '%' << std::setw(2) << (int)*p;
+            }
+        }
+        return ss.str();
+    }
+
+    template<>
+    StringBase<char16_t> StringBase<char16_t>::urlencode() const
+    {
+        return string_cast<WString>(string_cast<String>(*this).urlencode());
     }
 
     std::basic_ostream<char>& operator<<(std::basic_ostream<char>& os, const String& str)

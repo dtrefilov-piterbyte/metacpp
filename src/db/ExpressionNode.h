@@ -388,20 +388,23 @@ public:
     ExpressionNodeWhereClause like(const ExpressionNode<String>& other);
 };
 
+/** \brief Null constant expression tree node */
 template<typename T>
 class ExpressionNodeNull : public ExpressionNode<T>
 {
 public:
-    /** \brief Constructs new instance of null-valued node of the given infer type */
+    /** \brief Constructs new instance of null constant node of the given infer type */
     explicit ExpressionNodeNull()
         : ExpressionNode<T>(std::make_shared<detail::ExpressionNodeImplNull>(::detail::FullFieldInfoHelper<T>::type()))
     {
     }
 };
 
+/** \brief Base class for column nodes */
 class ExpressionNodeColumnBase : public ExpressionNodeBase
 {
 public:
+    /** \brief Constructs new instance of column node with specified field descriptor */
     ExpressionNodeColumnBase(const MetaFieldBase *metaField)
         : ExpressionNodeBase(std::make_shared<detail::ExpressionNodeImplColumn>(metaField))
     {

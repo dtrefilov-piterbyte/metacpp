@@ -137,12 +137,12 @@ public:
      *
      * In the above example named parameters are key1=value1 and key2=value2
     */
-    const StringBase<CharT>& param(const StringBase<CharT>& key) const
+    StringBase<CharT> param(const StringBase<CharT>& key) const
     {
         auto it = std::find_if(m_params.begin(), m_params.end(),
             [=](const std::pair<StringBase<CharT>, StringBase<CharT> >& param) { return param.first == key; });
         if (it != m_params.end())
-            return it->second;
+            return it->second.urldecode();
         else
             return StringBase<CharT>::getNull();
     }

@@ -244,7 +244,7 @@ std::unique_ptr<SqlConnectorBase> SqliteConnectorFactory::createInstance(const U
     auto traverseParam = [&params, uri](const String& param)
     {
         String val = uri.param(param);
-        if (!val.isNullOrEmpty()) params.push_back(param + "=" + val);
+        if (!val.isNullOrEmpty()) params.push_back(param + "=" + val.urlencode());
     };
     // known sqlite3 options
     traverseParam("vfs");

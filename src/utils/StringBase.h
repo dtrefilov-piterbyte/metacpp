@@ -650,6 +650,8 @@ public:
     }
 
     static StringBase format(const T *format, const Array<Variant>& args);
+    StringBase urlencode() const;
+    StringBase urldecode() const;
 private:
     static StringBase<T> ms_null;
     static StringBase<T> ms_empty;

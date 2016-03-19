@@ -637,7 +637,7 @@ private:
     }
 
 public:
-    /** \brief Construct a new instance of FunctionInvoker with given func */
+    /** \brief Construct a new instance of ConstructorInvoker for the given object and arguments */
     explicit ConstructorInvoker()
     {
     }

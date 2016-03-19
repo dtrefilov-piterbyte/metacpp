@@ -260,7 +260,7 @@ void StringTest::testUri(const String& strUri, const String &schema, const Strin
     EXPECT_EQ(uri.password(), password);
 }
 
-TEST_F(StringTest, testUri)
+TEST_F(StringTest, TestUri)
 {
     testUri("http://example.com/foo/bar?param1=value1&param2=value2", "http", "example.com/foo/bar",
         { std::make_pair<String, String>("param1", "value1"), std::make_pair<String, String>("param2", "value2") },
@@ -271,6 +271,9 @@ TEST_F(StringTest, testUri)
         { std::make_pair<String, String>("cache", "shared"), std::make_pair<String, String>("mode", "memory") },
             "test.db");
     testUri("user@mailhost", String(), "user@mailhost", { }, "mailhost", String(), String(), "user");
+    testUri("http://example.com?param=v+s%21", "http", "example.com",
+        { std::make_pair<String, String>("param", "v s!") },
+            "example.com");
 }
 
 TEST_F(StringTest, TestAWConversion)
@@ -285,4 +288,22 @@ TEST_F(StringTest, TestWAConversion)
     ASSERT_EQ(string_cast<String>(U16("test")), "test");
     ASSERT_EQ(string_cast<String>(U16("Hello, world!")), "Hello, world!");
 	ASSERT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
+}
+
+TEST_F(StringTest, TestUrlencode)
+{
+    EXPECT_EQ(String("You shall pass!").urlencode(),
+              "You+shall+pass%21");
+    EXPECT_EQ(String("Unescaped characters: [~-_.]").urlencode(),
+              "Unescaped+characters%3A+%5B~-_.%5D");
+}
+
+TEST_F(StringTest, TestUrldecode)
+{
+    EXPECT_EQ(String("You+shall+pass%21").urldecode(),
+              "You shall pass!");
+    EXPECT_EQ(String("Unescaped+characters%3A+%5B~-_.%5D").urldecode(),
+              "Unescaped characters: [~-_.]");
+    EXPECT_EQ(String("Unescaped+characters%3a+%5b~-_.%5d").urldecode(),
+              "Unescaped characters: [~-_.]");
 }

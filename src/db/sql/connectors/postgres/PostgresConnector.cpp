@@ -169,7 +169,7 @@ std::unique_ptr<SqlConnectorBase> PostgresConnectorFactory::createInstance(const
     {
         String val = uri.param(param);
         val.replace("'", "\\'").replace("\\", "\\\\");
-        if (!val.isNullOrEmpty()) params.push_back(param + "='" + val + "'");
+        if (!val.isNullOrEmpty()) params.push_back(param + "='" + val.urlencode() + "'");
     };
     traverseParam("dbname");
     traverseParam("connect_timeout");

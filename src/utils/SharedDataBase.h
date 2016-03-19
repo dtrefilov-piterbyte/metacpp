@@ -50,6 +50,7 @@ private:
     mutable std::atomic<int> m_count;
 };
 
+/** Base class for the reference counting owner of the given object */
 template<typename TObj>
 class SharedObjectDataBase : public SharedDataBase
 {
@@ -61,6 +62,7 @@ public:
     virtual TObj *extract() = 0;
 };
 
+/** Reference counting owner of the given object */
 template<typename TObj, typename Deleter = std::default_delete<TObj> >
 class SharedObjectData : public SharedObjectDataBase<TObj>
 {
