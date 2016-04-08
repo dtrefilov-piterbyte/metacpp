@@ -37,18 +37,25 @@ JsonDeserializerVisitor::~JsonDeserializerVisitor(void)
 
 void JsonDeserializerVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
-    parseValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
+    parseValue(m_value.get(field->name(), Json::nullValue),
+            field->type(),
+            reinterpret_cast<char *>(obj) + field->offset(),
+            field);
 }
 
-void JsonDeserializerVisitor::parseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *field, Json::ArrayIndex i)
+template<typename T>
+static void *DerefernceNullable(Nullable<T> *pValue, bool isNull)
 {
-    Json::Value val = field ? parent.get(field->name(), Json::nullValue) : parent.get(i, Json::nullValue);
-#define ACCESS_NULLABLE(type) \
-    auto& f = *reinterpret_cast<Nullable<type > *>(pValue); \
-    f.reset(!val.isNull()); \
-    if (val.isNull()) return; \
-    pValue = &f.get();
+    auto& f = *pValue;
+    f.reset(!isNull);
+    if (isNull)
+        return nullptr;
+    return &f.get();
+}
 
+void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type, void *pValue, const MetaFieldBase *field)
+{
+    //Json::Value val = field ? val.get(field->name(), Json::nullValue) : val.get(i, Json::nullValue);
     if (field && field->nullable())
     {
         switch (type)
@@ -56,43 +63,37 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& parent, EFieldType t
         default:
         case eFieldVoid:
             throw std::invalid_argument(std::string("Unsupported nullable field type: ") + (char *)type);
-        case eFieldBool: {
-            ACCESS_NULLABLE(bool)
+        case eFieldBool:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<bool> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldInt: {
-            ACCESS_NULLABLE(int32_t)
+        case eFieldInt:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<int32_t> *>(pValue), val.isNull());
             break;
-        }
         case eFieldEnum:
-        case eFieldUint: {
-            ACCESS_NULLABLE(uint32_t)
+        case eFieldUint:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<uint32_t> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldInt64: {
-            ACCESS_NULLABLE(int64_t)
+        case eFieldInt64:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<int64_t> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldUint64: {
-            ACCESS_NULLABLE(uint64_t)
+        case eFieldUint64:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<uint64_t> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldFloat: {
-            ACCESS_NULLABLE(float)
+        case eFieldFloat:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<float> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldDouble: {
-            ACCESS_NULLABLE(double)
+        case eFieldDouble:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<double> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldString: {
-            ACCESS_NULLABLE(metacpp::String)
+        case eFieldString:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<String> *>(pValue), val.isNull());
             break;
-        }
-        case eFieldDateTime: {
-            ACCESS_NULLABLE(metacpp::DateTime);
+        case eFieldDateTime:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<DateTime> *>(pValue), val.isNull());
             break;
-        }
+        case eFieldVariant:
+            pValue = DerefernceNullable(reinterpret_cast<Nullable<Variant> *>(pValue), val.isNull());
+            break;
         }
     }
 	switch (type)
@@ -141,21 +142,17 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& parent, EFieldType t
         if (!val.isUInt()) throw std::invalid_argument("Type mismatch: invalid enum");
 		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
 		break;
-	case eFieldArray:
-	{
+    case eFieldArray: {
         if (!val.isArray() && !val.isNull())  throw std::invalid_argument("Type mismatch: not an array");
-        assert(field);	// nested arrays are not allowed
-
+        metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
+        arrayValue->resize(val.size());
+        for (size_t i = 0; i < val.size(); ++i)
         {
-            metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
-            arrayValue->resize(val.size());
-            for (size_t i = 0; i < val.size(); ++i)
-            {
-                void *pValue = arrayValue->data() + reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize() * i;
-                parseValue(val, reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(), pValue, nullptr, i);
-            }
+            void *pValue = arrayValue->data() + reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize() * i;
+            parseValue(val.get((Json::ArrayIndex)i, Json::nullValue),
+                       reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(),
+                       pValue);
         }
-
 		break;
 	}
 	case eFieldObject: {
@@ -167,6 +164,9 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& parent, EFieldType t
         if (!val.isString()) throw std::invalid_argument("Type mismatch: not a timestamp");
         *reinterpret_cast<DateTime *>(pValue) = DateTime::fromString(val.asCString());
         break;
+    }
+    case eFieldVariant: {
+        throw std::invalid_argument("Variant not implemented");
     }
 	}	// switch
 }

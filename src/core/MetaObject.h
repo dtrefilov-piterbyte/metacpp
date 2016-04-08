@@ -341,6 +341,14 @@ public:
     DateTime defaultValue() const;
 };
 
+/** \brief Represent metacpp::Variant property reflection info */
+class MetaFieldVariant : public MetaField<Variant>
+{
+public:
+    /** \brief Constructs new instance of MetaFieldVariant using given fieldDescriptor */
+    MetaFieldVariant(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject);
+};
+
 /** \brief Factory class for the property reflection infos */
 class MetaFieldFactory : public FactoryBase<std::unique_ptr<MetaFieldBase>, const FieldInfoDescriptor *, const MetaObject *>
 {

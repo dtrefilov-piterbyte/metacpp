@@ -40,11 +40,12 @@ public:
     /** \brief Gets a value containing introspecting object */
     const Json::Value& rootValue() const;
 protected:
+    /** \brief Overrides VisitorBase::previsitStruct */
+    void previsitStruct(Object *obj) override;
     /** \brief Overrides VisitorBase::visitField */
     void visitField(Object *obj, const MetaFieldBase *field) override;
 private:
-    void appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
-                        const MetaFieldBase *desc = nullptr, Json::ArrayIndex = 0);
+    void appendSubValue(Json::Value& val, EFieldType type, const void *pValue, const MetaFieldBase *field = nullptr);
 private:
 	Json::Value m_value;
 };

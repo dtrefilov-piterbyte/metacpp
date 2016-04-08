@@ -38,7 +38,7 @@ protected:
     /** \brief Overrides VisitorBase::visitField */
     void visitField(Object *obj, const MetaFieldBase *desc) override;
 private:
-    void parseValue(const Json::Value& parent, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr, Json::ArrayIndex i = 0);
+    void parseValue(const Json::Value& val, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr);
 private:
 	const Json::Value& m_value;
 };

@@ -404,6 +404,11 @@ DateTime MetaFieldDateTime::defaultValue() const
     return DateTime(m_descriptor->valueInfo.ext.m_datetime.defaultValue);
 }
 
+MetaFieldVariant::MetaFieldVariant(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
+    : MetaField<Variant>(fieldDescriptor, metaObject)
+{
+}
+
 std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoDescriptor *fieldDescriptor, const MetaObject *metaObject)
 {
     std::unique_ptr<MetaFieldBase> result;
@@ -444,6 +449,9 @@ std::unique_ptr<MetaFieldBase> MetaFieldFactory::createInstance(const FieldInfoD
         break;
     case eFieldDateTime:
         result.reset(new MetaFieldDateTime(fieldDescriptor, metaObject));
+        break;
+    case eFieldVariant:
+        result.reset(new MetaFieldVariant(fieldDescriptor, metaObject));
         break;
     default:
         break;

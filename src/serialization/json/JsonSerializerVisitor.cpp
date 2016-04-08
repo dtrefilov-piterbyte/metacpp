@@ -26,6 +26,8 @@ namespace serialization
 namespace json
 {
 
+static const char szTypeName[] = "@type";
+
 JsonSerializerVisitor::JsonSerializerVisitor(void)
 	: m_value(Json::objectValue)
 {
@@ -38,18 +40,21 @@ JsonSerializerVisitor::~JsonSerializerVisitor(void)
 
 void JsonSerializerVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
-    appendSubValue(m_value, field->type(), reinterpret_cast<char *>(obj) + field->offset(), field);
+    appendSubValue(m_value[field->name()], field->type(),
+            reinterpret_cast<const char *>(obj) + field->offset(),
+            field);
 }
 
-void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type, const void *pValue,
-                                           const MetaFieldBase *field, Json::ArrayIndex i)
+template<typename T>
+const void *DereferenceNullable(const Nullable<T> *pValue)
 {
-    Json::Value& val = field ? parent[field->name()] : parent[i];
-#define ACCESS_NULLABLE(type) \
-    auto& f = *reinterpret_cast<const Nullable<type > *>(pValue); \
-    if (!f) return; \
-    pValue = &f.get();
+    auto& f = *pValue;
+    if (!f) return nullptr;
+    return &f.get();
+}
 
+void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, const void *pValue, const MetaFieldBase *field)
+{
     if (field && field->nullable())
     {
         switch (type)
@@ -57,40 +62,36 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
         default:
         case eFieldVoid:
             throw std::invalid_argument(std::string("Unsupported nullable field type: ") + (char *)type);
-        case eFieldBool: {
-            ACCESS_NULLABLE(bool)
+        case eFieldBool:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<bool> *>(pValue));
             break;
-        }
-        case eFieldInt: {
-            ACCESS_NULLABLE(int32_t)
+        case eFieldInt:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<int32_t> *>(pValue));
             break;
-        }
         case eFieldEnum:
-        case eFieldUint: {
-            ACCESS_NULLABLE(uint32_t)
+        case eFieldUint:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<uint32_t> *>(pValue));
             break;
-        }
-        case eFieldInt64: {
-            ACCESS_NULLABLE(int64_t)
+        case eFieldInt64:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<int64_t> *>(pValue));
             break;
-        }
-        case eFieldUint64: {
-            ACCESS_NULLABLE(uint64_t)
+        case eFieldUint64:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<uint64_t> *>(pValue));
             break;
-        }
-        case eFieldFloat: {
-            ACCESS_NULLABLE(float)
+        case eFieldFloat:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<float> *>(pValue));
             break;
-        }
-        case eFieldDouble: {
-            ACCESS_NULLABLE(double)
+        case eFieldDouble:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<double> *>(pValue));
             break;
-        }
-        case eFieldDateTime: {
-            ACCESS_NULLABLE(DateTime)
+        case eFieldDateTime:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<DateTime> *>(pValue));
             break;
+        case eFieldVariant:
+            pValue = DereferenceNullable(reinterpret_cast<const Nullable<Variant> *>(pValue));
         }
-        }
+        if (!pValue)
+            return;
     }
 	switch (type)
 	{
@@ -128,15 +129,15 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 			val = *reinterpret_cast<const uint32_t *>(pValue);
 		break;
 	case eFieldArray:
-	{
-        assert(field);	// nested arrays are not allowed
+    {
+        const metacpp::Array<char> *arrayValue = reinterpret_cast<const metacpp::Array<char> *>(pValue);
+        for (size_t i = 0; i < arrayValue->size(); ++i)
         {
-            const metacpp::Array<char> *arrayValue = reinterpret_cast<const metacpp::Array<char> *>(pValue);
-            for (size_t i = 0; i < arrayValue->size(); ++i)
-            {
-                const void *pSubValue = arrayValue->data() + i * reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize();
-                appendSubValue(val, reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(), pSubValue, nullptr, i);
-            }
+            const void *pSubValue = arrayValue->data() + i * reinterpret_cast<const MetaFieldArray *>
+                    (field)->arrayElementSize();
+            appendSubValue(val[(Json::ArrayIndex)i],
+                    reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(),
+                    pSubValue);
         }
 		break;
 	}
@@ -146,16 +147,25 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& parent, EFieldType type,
 		val = nestedSerializer.rootValue();
 		break;
 	}
-    case eFieldDateTime: {
+    case eFieldDateTime:
         val = reinterpret_cast<const metacpp::DateTime *>(pValue)->toString().c_str();
         break;
-    }
+    case eFieldVariant:
+        appendSubValue(val,
+                       reinterpret_cast<const metacpp::Variant *>(pValue)->type(),
+                       reinterpret_cast<const metacpp::Variant *>(pValue)->buffer());
+        break;
 	}	// switch
 }
 
 const Json::Value& JsonSerializerVisitor::rootValue() const
 {
-	return m_value;
+    return m_value;
+}
+
+void JsonSerializerVisitor::previsitStruct(Object *obj)
+{
+    m_value[szTypeName] = obj->metaObject()->name();
 }
 
 } // namespace json

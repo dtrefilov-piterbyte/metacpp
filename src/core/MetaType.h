@@ -8,19 +8,20 @@
  */
 enum EFieldType
 {
-    eFieldVoid		= 'x',                              /** \brief void type (invalid) */
-    eFieldBool		= 'b',                              /** \brief bool type */
-    eFieldInt		= 'i',                              /** \brief int32_t type */
-    eFieldUint		= 'u',                              /** \brief uint32_t type */
-    eFieldInt64     = 'i' | ('6' << 8) | ('4' << 16),   /** \brief int64_t type */
-    eFieldUint64    = 'u' | ('6' << 8) | ('4' << 16),   /** \brief uint64_t type */
-    eFieldFloat		= 'f',                              /** \brief float type */
-    eFieldDouble    = 'd',                              /** \brief double type */
-    eFieldString	= 's',                              /** \brief metacpp::String type */
-    eFieldDateTime  = 't',                              /** \brief metacpp::DateTime type */
-    eFieldEnum		= 'e',                              /** \brief enum type */
-    eFieldObject	= 'o',                              /** \brief metacpp::Object type */
-    eFieldArray		= 'a',                              /** \brief metacpp::Array type */
+    eFieldVoid		= 'x',                              /**< \brief void type (invalid) */
+    eFieldBool		= 'b',                              /**< \brief bool type */
+    eFieldInt		= 'i',                              /**< \brief int32_t type */
+    eFieldUint		= 'u',                              /**< \brief uint32_t type */
+    eFieldInt64     = 'i' | ('6' << 8) | ('4' << 16),   /**< \brief int64_t type */
+    eFieldUint64    = 'u' | ('6' << 8) | ('4' << 16),   /**< \brief uint64_t type */
+    eFieldFloat		= 'f',                              /**< \brief float type */
+    eFieldDouble    = 'd',                              /**< \brief double type */
+    eFieldString	= 's',                              /**< \brief metacpp::String type */
+    eFieldDateTime  = 't',                              /**< \brief metacpp::DateTime type */
+    eFieldEnum		= 'e',                              /**< \brief enum type */
+    eFieldObject	= 'o',                              /**< \brief metacpp::Object type */
+    eFieldArray		= 'a',                              /**< \brief metacpp::Array type */
+    eFieldVariant   = 'v'                               /**< \brief metacpp::Variant type */
 };
 
 /** \brief Parameter determines assigning behaviour of the field
@@ -38,9 +39,9 @@ enum EMandatoriness
 */
 enum EEnumType
 {
-    eEnumNone,        /** \brief Unknown enumeration type */
-    eEnumSimple,      /** \brief Simple enumeration type */
-    eEnumBitset       /** \brief Enumeration defines a set of bits (bitmask) */
+    eEnumNone,        /**< \brief Unknown enumeration type */
+    eEnumSimple,      /**< \brief Simple enumeration type */
+    eEnumBitset       /**< \brief Enumeration defines a set of bits (bitmask) */
 };
 
 namespace metacpp
@@ -70,6 +71,7 @@ template<> struct MayBeField<metacpp::StringBase<char> > : std::true_type { };
 template<> struct MayBeField<metacpp::DateTime> : std::true_type { };
 template<typename TElem>
 struct MayBeField<metacpp::Array<TElem> > : std::true_type { };
+template<> struct MayBeField<metacpp::Variant> : std::true_type { };
 
 
 

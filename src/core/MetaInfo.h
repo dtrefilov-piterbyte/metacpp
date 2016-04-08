@@ -292,6 +292,13 @@ namespace detail
         }
     };
 
+    template<>
+    struct PartialFieldInfoHelper<metacpp::Variant>
+    {
+        static constexpr EFieldType type() { return eFieldVariant; }
+        static FieldInfoDescriptor::Extension extension(EMandatoriness m = eOptional) { return FieldInfoDescriptor::Extension(m); }
+    };
+
     template<typename T>
     struct FullFieldInfoHelper<T, true, false>
     {

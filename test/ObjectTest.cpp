@@ -111,27 +111,26 @@ META_INFO(TestBaseStruct)
 void ObjectTest::testMetaInfo()
 {
 	TestStruct t;
-    ASSERT_EQ(std::string(t.metaObject()->name()), "TestStruct");
+    ASSERT_EQ(String(t.metaObject()->name()), "TestStruct");
     ASSERT_EQ(t.metaObject()->totalFields(), 15);
-    ASSERT_EQ(t.metaObject()->superMetaObject()->name(), String("TestBaseStruct"));
-    ASSERT_EQ(std::string(t.metaObject()->field(1)->name()), "enumValue");
+    ASSERT_EQ(String(t.metaObject()->superMetaObject()->name()), "TestBaseStruct");
+    ASSERT_EQ(String(t.metaObject()->field(1)->name()), "enumValue");
     ASSERT_EQ(t.metaObject()->field(1)->type(), eFieldEnum);
     ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);
-    ASSERT_EQ(std::string(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumName()), "EEnumTest");
+    ASSERT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumName()), "EEnumTest");
     ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumType(), eEnumSimple);
-    ASSERT_EQ(std::string(t.metaObject()->field(2)->name()), "boolValue");
+    ASSERT_EQ(String(t.metaObject()->field(2)->name()), "boolValue");
     ASSERT_EQ(t.metaObject()->field(2)->type(), eFieldBool);
-    ASSERT_EQ(std::string(t.metaObject()->field(3)->name()), "intValue");
+    ASSERT_EQ(String(t.metaObject()->field(3)->name()), "intValue");
     ASSERT_EQ(t.metaObject()->field(3)->type(), eFieldInt);
-    ASSERT_EQ(std::string(t.metaObject()->field(4)->name()), "uintValue");
+    ASSERT_EQ(String(t.metaObject()->field(4)->name()), "uintValue");
     ASSERT_EQ(t.metaObject()->field(4)->type(), eFieldUint);
-    ASSERT_EQ(std::string(t.metaObject()->field(5)->name()), "doubleValue");
+    ASSERT_EQ(String(t.metaObject()->field(5)->name()), "doubleValue");
     ASSERT_EQ(t.metaObject()->field(5)->type(), eFieldDouble);
-    ASSERT_EQ(std::string(t.metaObject()->field(6)->name()), "strValue");
+    ASSERT_EQ(String(t.metaObject()->field(6)->name()), "strValue");
     ASSERT_EQ(t.metaObject()->field(6)->type(), eFieldString);
-    ASSERT_EQ(std::string(t.metaObject()->field(7)->name()), "substruct");
+    ASSERT_EQ(String(t.metaObject()->field(7)->name()), "substruct");
     ASSERT_EQ(t.metaObject()->field(7)->type(), eFieldObject);
-
 }
 
 void ObjectTest::testInitVisitor()
