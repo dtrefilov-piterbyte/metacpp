@@ -104,6 +104,11 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
             else
                 field->access<Nullable<String> >(obj) = reinterpret_cast<const MetaFieldString *>(field)->defaultValue();
             break;
+        case eFieldVariant:
+            if (eOptional == field->mandatoriness())
+                field->access<Nullable<Variant> >(obj).reset();
+            else
+                field->access<Nullable<Variant> >(obj) = Variant();
         }
         return;
     }
@@ -143,13 +148,14 @@ void InitVisitor::visitField(Object *obj, const MetaFieldBase *field)
     case eFieldArray:
         field->access<metacpp::Array<char> >(obj).clear();
 		break;
-    case eFieldObject: {
+    case eFieldObject:
         field->access<Object>(obj).init();
 		break;
     case eFieldDateTime:
         field->access<DateTime>(obj) = DateTime();
         break;
-    }
+    case eFieldVariant:
+        field->access<Variant>(obj) = Variant();
     }
 }
 

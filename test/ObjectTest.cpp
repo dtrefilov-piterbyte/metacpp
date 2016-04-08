@@ -51,12 +51,15 @@ struct TestStruct : public TestBaseStruct
 	TestSubStruct substruct;
     Array<TestSubStruct> arrValue;
     DateTime datetimeValue;
+    Variant variantValue;
 
     Nullable<EEnumTest> optEnumValue;
     Nullable<bool> optBoolValue;
     Nullable<int> optIntValue;
     Nullable<uint32_t> optUintValue;
     Nullable<float> optFloatValue;
+    Nullable<DateTime> optDateTimeValue;
+    Nullable<Variant> optVariantValue;
 
     META_INFO_DECLARE(TestStruct)
 };
@@ -76,14 +79,17 @@ STRUCT_INFO_BEGIN(TestStruct)
     FIELD(TestStruct, strValue, "testValue")
     FIELD(TestStruct, substruct)
     FIELD(TestStruct, arrValue)
+    FIELD(TestStruct, datetimeValue)
+    FIELD(TestStruct, variantValue)
 
     FIELD(TestStruct, optEnumValue, &ENUM_INFO(EEnumTest))
     FIELD(TestStruct, optBoolValue, true)
     FIELD(TestStruct, optIntValue, -1)
     FIELD(TestStruct, optUintValue, 123154)
     FIELD(TestStruct, optFloatValue, eOptional)
+    FIELD(TestStruct, optDateTimeValue)
+    FIELD(TestStruct, optVariantValue)
 
-    FIELD(TestStruct, datetimeValue)
 STRUCT_INFO_END(TestStruct)
 
 REFLECTIBLE_DERIVED_F(TestStruct, TestBaseStruct)
@@ -107,36 +113,54 @@ REFLECTIBLE_F(TestBaseStruct)
 
 META_INFO(TestBaseStruct)
 
-
-void ObjectTest::testMetaInfo()
+TEST_F(ObjectTest, MetaInfoTest)
 {
-	TestStruct t;
-    ASSERT_EQ(String(t.metaObject()->name()), "TestStruct");
-    ASSERT_EQ(t.metaObject()->totalFields(), 15);
-    ASSERT_EQ(String(t.metaObject()->superMetaObject()->name()), "TestBaseStruct");
-    ASSERT_EQ(String(t.metaObject()->field(1)->name()), "enumValue");
-    ASSERT_EQ(t.metaObject()->field(1)->type(), eFieldEnum);
-    ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);
-    ASSERT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumName()), "EEnumTest");
-    ASSERT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumType(), eEnumSimple);
-    ASSERT_EQ(String(t.metaObject()->field(2)->name()), "boolValue");
-    ASSERT_EQ(t.metaObject()->field(2)->type(), eFieldBool);
-    ASSERT_EQ(String(t.metaObject()->field(3)->name()), "intValue");
-    ASSERT_EQ(t.metaObject()->field(3)->type(), eFieldInt);
-    ASSERT_EQ(String(t.metaObject()->field(4)->name()), "uintValue");
-    ASSERT_EQ(t.metaObject()->field(4)->type(), eFieldUint);
-    ASSERT_EQ(String(t.metaObject()->field(5)->name()), "doubleValue");
-    ASSERT_EQ(t.metaObject()->field(5)->type(), eFieldDouble);
-    ASSERT_EQ(String(t.metaObject()->field(6)->name()), "strValue");
-    ASSERT_EQ(t.metaObject()->field(6)->type(), eFieldString);
-    ASSERT_EQ(String(t.metaObject()->field(7)->name()), "substruct");
-    ASSERT_EQ(t.metaObject()->field(7)->type(), eFieldObject);
+    TestStruct t;
+
+    auto testField = [&](int i, const String& name, EFieldType type, bool nullable,
+            size_t size, std::ptrdiff_t offset) {
+        EXPECT_EQ(t.metaObject()->field(i)->name(), name);
+        EXPECT_EQ(t.metaObject()->field(i)->type(), type);
+        EXPECT_EQ(t.metaObject()->field(i)->nullable(), nullable);
+        EXPECT_EQ(t.metaObject()->field(i)->size(), size);
+        EXPECT_EQ(t.metaObject()->field(i)->offset(), offset);
+    };
+
+    EXPECT_EQ(String(t.metaObject()->name()), "TestStruct");
+    EXPECT_EQ(t.metaObject()->totalFields(), 18);
+    EXPECT_EQ(String(t.metaObject()->superMetaObject()->name()), "TestBaseStruct");
+
+    testField(0, "id", eFieldInt, false, sizeof(int), offsetof(TestStruct, id));
+    testField(1, "enumValue", eFieldEnum, false, sizeof(EEnumTest), offsetof(TestStruct, enumValue));
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->defaultValue(), eEnumValueUnk);
+    EXPECT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumName()), "EEnumTest");
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(1))->enumType(), eEnumSimple);
+    testField(2, "boolValue", eFieldBool, false, sizeof(bool), offsetof(TestStruct, boolValue));
+    testField(3, "intValue", eFieldInt, false, sizeof(int32_t), offsetof(TestStruct, intValue));
+    testField(4, "uintValue", eFieldUint, false, sizeof(uint32_t), offsetof(TestStruct, uintValue));
+    testField(5, "doubleValue", eFieldDouble, false, sizeof(double), offsetof(TestStruct, doubleValue));
+    testField(6, "strValue", eFieldString, false, sizeof(String), offsetof(TestStruct, strValue));
+    testField(7, "substruct", eFieldObject, false, sizeof(TestSubStruct), offsetof(TestStruct, substruct));
+    testField(8, "arrValue", eFieldArray, false, sizeof(Array<TestSubStruct>), offsetof(TestStruct, arrValue));
+    testField(9, "datetimeValue", eFieldDateTime, false, sizeof(DateTime), offsetof(TestStruct, datetimeValue));
+    testField(10, "variantValue", eFieldVariant, false, sizeof(Variant), offsetof(TestStruct, variantValue));
+    testField(11, "optEnumValue", eFieldEnum, true, sizeof(Nullable<EEnumTest>), offsetof(TestStruct, optEnumValue));
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->defaultValue(), eEnumValueUnk);
+    EXPECT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->enumName()), "EEnumTest");
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->enumType(), eEnumSimple);
+    testField(12, "optBoolValue", eFieldBool, true, sizeof(Nullable<bool>), offsetof(TestStruct, optBoolValue));
+    testField(13, "optIntValue", eFieldInt, true, sizeof(Nullable<int>), offsetof(TestStruct, optIntValue));
+    testField(14, "optUintValue", eFieldUint, true, sizeof(Nullable<uint32_t>), offsetof(TestStruct, optUintValue));
+    testField(15, "optFloatValue", eFieldFloat, true, sizeof(Nullable<float>), offsetof(TestStruct, optFloatValue));
+    testField(16, "optDateTimeValue", eFieldDateTime, true, sizeof(Nullable<DateTime>), offsetof(TestStruct, optDateTimeValue));
+    testField(17, "optVariantValue", eFieldVariant, true, sizeof(Nullable<Variant>), offsetof(TestStruct, optVariantValue));
+
 }
 
-void ObjectTest::testInitVisitor()
+TEST_F(ObjectTest, InitVisitorTest)
 {
-	TestStruct t;
-	t.init();
+    TestStruct t;
+    t.init();
     EXPECT_EQ(t.enumValue, eEnumValueUnk);
     EXPECT_EQ(t.boolValue, true);
     EXPECT_EQ(t.intValue, -1);
@@ -145,56 +169,21 @@ void ObjectTest::testInitVisitor()
     EXPECT_EQ(t.strValue, "testValue");
     EXPECT_EQ(t.substruct.name, "TestSubStruct");
     EXPECT_TRUE(t.arrValue.empty());
+    EXPECT_FALSE(t.variantValue.valid());
+    EXPECT_FALSE(t.datetimeValue.valid());
+
     EXPECT_EQ(*t.optEnumValue, eEnumValueUnk);
     EXPECT_EQ(*t.optBoolValue, true);
     EXPECT_EQ(*t.optIntValue, -1);
     EXPECT_EQ(*t.optUintValue, 123154);
     EXPECT_FALSE(t.optFloatValue);
+    EXPECT_FALSE(t.optDateTimeValue);
+    EXPECT_FALSE(t.optVariantValue);
 }
 
-void ObjectTest::testSerialization()
-{
 #ifdef HAVE_JSONCPP
-	TestStruct t, t2;
-    t.init();
-    t.id = 123;
-	t.enumValue = eEnumValue1;
-	t.boolValue = false;
-	t.intValue = 123414;
-	t.uintValue = -1239;
-    t.doubleValue = 1231.123f;
-	t.strValue = "abdasdc";
-	t.substruct.name = "1231";
-    t.arrValue.emplace_back("12");
-    t.arrValue.emplace_back("asdj");
-    t.arrValue.emplace_back("");
-    t.optFloatValue = 2.5;
-    t.datetimeValue = DateTime::fromString("1970-10-12 00:00:00");
-    t2.fromJson(t.toJson());
-    EXPECT_EQ(t.id, t2.id);
-    EXPECT_EQ(t.enumValue, t2.enumValue);
-    EXPECT_EQ(t.boolValue, t2.boolValue);
-    EXPECT_EQ(t.intValue, t2.intValue);
-    EXPECT_EQ(t.uintValue, t2.uintValue);
-    EXPECT_EQ(t.doubleValue, t2.doubleValue);
-    EXPECT_EQ(t.strValue, t2.strValue);
-    EXPECT_EQ(t.substruct.name, t2.substruct.name);
-    EXPECT_EQ(t.arrValue.size(), t2.arrValue.size());
-	for (size_t i = 0; i < t.arrValue.size(); ++i)
-        ASSERT_EQ(t.arrValue[i].name, t2.arrValue[i].name);
-
-    EXPECT_EQ(*t2.optEnumValue, eEnumValueUnk);
-    EXPECT_EQ(*t2.optBoolValue, true);
-    EXPECT_EQ(*t2.optIntValue, -1);
-    EXPECT_EQ(*t2.optUintValue, 123154);
-    EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
-    EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
-#endif
-}
-
-void ObjectTest::testBsonSerialization()
+TEST_F(ObjectTest, SerializationTest)
 {
-#ifdef HAVE_MONGODB
     TestStruct t, t2;
     t.init();
     t.id = 123;
@@ -205,13 +194,13 @@ void ObjectTest::testBsonSerialization()
     t.doubleValue = 1231.123f;
     t.strValue = "abdasdc";
     t.substruct.name = "1231";
-    TestSubStruct item;
-    item.name = "12"; t.arrValue.push_back(item);
-    item.name = "asdj"; t.arrValue.push_back(item);
-    item.name = ""; t.arrValue.push_back(item);
+    t.arrValue.emplace_back("12");
+    t.arrValue.emplace_back("asdj");
+    t.arrValue.emplace_back("");
     t.optFloatValue = 2.5;
-    t.datetimeValue = DateTime::fromString("2000-10-12 12:48:24");
-    t2.fromBson(t.toBson().data());
+    t.datetimeValue = DateTime::fromString("1970-10-12 00:00:00");
+    t.optVariantValue = 12;
+    t2.fromJson(t.toJson());
     EXPECT_EQ(t.id, t2.id);
     EXPECT_EQ(t.enumValue, t2.enumValue);
     EXPECT_EQ(t.boolValue, t2.boolValue);
@@ -223,6 +212,7 @@ void ObjectTest::testBsonSerialization()
     EXPECT_EQ(t.arrValue.size(), t2.arrValue.size());
     for (size_t i = 0; i < t.arrValue.size(); ++i)
         ASSERT_EQ(t.arrValue[i].name, t2.arrValue[i].name);
+    EXPECT_FALSE(t.variantValue.valid());
 
     EXPECT_EQ(*t2.optEnumValue, eEnumValueUnk);
     EXPECT_EQ(*t2.optBoolValue, true);
@@ -230,27 +220,58 @@ void ObjectTest::testBsonSerialization()
     EXPECT_EQ(*t2.optUintValue, 123154);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
+    EXPECT_EQ(variant_cast<int>(*t.optVariantValue), variant_cast<int>(*t2.optVariantValue));
+}
 #endif
+
+TEST_F(ObjectTest, SerializationTestVariantArray)
+{
+    TestStruct t, t2;
+    t.init();
+    t.variantValue = VariantArray({ 12, "Test", DateTime::fromString("2021-10-5 00:12:42") });
+    t2.fromJson(t.toJson());
+    ASSERT_EQ(t2.variantValue.type(), eFieldArray);
+    auto array = variant_cast<VariantArray>(t2.variantValue);
+    ASSERT_EQ(array.size(), 3);
+    EXPECT_EQ(variant_cast<int>(array[0]), 12);
+    EXPECT_EQ(variant_cast<String>(array[1]), "Test");
+    EXPECT_EQ(variant_cast<DateTime>(array[2]), DateTime::fromString("2021-10-5 00:12:42"));
 }
 
-TEST_F(ObjectTest, MetaInfoTest)
+TEST_F(ObjectTest, SerializationTestVariantNestedArray)
 {
-	testMetaInfo();
+    // TODO: Intended behaviour?
+    TestStruct t;
+    t.init();
+    t.variantValue = VariantArray({ VariantArray({1, "Test"}) });
+    EXPECT_ANY_THROW(t.toJson());
 }
 
-TEST_F(ObjectTest, InitVisitorTest)
+TEST_F(ObjectTest, SerializationTestVariantInvalid)
 {
-	testInitVisitor();
+    TestStruct t, t2;
+    t.init();
+    t.variantValue = Variant();
+    t2.fromJson(t.toJson());
+    EXPECT_FALSE(t2.variantValue.valid());
 }
 
-TEST_F(ObjectTest, SerializationTest)
+TEST_F(ObjectTest, SerializationTestDateTimeValid)
 {
-	testSerialization();
+    TestStruct t, t2;
+    t.init();
+    t.datetimeValue = DateTime::fromString("2012-12-12 01:21:21");
+    t2.fromJson(t.toJson());
+    EXPECT_EQ(t2.datetimeValue, t.datetimeValue);
 }
 
-TEST_F(ObjectTest, BsonSerializationTest)
+TEST_F(ObjectTest, SerializationTestDateTimeInvalid)
 {
-    testBsonSerialization();
+    TestStruct t, t2;
+    t.init();
+    t.datetimeValue = DateTime();
+    t2.fromJson(t.toJson());
+    EXPECT_FALSE(t2.datetimeValue.valid());
 }
 
 TEST_F(ObjectTest, TestGetFieldProperty)

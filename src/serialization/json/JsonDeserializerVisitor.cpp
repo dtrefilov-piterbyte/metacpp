@@ -37,7 +37,7 @@ JsonDeserializerVisitor::~JsonDeserializerVisitor(void)
 
 void JsonDeserializerVisitor::visitField(Object *obj, const MetaFieldBase *field)
 {
-    parseValue(m_value.get(field->name(), Json::nullValue),
+    parseValue(m_value.get(field->name(), Json::Value()),
             field->type(),
             reinterpret_cast<char *>(obj) + field->offset(),
             field);
@@ -53,9 +53,37 @@ static void *DerefernceNullable(Nullable<T> *pValue, bool isNull)
     return &f.get();
 }
 
+static metacpp::Variant ToVariant(const Json::Value& val)
+{
+    switch (val.type()){
+    case Json::nullValue:
+        return metacpp::Variant();
+    case Json::intValue:
+        return static_cast<int32_t>(val.asInt());
+    case Json::uintValue:
+        return static_cast<uint32_t>(val.asUInt());
+    case Json::realValue:
+        return static_cast<double>(val.asDouble());
+    case Json::stringValue:
+        return static_cast<String>(val.asString());
+    case Json::booleanValue:
+        return static_cast<bool>(val.asBool());
+    case Json::arrayValue: {
+        metacpp::VariantArray result;
+        result.reserve(val.size());
+        for (size_t i = 0; i < val.size(); ++i)
+            result.push_back(ToVariant(val.get((Json::ArrayIndex)i, Json::Value())));
+        return result;
+    }
+    case Json::objectValue:
+        throw std::invalid_argument("Not implemented");
+    default:
+        throw std::invalid_argument("Unknown value type " + std::to_string(val.type()));
+    }
+}
+
 void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type, void *pValue, const MetaFieldBase *field)
 {
-    //Json::Value val = field ? val.get(field->name(), Json::nullValue) : val.get(i, Json::nullValue);
     if (field && field->nullable())
     {
         switch (type)
@@ -96,6 +124,9 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
             break;
         }
     }
+    if (!pValue)
+        return;
+
 	switch (type)
 	{
 	default:
@@ -143,13 +174,15 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
 		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
 		break;
     case eFieldArray: {
+        if (!field)
+            throw std::invalid_argument("Nested arrays are not supported");
         if (!val.isArray() && !val.isNull())  throw std::invalid_argument("Type mismatch: not an array");
         metacpp::Array<char> *arrayValue = reinterpret_cast<metacpp::Array<char> *>(pValue);
         arrayValue->resize(val.size());
         for (size_t i = 0; i < val.size(); ++i)
         {
             void *pValue = arrayValue->data() + reinterpret_cast<const MetaFieldArray *>(field)->arrayElementSize() * i;
-            parseValue(val.get((Json::ArrayIndex)i, Json::nullValue),
+            parseValue(val.get((Json::ArrayIndex)i, Json::Value()),
                        reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(),
                        pValue);
         }
@@ -160,14 +193,19 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
 		break;
 	}
-    case eFieldDateTime: {
-        if (!val.isString()) throw std::invalid_argument("Type mismatch: not a timestamp");
-        *reinterpret_cast<DateTime *>(pValue) = DateTime::fromString(val.asCString());
+    case eFieldDateTime:
+        if (val.isNull()) {
+            *reinterpret_cast<DateTime *>(pValue) = DateTime();
+        }
+        else {
+            if (!val.isString())
+                throw std::invalid_argument("Type mismatch: not a timestamp");
+            *reinterpret_cast<DateTime *>(pValue) = DateTime::fromString(val.asCString());
+        }
         break;
-    }
-    case eFieldVariant: {
-        throw std::invalid_argument("Variant not implemented");
-    }
+    case eFieldVariant:
+        *reinterpret_cast<Variant *>(pValue) = ToVariant(val);
+        break;
 	}	// switch
 }
 

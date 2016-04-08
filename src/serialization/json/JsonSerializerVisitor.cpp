@@ -130,6 +130,8 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, co
 		break;
 	case eFieldArray:
     {
+        if (!field)
+            throw std::invalid_argument("Nested arrays are not supported");
         const metacpp::Array<char> *arrayValue = reinterpret_cast<const metacpp::Array<char> *>(pValue);
         for (size_t i = 0; i < arrayValue->size(); ++i)
         {
@@ -147,14 +149,27 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, co
 		val = nestedSerializer.rootValue();
 		break;
 	}
-    case eFieldDateTime:
-        val = reinterpret_cast<const metacpp::DateTime *>(pValue)->toString().c_str();
+    case eFieldDateTime: {
+        auto pDateTime = reinterpret_cast<const metacpp::DateTime *>(pValue);
+        if (pDateTime->valid())
+            val = pDateTime->toString().c_str();
         break;
-    case eFieldVariant:
-        appendSubValue(val,
-                       reinterpret_cast<const metacpp::Variant *>(pValue)->type(),
-                       reinterpret_cast<const metacpp::Variant *>(pValue)->buffer());
+    }
+    case eFieldVariant: {
+        auto pVariant = reinterpret_cast<const metacpp::Variant *>(pValue);
+        if (pVariant->valid()) {
+            if (pVariant->isArray()) {
+                VariantArray array = variant_cast<VariantArray>(*pVariant);
+                for (size_t i = 0; i < array.size(); ++i)
+                    appendSubValue(val[(Json::ArrayIndex)i],
+                            array[i].type(),
+                            array[i].buffer());
+            }
+            else
+                appendSubValue(val, pVariant->type(), pVariant->buffer());
+        }
         break;
+    }
 	}	// switch
 }
 

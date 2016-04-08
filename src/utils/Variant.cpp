@@ -112,6 +112,9 @@ namespace detail
         case eFieldFloat: return &m_storage.m_float;
         case eFieldDouble: return &m_storage.m_double;
         case eFieldObject: return m_object.get();
+        case eFieldDateTime: return &m_datetime;
+        case eFieldArray: return &m_array;
+        case eFieldString: return &m_string;
         default:
             throw std::runtime_error("Unknown variant type");
         }
@@ -255,6 +258,8 @@ namespace detail
     {
         switch (m_type)
         {
+        case eFieldString:
+            return DateTime::fromString(m_string.data());
         case eFieldDateTime:
             return m_datetime;
         default:
