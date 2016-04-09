@@ -69,35 +69,39 @@ bool SqlStorable::removeOne(SqlTransaction &transaction)
     return nRows < 0 || nRows == 1;
 }
 
+template<typename T>
+static String GetArithmeticFieldValue(const MetaFieldBase *field, Object *obj)
+{
+    if (field->nullable())
+    {
+        auto value = field->access<Nullable<T> >(obj);
+        if (!value)
+            return "NULL";
+        else
+            return String::fromValue(*value);
+    }
+    return String::fromValue(field->access<T>(obj));
+}
+
 String SqlStorable::fieldValue(const MetaFieldBase *field) const
 {
-#define _FIELD_VAL_ARITH(type) \
-    if (field->nullable()) \
-    { \
-        if (!field->access<Nullable<type> >(const_cast<SqlStorable *>(this)->record())) \
-            return "NULL"; \
-        else \
-            return String::fromValue(*field->access<Nullable<type> >(const_cast<SqlStorable *>(this)->record())); \
-    } \
-    return String::fromValue(field->access<type>(const_cast<SqlStorable *>(this)->record()));
-
     switch(field->type())
     {
     case eFieldBool:
-        _FIELD_VAL_ARITH(bool)
+        return GetArithmeticFieldValue<bool>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldInt:
-        _FIELD_VAL_ARITH(int32_t)
+        return GetArithmeticFieldValue<int32_t>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldUint:
     case eFieldEnum:
-        _FIELD_VAL_ARITH(uint32_t)
+        return GetArithmeticFieldValue<uint32_t>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldInt64:
-        _FIELD_VAL_ARITH(int64_t)
+        return GetArithmeticFieldValue<int64_t>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldUint64:
-        _FIELD_VAL_ARITH(uint64_t)
+        return GetArithmeticFieldValue<uint64_t>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldFloat:
-        _FIELD_VAL_ARITH(float)
+        return GetArithmeticFieldValue<float>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldDouble:
-        _FIELD_VAL_ARITH(double)
+        return GetArithmeticFieldValue<double>(field, const_cast<SqlStorable *>(this)->record());
     case eFieldString: {
         if (field->nullable())
         {
@@ -113,7 +117,7 @@ String SqlStorable::fieldValue(const MetaFieldBase *field) const
         return "\'" + val.replace("'", "''") + "\'";
     }
     case eFieldObject:
-        throw std::runtime_error("Can store only plain objects");
+    case eFieldVariant:
     case eFieldArray:
         throw std::runtime_error("Can store only plain objects");
     case eFieldDateTime:
