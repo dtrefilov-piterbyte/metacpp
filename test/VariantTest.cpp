@@ -88,6 +88,18 @@ TEST_P(T1##_##T2##_ConvertVariantTest, ConvertTest) \
 INSTANTIATE_TEST_CASE_P(T1##_##T2##_ConvertVariantTestInstance, T1##_##T2##_ConvertVariantTest, \
                         Params);
 
+#define INSTANTIATE_INVALID_CONVERT_TEST(T1, T2, Params) \
+typedef InvalidConvertVariantTest<T1> T1##_##T2##_InvalidConvertVariantTest; \
+ \
+TEST_P(T1##_##T2##_InvalidConvertVariantTest, ConvertTest) \
+{ \
+    EXPECT_THROW(variant_cast<T2>(Variant(GetParam())), std::invalid_argument); \
+} \
+ \
+INSTANTIATE_TEST_CASE_P(T1##_##T2##_InvalidConvertVariantTestInstance, T1##_##T2##_InvalidConvertVariantTest, \
+                        Params);
+
+
 INSTANTIATE_CONVERT_TEST(int32_t, bool, ::testing::Values(
                              std::make_pair<int32_t, bool>(0, false),
                              std::make_pair<int32_t, bool>(1, true),
@@ -150,5 +162,15 @@ INSTANTIATE_CONVERT_TEST(uint32_t, String, ::testing::Values(
 INSTANTIATE_CONVERT_TEST(DateTime, String, ::testing::Values(
                              std::make_pair<DateTime, String>(DateTime::fromString("0100-01-01 00:00:00"), "0100-01-01 00:00:00"),
                              std::make_pair<DateTime, String>(DateTime::fromString("1970-01-01 00:00:00"), "1970-01-01 00:00:00"),
-                             std::make_pair<DateTime, String>(DateTime(), "(null)")
+                             std::make_pair<DateTime, String>(DateTime::fromString("2012-01-01 00:23:32"), "2012-01-01 00:23:32")
+                             ))
+
+INSTANTIATE_INVALID_CONVERT_TEST(String, DateTime, ::testing::Values(
+                                     String(),
+                                     "asdad"))
+
+INSTANTIATE_CONVERT_TEST(String, DateTime, ::testing::Values(
+                             std::make_pair<String, DateTime>("0100-01-01 00:00:00", DateTime::fromString("0100-01-01 00:00:00")),
+                             std::make_pair<String, DateTime>("1970-01-01 00:00:00", DateTime::fromString("1970-01-01 00:00:00")),
+                             std::make_pair<String, DateTime>("2012-01-01 00:23:32", DateTime::fromString("2012-01-01 00:23:32"))
                              ))

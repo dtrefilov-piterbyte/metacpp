@@ -492,7 +492,7 @@ DateTime DateTime::now()
 
 std::ostream &operator<<(std::ostream &stream, const DateTime &dt)
 {
-    return stream << (dt.valid() ? dt.toString() : "(null)");
+    return stream << dt.toString();
 }
 
 } // namespace metacpp

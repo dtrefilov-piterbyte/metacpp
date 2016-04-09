@@ -222,7 +222,6 @@ TEST_F(ObjectTest, SerializationTest)
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
     EXPECT_EQ(variant_cast<int>(*t.optVariantValue), variant_cast<int>(*t2.optVariantValue));
 }
-#endif
 
 TEST_F(ObjectTest, SerializationTestVariantArray)
 {
@@ -273,6 +272,7 @@ TEST_F(ObjectTest, SerializationTestDateTimeInvalid)
     t2.fromJson(t.toJson());
     EXPECT_FALSE(t2.datetimeValue.valid());
 }
+#endif
 
 TEST_F(ObjectTest, TestGetFieldProperty)
 {

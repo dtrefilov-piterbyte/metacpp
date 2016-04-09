@@ -13,4 +13,9 @@ class ConvertVariantTest : public ::testing::TestWithParam<std::pair<T1, T2> >
 {
 };
 
+template<typename T>
+class InvalidConvertVariantTest : public ::testing::TestWithParam<T>
+{
+};
+
 #endif // VARIANTTEST_H
