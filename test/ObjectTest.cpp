@@ -100,7 +100,12 @@ STRUCT_INFO_BEGIN(TestSubStruct)
     FIELD(TestSubStruct, name, "TestSubStruct")
 STRUCT_INFO_END(TestSubStruct)
 
-REFLECTIBLE_F(TestSubStruct)
+METHOD_INFO_BEGIN(TestSubStruct)
+    CONSTRUCTOR(TestSubStruct)
+    CONSTRUCTOR(TestSubStruct, String)
+METHOD_INFO_END(TestSubStruct)
+
+REFLECTIBLE_FM(TestSubStruct)
 
 META_INFO(TestSubStruct)
 
@@ -227,7 +232,7 @@ TEST_F(ObjectTest, SerializationTestVariantArray)
 {
     TestStruct t, t2;
     t.init();
-    t.variantValue = VariantArray({ 12, "Test", DateTime::fromString("2021-10-5 00:12:42") });
+    t.variantValue = VariantArray { 12, "Test", DateTime::fromString("2021-10-5 00:12:42") };
     t2.fromJson(t.toJson());
     ASSERT_EQ(t2.variantValue.type(), eFieldArray);
     auto array = variant_cast<VariantArray>(t2.variantValue);
@@ -237,12 +242,42 @@ TEST_F(ObjectTest, SerializationTestVariantArray)
     EXPECT_EQ(variant_cast<DateTime>(array[2]), DateTime::fromString("2021-10-5 00:12:42"));
 }
 
+TEST_F(ObjectTest, SerializationTestVariantObject)
+{
+    TestStruct t, t2;
+    t.init();
+    t.variantValue = TestSubStruct::staticMetaObject()->createInstance("Test");
+    t2.fromJson(t.toJson(), { TestSubStruct::staticMetaObject() });
+    ASSERT_EQ(t2.variantValue.type(), eFieldObject);
+    EXPECT_EQ(variant_cast<TestSubStruct *>(t2.variantValue)->name, "Test");
+}
+
+TEST_F(ObjectTest, SerializationTestVariantObjectArray)
+{
+    TestStruct t, t2;
+    t.init();
+    t.variantValue = VariantArray {
+            TestSubStruct::staticMetaObject()->createInstance("Object 1"),
+            TestSubStruct::staticMetaObject()->createInstance("Object 2"),
+            "String item"
+    };
+    t2.fromJson(t.toJson(), { TestSubStruct::staticMetaObject() });
+    ASSERT_EQ(t2.variantValue.type(), eFieldArray);
+    auto array = variant_cast<VariantArray>(t2.variantValue);
+    ASSERT_EQ(array.size(), 3);
+    ASSERT_EQ(array[0].type(), eFieldObject);
+    ASSERT_EQ(array[1].type(), eFieldObject);
+    ASSERT_EQ(array[2].type(), eFieldString);
+    EXPECT_EQ(variant_cast<TestSubStruct *>(array[0])->name, "Object 1");
+    EXPECT_EQ(variant_cast<TestSubStruct *>(array[1])->name, "Object 2");
+    EXPECT_EQ(variant_cast<String>(array[2]), "String item");
+}
+
 TEST_F(ObjectTest, SerializationTestVariantNestedArray)
 {
-    // TODO: Intended behaviour?
     TestStruct t;
     t.init();
-    t.variantValue = VariantArray({ VariantArray({1, "Test"}) });
+    t.variantValue = VariantArray { VariantArray {1, "Test"} };
     EXPECT_ANY_THROW(t.toJson());
 }
 
@@ -272,6 +307,7 @@ TEST_F(ObjectTest, SerializationTestDateTimeInvalid)
     t2.fromJson(t.toJson());
     EXPECT_FALSE(t2.datetimeValue.valid());
 }
+
 #endif
 
 TEST_F(ObjectTest, TestGetFieldProperty)

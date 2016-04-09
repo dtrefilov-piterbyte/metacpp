@@ -25,8 +25,11 @@ namespace serialization
 namespace json
 {
 
-JsonDeserializerVisitor::JsonDeserializerVisitor(const Json::Value& val)
-	: m_value(val)
+static const char szTypeName[] = "@type";
+
+JsonDeserializerVisitor::JsonDeserializerVisitor(const Json::Value& val,
+    TypeResolverFactory *typeResolver)
+    : m_value(val), m_typeResolver(typeResolver)
 {
 }
 
@@ -53,7 +56,7 @@ static void *DerefernceNullable(Nullable<T> *pValue, bool isNull)
     return &f.get();
 }
 
-static metacpp::Variant ToVariant(const Json::Value& val)
+static metacpp::Variant ToVariant(const Json::Value& val, TypeResolverFactory *typeResolver)
 {
     switch (val.type()){
     case Json::nullValue:
@@ -72,11 +75,21 @@ static metacpp::Variant ToVariant(const Json::Value& val)
         metacpp::VariantArray result;
         result.reserve(val.size());
         for (size_t i = 0; i < val.size(); ++i)
-            result.push_back(ToVariant(val.get((Json::ArrayIndex)i, Json::Value())));
+            result.push_back(ToVariant(val.get((Json::ArrayIndex)i, Json::Value()), typeResolver));
         return result;
     }
-    case Json::objectValue:
-        throw std::invalid_argument("Not implemented");
+    case Json::objectValue: {
+        Json::Value typeValue = val[szTypeName];
+        if (!typeValue.isString())
+            throw std::invalid_argument("Unknown type of Object encapsulated into Variant");
+        auto typeName = typeValue.asString();
+        if (!typeResolver)
+            throw std::invalid_argument("Unknown type " + typeName);
+        Object *subObj = typeResolver->createInstance(typeValue.asString());
+        JsonDeserializerVisitor visitor(val, typeResolver);
+        visitor.visit(subObj);
+        return subObj;
+    }
     default:
         throw std::invalid_argument("Unknown value type " + std::to_string(val.type()));
     }
@@ -189,7 +202,7 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
 		break;
 	}
 	case eFieldObject: {
-        JsonDeserializerVisitor nestedSerializer(val);
+        JsonDeserializerVisitor nestedSerializer(val, m_typeResolver);
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
 		break;
 	}
@@ -204,7 +217,7 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
         }
         break;
     case eFieldVariant:
-        *reinterpret_cast<Variant *>(pValue) = ToVariant(val);
+        *reinterpret_cast<Variant *>(pValue) = ToVariant(val, m_typeResolver);
         break;
 	}	// switch
 }

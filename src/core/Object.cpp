@@ -73,14 +73,15 @@ String Object::toJson(bool prettyFormatted) const
     }
 }
 
-void Object::fromJson(const String& s)
+void Object::fromJson(const String& s, const Array<const MetaObject *> &knownTypes)
 {
     using namespace serialization::json;
 	Json::Reader reader;
 	Json::Value root;
     if (!reader.parse(s.begin(), s.end(), root, false))
 		throw std::invalid_argument("Json::Reader::parse failed");
-    JsonDeserializerVisitor vis(root);
+    metacpp::serialization::TypeResolverFactory typeResolver(knownTypes);
+    JsonDeserializerVisitor vis(root, &typeResolver);
     vis.visit(this);
 }
 

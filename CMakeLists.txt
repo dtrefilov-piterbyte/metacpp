@@ -10,6 +10,7 @@ SET(SRC_DIRS
     "${CMAKE_SOURCE_DIR}/src/utils"
     "${CMAKE_SOURCE_DIR}/src/core"
     "${CMAKE_SOURCE_DIR}/src/db"
+    "${CMAKE_SOURCE_DIR}/src/serialization"
     "${CMAKE_SOURCE_DIR}/src/db/sql"
     "${CMAKE_SOURCE_DIR}/src/db/sql/connectors"
     "${CMAKE_SOURCE_DIR}/src/scripting"

@@ -58,7 +58,7 @@ public:
         \brief Performs json object deserialization
 		\throws std::invalid_argument
 	*/
-    void fromJson(const String &s);
+    void fromJson(const String &s, const Array<const MetaObject *>& knownTypes = Array<const MetaObject *>());
 #endif
 
 #ifdef HAVE_MONGODB

@@ -18,6 +18,7 @@
 #include "VisitorBase.h"
 #include "MetaInfo.h"
 #include <json/json.h>
+#include "TypeResolverFactory.h"
 
 namespace metacpp
 {
@@ -32,7 +33,8 @@ class JsonDeserializerVisitor :
 {
 public:
     /** \brief Constructs new instance of JsonDeserializerVisitor with a given value */
-    JsonDeserializerVisitor(const Json::Value& value);
+    JsonDeserializerVisitor(const Json::Value& value,
+                            TypeResolverFactory *typeResolver = nullptr);
     ~JsonDeserializerVisitor(void);
 protected:
     /** \brief Overrides VisitorBase::visitField */
@@ -41,6 +43,7 @@ private:
     void parseValue(const Json::Value& val, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr);
 private:
 	const Json::Value& m_value;
+    TypeResolverFactory *m_typeResolver;
 };
 
 } // namespace json
