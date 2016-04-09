@@ -13,10 +13,12 @@ FIND_PATH(
 
 FIND_LIBRARY(
     JSONCPP_LIBRARIES
-    NAMES jsoncpp
+    NAMES
+        libjsoncpp.a
+        jsoncpp
     PATHS
-        /usr/lib${LIB_SUFFIX}
-        /usr/local/lib${LIB_SUFFIX}
+        /usr/lib
+        /usr/local/lib
         ${JSONCPP_PATH_LIB}
 )
 
