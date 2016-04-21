@@ -14,7 +14,7 @@ public:
     ScriptRuntimeError(const char *message, const char *filename,
                        uint32_t line, uint32_t column);
 
-    const char *what() const noexcept override;
+    const char *what() const override;
 private:
     String m_what;
 };

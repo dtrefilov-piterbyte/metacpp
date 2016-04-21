@@ -18,9 +18,14 @@
 #include <climits>
 #include <locale>
 #include <iomanip>
+#include <iconv.h>
+#include <cstdio>
 
 #ifdef _WIN32
 #include <windows.h>
+
+// compatibility workaround
+#define snprintf _snprintf
 
 // breaks numeric limits
 #ifdef max
@@ -29,9 +34,6 @@
 #ifdef min
 #undef min
 #endif
-#else // _WIN32
-#include <iconv.h>
-#include <cstdio>
 #endif // _WIN32
 
 namespace metacpp

@@ -31,7 +31,7 @@ ScriptRuntimeError::ScriptRuntimeError(const char *message, const char *filename
             + message;
 }
 
-const char *ScriptRuntimeError::what() const noexcept
+const char *ScriptRuntimeError::what() const
 {
     return m_what.c_str();
 }

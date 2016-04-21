@@ -10,7 +10,7 @@ ScriptThreadBase::ScriptThreadBase() {
 ScriptThreadBase::~ScriptThreadBase() {
 }
 
-bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onFinished, const std::function<void (const std::__exception_ptr::exception_ptr)> &onError)
+bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onFinished, const std::function<void (const std::exception_ptr)> &onError)
 {
     std::thread th([&]{
         try
@@ -27,7 +27,7 @@ bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onF
     return true;
 }
 
-const char *TerminationException::what() const noexcept
+const char *TerminationException::what() const
 {
     return "Terminated";
 }

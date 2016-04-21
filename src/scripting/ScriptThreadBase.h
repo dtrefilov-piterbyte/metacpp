@@ -11,7 +11,7 @@ namespace scripting {
 class TerminationException : public std::exception
 {
 public:
-    const char *what() const noexcept override;
+    const char *what() const override;
 };
 
 /** \brief Basic class providing execution methods and context */
