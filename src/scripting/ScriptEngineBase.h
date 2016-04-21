@@ -4,6 +4,12 @@
 #include <MetaObject.h>
 #include <stdexcept>
 
+#ifdef MSVC
+#define _NOEXCEPT
+#else
+#define _NOEXCEPT noexcept
+#endif
+
 namespace metacpp {
 namespace scripting {
 
@@ -14,7 +20,7 @@ public:
     ScriptRuntimeError(const char *message, const char *filename,
                        uint32_t line, uint32_t column);
 
-    const char *what() const override;
+    const char *what() const _NOEXCEPT override;
 private:
     String m_what;
 };

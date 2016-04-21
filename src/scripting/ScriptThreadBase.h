@@ -6,12 +6,18 @@
 namespace metacpp {
 namespace scripting {
 
+#ifdef MSVC
+#define _NOEXCEPT
+#else
+#define _NOEXCEPT noexcept
+#endif
+
 /** An exception indicating that the script execution being terminated with
  *  ScriptThreadBase::abort */
 class TerminationException : public std::exception
 {
 public:
-    const char *what() const override;
+    const char *what() const _NOEXCEPT override;
 };
 
 /** \brief Basic class providing execution methods and context */

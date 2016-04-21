@@ -27,7 +27,7 @@ bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onF
     return true;
 }
 
-const char *TerminationException::what() const
+const char *TerminationException::what() const _NOEXCEPT
 {
     return "Terminated";
 }
