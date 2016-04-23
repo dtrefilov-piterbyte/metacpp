@@ -1,5 +1,6 @@
 [requires]
 gtest/1.7.0@lasote/stable
+sqlite3/3.10.2@TyRoXx/stable
 
 [generators]
 cmake

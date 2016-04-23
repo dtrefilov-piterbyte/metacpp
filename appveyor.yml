@@ -18,10 +18,13 @@ install:
 build_script:
 - ps: >-
     cd C:\projects\metacpp
-    Get-ChildItem "C:\Program Files (x86)"
-    Get-ChildItem "C:\Program Files"
+
     & "C:\Program Files (x86)\Conan\conan\conan.exe" install .
+
     mkdir build
+
     cd build
+
     cmake -LA -G "Visual Studio 12 Win64" ..
+
     msbuild metacpp.sln /p:Configuration=Release /toolsversion:12.0 /p:Platform=x64 /p:PlatformToolset=v120
