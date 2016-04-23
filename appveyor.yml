@@ -28,3 +28,6 @@ build_script:
     cmake -LA -G "Visual Studio 12 Win64" ..
 
     msbuild metacpp.sln /p:Configuration=Release /toolsversion:12.0 /p:Platform=x64 /p:PlatformToolset=v120
+
+test_script:
+- ps: '& "C:\projects\metacpp\build\bin\metacpp-test.exe"'

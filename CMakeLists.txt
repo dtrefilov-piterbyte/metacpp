@@ -102,10 +102,6 @@ ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GNUCXX
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
     LIST(APPEND LIBS "-lpthread" "-ldl -lz")
-ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-    # using Intel C++
-ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
-    # using Visual Studio C++
 ENDIF()
 
 ADD_SOURCE_DIRECTORY(SOURCES HEADERS "${SRC_DIRS}")
