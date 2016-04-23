@@ -4,7 +4,8 @@
 #include <MetaObject.h>
 #include <stdexcept>
 
-#ifdef MSVC
+#ifdef _MSC_VER
+#undef _NOEXCEPT
 #define _NOEXCEPT
 #else
 #define _NOEXCEPT noexcept

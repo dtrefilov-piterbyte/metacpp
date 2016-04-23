@@ -1,0 +1,13 @@
+version: 1.0.{build}
+
+image: Visual Studio 2013
+
+clone_folder: C:\projects\metacpp
+
+build_script:
+- cmd: >-
+    cd C:\projects\metacpp
+    mkdir build
+    cd build
+    cmake -LA -G "Visual Studio 12 Win64" ..
+    msbuild metacpp.sln /p:Configuration=Release /toolsversion:12.0 /p:Platform=x64 /p:PlatformToolset=v120

@@ -18,7 +18,6 @@
 #include <climits>
 #include <locale>
 #include <iomanip>
-#include <iconv.h>
 #include <cstdio>
 
 #ifdef _WIN32
@@ -34,6 +33,10 @@
 #ifdef min
 #undef min
 #endif
+#else
+
+#include <iconv.h>
+
 #endif // _WIN32
 
 namespace metacpp
