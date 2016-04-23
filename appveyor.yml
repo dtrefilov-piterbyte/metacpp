@@ -5,14 +5,22 @@ image: Visual Studio 2013
 clone_folder: C:\projects\metacpp
 
 install:
-- ps: >-
-    wget https://s3-eu-west-1.amazonaws.com/conanio/downloads/conan-win_0_3_0.exe -OutFile conan_installer.exe
-    ./conan_installer.exe /VERYSILENT
-    [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\Program Files (x86)\Conan\conan","Machine")
+    # Set up Visual Studio build environment, 32-bit output with a 64-bit builder
+    # > Increment version number when newer version of Visual Studio supported by Appveyor
+    - cmd: '"C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat" amd64_x86'
+    # Set up Conan package manager
+    - cmd: echo Downloading Conan package manager...
+    - ps: wget http://downloads.conan.io/latest_windows -OutFile conan_installer.exe
+    - cmd: conan_installer.exe /SILENT
+    - cmd: set PATH=%PATH%;C:\Program Files (x86)\Conan\conan
+    - cmd: conan --version
 
 build_script:
-- cmd: >-
+- ps: >-
     cd C:\projects\metacpp
+    Get-ChildItem "C:\Program Files (x86)"
+    Get-ChildItem "C:\Program Files"
+    & "C:\Program Files (x86)\Conan\conan\conan.exe" install .
     mkdir build
     cd build
     cmake -LA -G "Visual Studio 12 Win64" ..
