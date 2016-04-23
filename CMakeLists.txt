@@ -17,6 +17,10 @@ SET(SRC_DIRS
 )
 
 IF (MSVC)
+	EXECUTE_PROCESS(COMMAND conan.exe install "${CMAKE_SOURCE_DIR}")
+	INCLUDE("${CMAKE_SOURCE_DIR}/conanbuildinfo.cmake")
+	CONAN_BASIC_SETUP()
+
 	LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/compat")
 ENDIF(MSVC)
 
@@ -91,16 +95,16 @@ FILE(STRINGS ${VERSION_FILE} PRO_VERSION)
 LIST(APPEND INCLUDE_DIRS ${SRC_DIRS})
 STRING(REPLACE ";" "\" \"" SOURCES_STR "${SRC_DIRS}")
 
-IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+IF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # using LLVM Clang
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-private-field -std=c++11")
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GNUCXX
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
     LIST(APPEND LIBS "-lpthread" "-ldl -lz")
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
+ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
     # using Intel C++
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
     # using Visual Studio C++
 ENDIF()
 

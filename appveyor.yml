@@ -4,6 +4,12 @@ image: Visual Studio 2013
 
 clone_folder: C:\projects\metacpp
 
+install:
+- ps: >-
+    wget https://s3-eu-west-1.amazonaws.com/conanio/downloads/conan-win_0_3_0.exe -OutFile conan_installer.exe
+    ./conan_installer.exe /VERYSILENT
+    [Environment]::SetEnvironmentVariable("PATH", $env:PATH + ";C:\Program Files (x86)\Conan\conan","Machine")
+
 build_script:
 - cmd: >-
     cd C:\projects\metacpp
