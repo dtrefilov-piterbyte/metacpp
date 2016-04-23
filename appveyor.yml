@@ -7,7 +7,7 @@ clone_folder: C:\projects\metacpp
 install:
     # Set up Visual Studio build environment, 32-bit output with a 64-bit builder
     # > Increment version number when newer version of Visual Studio supported by Appveyor
-    - cmd: '"C:/Program Files (x86)/Microsoft Visual Studio 14.0/VC/vcvarsall.bat" amd64_x86'
+    - cmd: '"C:/Program Files (x86)/Microsoft Visual Studio 12.0/VC/vcvarsall.bat" amd64_x86'
     # Set up Conan package manager
     - cmd: echo Downloading Conan package manager...
     - ps: wget http://downloads.conan.io/latest_windows -OutFile conan_installer.exe
