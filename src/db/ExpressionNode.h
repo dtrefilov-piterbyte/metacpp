@@ -160,26 +160,12 @@ public:
     {
     }
 
-    ~ExpressionNodeImplLiteral()
-    {
-    }
+    ~ExpressionNodeImplLiteral();
 
-    EFieldType type() const override
-    {
-        return m_value.type();
-    }
-
-    ExpressionNodeType nodeType() const override
-    {
-        return eNodeLiteral;
-    }
-
-    bool isLeaf() const override
-    {
-        return true;
-    }
-
-    const Variant& value() const { return m_value; }
+    EFieldType type() const override;
+    ExpressionNodeType nodeType() const override;
+    bool isLeaf() const override;
+    const Variant& value() const;
 private:
     Variant m_value;
 };

@@ -16,7 +16,6 @@ public:
 	void testSubStr2();
 	void testStringBuilder();
     void testAssign(const char *v);
-    void testStreamOperators(const char *str);
     int testToValue(const metacpp::String &s);
     void testStreams();
     void testJoin();

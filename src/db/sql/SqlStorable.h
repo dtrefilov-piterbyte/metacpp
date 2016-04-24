@@ -55,8 +55,6 @@ namespace sql
         bool updateOne(SqlTransaction& transaction);
         /** Delete the record by primary key using specified transaction */
         bool removeOne(SqlTransaction& transaction);
-        /** Returns sql-literal representation of the specified field */
-        String fieldValue(const MetaFieldBase *field) const;
     protected:
         static void createSchema(SqlTransaction& transaction, const MetaObject *metaObject,
                                  const Array<SqlConstraintBasePtr>& constraints);

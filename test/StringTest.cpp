@@ -1,5 +1,6 @@
 #include "StringTest.h"
 #include "Uri.h"
+#include "Variant.h"
 #include <sstream>
 
 using namespace metacpp;
@@ -154,21 +155,30 @@ TEST_F(StringTest, TestAssign)
     testAssign(nullptr);
 }
 
-void StringTest::testStreamOperators(const char *str)
+template<typename TStreamChar, typename TChar>
+static void TestStreamOperators(const TChar *str)
 {
-    std::ostringstream oss;
-    oss << String(str);
-    std::istringstream iss(oss.str());
-    String s;
+    std::basic_ostringstream<TStreamChar> oss;
+    metacpp::operator <<(oss, StringBase<TChar>(str));
+    std::basic_istringstream<TStreamChar> iss(oss.str());
+    StringBase<TChar> s;
     iss >> s;
-    ASSERT_EQ(s, str);
+    EXPECT_EQ(s, StringBase<TChar>(str));
 }
 
 TEST_F(StringTest, testStreamOperators)
 {
-    testStreamOperators(nullptr);
-    testStreamOperators("");
-    testStreamOperators("asdlaasd");
+    EXPECT_NO_THROW(TestStreamOperators<char>(""));
+    EXPECT_NO_THROW(TestStreamOperators<char>("asdlaasd"));
+
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(""));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>("asdlaasd"));
+
+    EXPECT_NO_THROW(TestStreamOperators<char>(U16("")));
+    EXPECT_NO_THROW(TestStreamOperators<char>(U16("asdlaasd")));
+
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("")));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("asdlaasd")));
 }
 
 void StringTest::testStreams()
@@ -290,12 +300,42 @@ TEST_F(StringTest, TestWAConversion)
 	ASSERT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
 }
 
+TEST_F(StringTest, TestAAConversion)
+{
+    ASSERT_EQ(string_cast<String>(String("test")), "test");
+    ASSERT_EQ(string_cast<String>(String("кирилица")), "кирилица");
+}
+
+TEST_F(StringTest, TestWWConversion)
+{
+    ASSERT_EQ(string_cast<WString>(WString(U16("test"))), U16("test"));
+    ASSERT_EQ(string_cast<WString>(WString(U16("кирилица"))), U16("кирилица"));
+}
+
+TEST_F(StringTest, TestStdAConversion)
+{
+    ASSERT_EQ(string_cast<String>(std::string("test")), "test");
+    ASSERT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("test"))), "test");
+    ASSERT_EQ(string_cast<String>(std::string("кирилица")), "кирилица");
+    ASSERT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("кирилица"))), "кирилица");
+}
+
+TEST_F(StringTest, TestStdWConversion)
+{
+    ASSERT_EQ(string_cast<WString>(std::string("test")), U16("test"));
+    ASSERT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("test"))), U16("test"));
+    ASSERT_EQ(string_cast<WString>(std::string("кирилица")), U16("кирилица"));
+    ASSERT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("кирилица"))), U16("кирилица"));
+}
+
 TEST_F(StringTest, TestUrlencode)
 {
     EXPECT_EQ(String("You shall pass!").urlencode(),
               "You+shall+pass%21");
     EXPECT_EQ(String("Unescaped characters: [~-_.]").urlencode(),
               "Unescaped+characters%3A+%5B~-_.%5D");
+    EXPECT_EQ(WString(U16("You shall pass!")).urlencode(),
+              U16("You+shall+pass%21"));
 }
 
 TEST_F(StringTest, TestUrldecode)
@@ -306,4 +346,90 @@ TEST_F(StringTest, TestUrldecode)
               "Unescaped characters: [~-_.]");
     EXPECT_EQ(String("Unescaped+characters%3a+%5b~-_.%5d").urldecode(),
               "Unescaped characters: [~-_.]");
+    EXPECT_EQ(WString(U16("You+shall+pass%21")).urldecode(),
+              U16("You shall pass!"));
+    EXPECT_THROW(String("You+shall+not+pass%!1!").urldecode(), std::invalid_argument);
+}
+
+TEST_F(StringTest, TestStrncasecmp)
+{
+    auto check = [](const char *a, const char *b, size_t len, bool result) {
+        EXPECT_EQ(metacpp::detail::StringHelper<char>::strncasecmp(a, b, len) == 0, result);
+    };
+    check("abc123", "abc", 3, true);
+    check("abc123", "abc", 4, false);
+    check("abc123", "abc", 2, true);
+    check("abc123", "ABC", 3, true);
+    check("abc123", "ABC", 4, false);
+    check("abc123", "ABC", 2, true);
+}
+
+TEST_F(StringTest, TestStrcpy)
+{
+    char buffer[256];
+    auto check = [&](const char *a) {
+        metacpp::detail::StringHelper<char>::strcpy(buffer, a);
+        EXPECT_EQ(buffer, String(a));
+    };
+    check("test");
+    check("кирилица");
+}
+
+TEST_F(StringTest, TestStrncpy)
+{
+    char buffer[256];
+    auto check = [&](const char *a, size_t len, const char *check) {
+        metacpp::detail::StringHelper<char>::strncpy(buffer, a, len);
+        EXPECT_EQ(buffer, String(check));
+    };
+    check("test", 4, "test");
+    check("test123", 4, "test");
+    check("test", 5, "test");
+}
+
+TEST_F(StringTest, TestStrstr)
+{
+    auto check = [](const char *haystack, const char *needle, const char *check) {
+        EXPECT_EQ(metacpp::detail::StringHelper<char>::strstr(haystack, needle), check);
+    };
+    char test_str[] = "very long string";
+    check(test_str, test_str, test_str);
+    check(test_str, "very", test_str);
+    check(test_str, "long", test_str + 5);
+    check(test_str, "different", nullptr);
+}
+
+TEST_F(StringTest, TestWStrcpy)
+{
+    char16_t buffer[256];
+    auto check = [&](const char16_t *a) {
+        metacpp::detail::StringHelper<char16_t>::strcpy(buffer, a);
+        EXPECT_EQ(WString(buffer), WString(a));
+    };
+    check(U16("test"));
+    check(U16("кирилица"));
+}
+
+TEST_F(StringTest, TestWStrncpy)
+{
+    char16_t buffer[256];
+    auto check = [&](const char16_t *a, size_t len, const char16_t *check) {
+        metacpp::detail::StringHelper<char16_t>::strncpy(buffer, a, len);
+        EXPECT_EQ(buffer, WString(check));
+    };
+    check(U16("test"), 4, U16("test"));
+    check(U16("test123"), 4, U16("test"));
+    check(U16("test"), 5, U16("test"));
+}
+
+TEST_F(StringTest, TestWStrstr)
+{
+    auto check = [](const char16_t *haystack, const char16_t *needle, const char16_t *check) {
+        EXPECT_EQ(metacpp::detail::StringHelper<char16_t>::strstr(haystack, needle), check);
+    };
+    char16_t test_str[] = U16("very long string");
+    check(test_str, test_str, test_str);
+    check(test_str, U16("very"), test_str);
+    check(test_str, U16("long"), test_str + 5);
+    check(test_str, U16("different"), nullptr);
 }

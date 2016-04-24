@@ -159,6 +159,7 @@ namespace detail
     {
         char16_t *result = dest;
         while (*source) *dest++ = *source++;
+        *dest = 0;
         return result;
     }
 

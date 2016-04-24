@@ -60,6 +60,30 @@ const MetaFieldBase *ExpressionNodeImplColumn::metaField() const
     return m_metaField;
 }
 
+ExpressionNodeImplLiteral::~ExpressionNodeImplLiteral()
+{
+}
+
+EFieldType ExpressionNodeImplLiteral::type() const
+{
+    return m_value.type();
+}
+
+ExpressionNodeType ExpressionNodeImplLiteral::nodeType() const
+{
+    return eNodeLiteral;
+}
+
+bool ExpressionNodeImplLiteral::isLeaf() const
+{
+    return true;
+}
+
+const Variant& ExpressionNodeImplLiteral::value() const
+{
+    return m_value;
+}
+
 ExpressionNodeImplUnaryOperator::ExpressionNodeImplUnaryOperator(UnaryOperatorType op, ExpressionNodeImplPtr innerNode)
     : m_operator(op), m_innerNode(innerNode)
 {
