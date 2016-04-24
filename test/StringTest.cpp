@@ -288,44 +288,44 @@ TEST_F(StringTest, TestUri)
 
 TEST_F(StringTest, TestAWConversion)
 {
-    ASSERT_EQ(string_cast<WString>("test"), U16("test"));
-    ASSERT_EQ(string_cast<WString>("Hello, world!"), U16("Hello, world!"));
-    ASSERT_EQ(string_cast<WString>("кирилица"), U16("кирилица"));
+    EXPECT_EQ(string_cast<WString>("test"), U16("test"));
+    EXPECT_EQ(string_cast<WString>("Hello, world!"), U16("Hello, world!"));
+    EXPECT_EQ(string_cast<WString>("кирилица"), U16("кирилица"));
 }
 
 TEST_F(StringTest, TestWAConversion)
 {
-    ASSERT_EQ(string_cast<String>(U16("test")), "test");
-    ASSERT_EQ(string_cast<String>(U16("Hello, world!")), "Hello, world!");
-	ASSERT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
+    EXPECT_EQ(string_cast<String>(U16("test")), "test");
+    EXPECT_EQ(string_cast<String>(U16("Hello, world!")), "Hello, world!");
+    EXPECT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
 }
 
 TEST_F(StringTest, TestAAConversion)
 {
-    ASSERT_EQ(string_cast<String>(String("test")), "test");
-    ASSERT_EQ(string_cast<String>(String("кирилица")), "кирилица");
+    EXPECT_EQ(string_cast<String>(String("test")), "test");
+    EXPECT_EQ(string_cast<String>(String("кирилица")), "кирилица");
 }
 
 TEST_F(StringTest, TestWWConversion)
 {
-    ASSERT_EQ(string_cast<WString>(WString(U16("test"))), U16("test"));
-    ASSERT_EQ(string_cast<WString>(WString(U16("кирилица"))), U16("кирилица"));
+    EXPECT_EQ(string_cast<WString>(WString(U16("test"))), U16("test"));
+    EXPECT_EQ(string_cast<WString>(WString(U16("кирилица"))), U16("кирилица"));
 }
 
 TEST_F(StringTest, TestStdAConversion)
 {
-    ASSERT_EQ(string_cast<String>(std::string("test")), "test");
-    ASSERT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("test"))), "test");
-    ASSERT_EQ(string_cast<String>(std::string("кирилица")), "кирилица");
-    ASSERT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("кирилица"))), "кирилица");
+    EXPECT_EQ(string_cast<String>(std::string("test")), "test");
+    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("test"))), "test");
+    EXPECT_EQ(string_cast<String>(std::string("кирилица")), "кирилица");
+    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("кирилица"))), "кирилица");
 }
 
 TEST_F(StringTest, TestStdWConversion)
 {
-    ASSERT_EQ(string_cast<WString>(std::string("test")), U16("test"));
-    ASSERT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("test"))), U16("test"));
-    ASSERT_EQ(string_cast<WString>(std::string("кирилица")), U16("кирилица"));
-    ASSERT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("кирилица"))), U16("кирилица"));
+    EXPECT_EQ(string_cast<WString>(std::string("test")), U16("test"));
+    EXPECT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("test"))), U16("test"));
+    EXPECT_EQ(string_cast<WString>(std::string("кирилица")), U16("кирилица"));
+    EXPECT_EQ(string_cast<WString>(std::basic_string<char16_t>(U16("кирилица"))), U16("кирилица"));
 }
 
 TEST_F(StringTest, TestUrlencode)
@@ -379,12 +379,13 @@ TEST_F(StringTest, TestStrncpy)
 {
     char buffer[256];
     auto check = [&](const char *a, size_t len, const char *check) {
+        memset(buffer, 0, sizeof(buffer));
         metacpp::detail::StringHelper<char>::strncpy(buffer, a, len);
         EXPECT_EQ(String(buffer), String(check));
     };
     check("test", 4, "test");
     check("test123", 4, "test");
-    check("test", 5, "test");
+    check("test", 3, "tes");
 }
 
 TEST_F(StringTest, TestStrstr)
@@ -414,12 +415,13 @@ TEST_F(StringTest, TestWStrncpy)
 {
     char16_t buffer[256];
     auto check = [&](const char16_t *a, size_t len, const char16_t *check) {
+        memset(buffer, 0, sizeof(buffer));
         metacpp::detail::StringHelper<char16_t>::strncpy(buffer, a, len);
         EXPECT_EQ(buffer, WString(check));
     };
     check(U16("test"), 4, U16("test"));
     check(U16("test123"), 4, U16("test"));
-    check(U16("test"), 5, U16("test"));
+    check(U16("test"), 3, U16("tes"));
 }
 
 TEST_F(StringTest, TestWStrstr)
