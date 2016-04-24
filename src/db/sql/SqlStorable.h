@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLSTORABLE_H
 #define SQLSTORABLE_H
+#include "config.h"
 #include <cstdint>
 #include <memory>
 #include "Object.h"

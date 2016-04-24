@@ -15,7 +15,7 @@
 ****************************************************************************/
 #ifndef INITVISITOR_H
 #define INITVISITOR_H
-
+#include "config.h"
 #include "VisitorBase.h"
 
 namespace metacpp

@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef URI_H
 #define URI_H
+#include "config.h"
 #include "Array.h"
 #include "StringBase.h"
 #include <map>

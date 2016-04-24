@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef JSONDESERIALIZERVISITOR_H
 #define JSONDESERIALIZERVISITOR_H
+#include "config.h"
 #include "VisitorBase.h"
 #include "MetaInfo.h"
 #include <json/json.h>

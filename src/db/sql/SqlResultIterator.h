@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLRESULTITERATOR_H
 #define SQLRESULTITERATOR_H
+#include "config.h"
 #include "Object.h"
 
 namespace metacpp

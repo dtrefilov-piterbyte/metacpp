@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLCOLUMNCONSTRAINT_H
 #define SQLCOLUMNCONSTRAINT_H
+#include "config.h"
 #include "ExpressionNode.h"
 #include <memory>
 

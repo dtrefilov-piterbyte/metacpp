@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLEXPRESSIONTREEWALKER_H
 #define SQLEXPRESSIONTREEWALKER_H
+#include "config.h"
 #include "ASTWalkerBase.h"
 
 namespace metacpp

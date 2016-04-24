@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METACPP_DATETIME_H
 #define METACPP_DATETIME_H
+#include "config.h"
 #include <time.h>
 #include "StringBase.h"
 #include "SharedDataPointer.h"

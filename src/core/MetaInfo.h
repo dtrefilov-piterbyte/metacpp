@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METAINFO_H
 #define METAINFO_H
+#include "config.h"
 #include <string>
 #include <cstddef>
 #include <set>

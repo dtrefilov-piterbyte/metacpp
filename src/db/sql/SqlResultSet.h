@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLRESULTSET_H
 #define SQLRESULTSET_H
+#include "config.h"
 #include "SqlResultIterator.h"
 #include "SharedDataBase.h"
 

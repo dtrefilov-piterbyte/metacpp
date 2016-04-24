@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METACPP_DB_EXPRESSIONASSIGNMENT_H
 #define METACPP_DB_EXPRESSIONASSIGNMENT_H
+#include "config.h"
 #include "StringBase.h"
 #include <memory>
 

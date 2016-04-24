@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef TYPEPROMOTION_H
 #define TYPEPROMOTION_H
+#include "config.h"
 #include <type_traits>
 
 namespace metacpp

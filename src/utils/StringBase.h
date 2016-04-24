@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef STRING_H
 #define STRING_H
+#include "config.h"
 #include <string>
 #include <stdio.h>
 #include <wchar.h>

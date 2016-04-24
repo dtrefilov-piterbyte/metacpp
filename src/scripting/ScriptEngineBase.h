@@ -1,5 +1,6 @@
 #ifndef SCRIPTENGINEBASE_H
 #define SCRIPTENGINEBASE_H
+#include "config.h"
 #include "ScriptProgramBase.h"
 #include <MetaObject.h>
 #include <stdexcept>

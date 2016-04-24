@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef VARIANT_H
 #define VARIANT_H
+#include "config.h"
 #include "DateTime.h"
 #include "StringBase.h"
 #include "Array.h"

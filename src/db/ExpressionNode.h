@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METACPP_DB_EXPRESSIONNODE_H
 #define METACPP_DB_EXPRESSIONNODE_H
+#include "config.h"
 #include <memory>
 #include "Utils.h"
 #include "StringBase.h"

@@ -1,5 +1,6 @@
 #ifndef METATYPE
 #define METATYPE
+#include "config.h"
 #include <type_traits>
 #include <cstdint>
 

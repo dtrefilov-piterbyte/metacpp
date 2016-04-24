@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SHAREDDATAPOINTER_H
 #define SHAREDDATAPOINTER_H
+#include "config.h"
 #include "SharedDataBase.h"
 #include <algorithm>
 

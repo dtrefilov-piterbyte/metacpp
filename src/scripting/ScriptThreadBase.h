@@ -1,5 +1,6 @@
 #ifndef SCRIPTTHREADBASE_H
 #define SCRIPTTHREADBASE_H
+#include "config.h"
 #include "ScriptProgramBase.h"
 #include <functional>
 

@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef NULLABLE_H
 #define NULLABLE_H
+#include "config.h"
 #include <stdexcept>
 #include <type_traits>
 

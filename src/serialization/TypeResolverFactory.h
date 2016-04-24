@@ -1,5 +1,6 @@
 #ifndef TYPERESOLVERFACTORY_H
 #define TYPERESOLVERFACTORY_H
+#include "config.h"
 #include <Utils.h>
 #include <Object.h>
 #include <SharedDataPointer.h>

@@ -1,5 +1,6 @@
 #ifndef SCRIPTABLE_H
 #define SCRIPTABLE_H
+#include "config.h"
 #include "Object.h"
 
 namespace metacpp

@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLTRANSACTION_H
 #define SQLTRANSACTION_H
+#include "config.h"
 #include "SqlConnectorBase.h"
 
 namespace metacpp

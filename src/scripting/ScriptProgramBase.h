@@ -1,5 +1,6 @@
 #ifndef SCRIPTPROGRAMBASE_H
 #define SCRIPTPROGRAMBASE_H
+#include "config.h"
 #include <iostream>
 #include <memory>
 #include <StringBase.h>

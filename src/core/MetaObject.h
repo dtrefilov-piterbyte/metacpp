@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METAOBJECT_H
 #define METAOBJECT_H
+#include "config.h"
 #include "MetaInfo.h"
 #include <vector>
 #include <memory>

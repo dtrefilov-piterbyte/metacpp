@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef ARRAY_H
 #define ARRAY_H
+#include "config.h"
 #include <algorithm>
 #include <string.h>
 #include "SharedDataBase.h"

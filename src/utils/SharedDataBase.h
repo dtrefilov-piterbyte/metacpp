@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SHAREDDATABASE_H
 #define SHAREDDATABASE_H
+#include "config.h"
 #include <atomic>
 #include <type_traits>
 #include <memory>

@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef SQLSTATEMENT_H
 #define SQLSTATEMENT_H
+#include "config.h"
 #include "SqlResultSet.h"
 #include "SharedDataPointer.h"
 #include "ExpressionAssignment.h"

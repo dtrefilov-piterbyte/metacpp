@@ -1,5 +1,5 @@
 #include "ScriptThreadBase.h"
-#include <thread>
+#include <future>
 
 namespace metacpp {
 namespace scripting {
@@ -12,7 +12,8 @@ ScriptThreadBase::~ScriptThreadBase() {
 
 bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onFinished, const std::function<void (const std::exception_ptr)> &onError)
 {
-    std::thread th([&]{
+    std::async(std::launch::async,
+        [&]{
         try
         {
             onFinished(this->run());
@@ -22,8 +23,6 @@ bool ScriptThreadBase::runAsync(const std::function<void (const Variant &)> &onF
             onError(std::current_exception());
         }
     });
-    th.detach();
-
     return true;
 }
 

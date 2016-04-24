@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef METACPP_DB_ASTWALKERBASE_H
 #define METACPP_DB_ASTWALKERBASE_H
+#include "config.h"
 #include "ExpressionNode.h"
 
 namespace metacpp {

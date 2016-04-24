@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef OBJECT_H
 #define OBJECT_H
+#include "config.h"
 #include "MetaObject.h"
 #include <map>
 

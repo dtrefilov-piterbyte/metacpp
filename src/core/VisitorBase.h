@@ -15,6 +15,7 @@
 ****************************************************************************/
 #ifndef VISITOR_BASE_H
 #define VISITOR_BASE_H
+#include "config.h"
 //#include "Object.h"
 
 namespace metacpp
