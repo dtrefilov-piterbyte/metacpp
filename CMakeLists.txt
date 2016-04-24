@@ -1,6 +1,7 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 PROJECT(metacpp)
-SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
+LIST(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/coveralls-cmake/cmake/")
 INCLUDE("${CMAKE_SOURCE_DIR}/cmake/Macros/ScanSources.cmake")
 SET(VERSION_FILE "${CMAKE_SOURCE_DIR}/version")
 SET(README_FILE "${CMAKE_SOURCE_DIR}/README.md")
@@ -100,19 +101,27 @@ STRING(REPLACE ";" "\" \"" SOURCES_STR "${SRC_DIRS}")
 
 IF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # using LLVM Clang
-    LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-private-field -std=c++11")
+    SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-unused-private-field -std=c++11")
     LIST(APPEND LIBS "-lpthread")
 ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GNUCXX
-    LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
     LIST(APPEND LIBS "-lpthread" "-ldl -lz")
 ENDIF()
+
+ADD_SOURCE_DIRECTORY(SOURCES HEADERS "${SRC_DIRS}")
+
+IF(COVERALLS)
+    MESSAGE(STATUS "Building with coverage analysis")
+    INCLUDE(Coveralls)
+    COVERALLS_TURN_ON_COVERAGE()
+    MESSAGE(STATUS "I am with stupid ${HEADERS}")
+    COVERALLS_SETUP("${SOURCES};${HEADERS}" ON)
+ENDIF(COVERALLS)
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
 LIST(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_BINARY_DIR})
 LIST(APPEND HEADERS "${CMAKE_CURRENT_BINARY_DIR}/config.h")
-
-ADD_SOURCE_DIRECTORY(SOURCES HEADERS "${SRC_DIRS}")
 
 INCLUDE_DIRECTORIES(${INCLUDE_DIRS})
 
