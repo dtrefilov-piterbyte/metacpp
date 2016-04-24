@@ -322,10 +322,17 @@ ClassInfo::~ClassInfo()
 void ClassInfo::Trace(JSTracer *trc, void *data)
 {
     ClassInfo *ci = reinterpret_cast<ClassInfo *>(data);
+#if MOZJS_MAJOR_VERSION >= 38
     if (ci->classObject)
         JS_CallObjectTracer(trc, &ci->classObject, "ClassObject");
     if (ci->ctorObject)
         JS_CallObjectTracer(trc, &ci->ctorObject, "CtorObject");
+#else
+    if (ci->classObject)
+        JS_CallObjectTracer(trc, ci->classObject.unsafeGet(), "ClassObject");
+    if (ci->ctorObject)
+        JS_CallObjectTracer(trc, ci->ctorObject.unsafeGet(), "CtorObject");
+#endif
 }
 
 } // namespace details

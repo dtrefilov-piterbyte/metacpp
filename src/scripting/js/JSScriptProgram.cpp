@@ -32,9 +32,9 @@ void JSScriptProgram::compile(std::istream &is, const String &filename)
 void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &filename)
 {
     JS_AbortIfWrongThread(m_engine->rootRuntime());
-    std::unique_ptr<JSContext, std::function<void(JSContext *)> > cx
-    { JS_NewContext(m_engine->rootRuntime(), 8192),
-                [](JSContext *c) { if (c) JS_DestroyContext(c); } };
+    auto deleter = [](JSContext *c) { if (c) JS_DestroyContext(c); };
+    std::unique_ptr<JSContext, decltype(deleter)> cx
+    { JS_NewContext(m_engine->rootRuntime(), 8192), deleter };
     if (!cx)
         throw std::runtime_error("Could not create JS context");
 

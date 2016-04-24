@@ -116,7 +116,7 @@ TEST_F(JSScriptTest, testThrow)
 }
 
 // Threads are not terminatable
-#ifdef JS_THREADSAFE
+#if MOZJS_MAJOR_VERSION >= 38
 TEST_F(JSScriptTest, testTerminate)
 {
     auto program = m_engine->createProgram();
