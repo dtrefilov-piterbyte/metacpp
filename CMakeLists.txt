@@ -101,6 +101,7 @@ STRING(REPLACE ";" "\" \"" SOURCES_STR "${SRC_DIRS}")
 IF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # using LLVM Clang
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-private-field -std=c++11")
+    LIST(APPEND LIBS "-lpthread")
 ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GNUCXX
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
@@ -212,7 +213,7 @@ IF(UNIX)
     IF(DPKG_BINARY)
         SET(CPACK_DEBIAN_PACKAGE_PROVIDES "${CPACK_PACKAGE_NAME}-dev")
         SET(CPACK_DEBIAN_PACKAGE_REPLACES "${CPACK_PACKAGE_NAME}-dev")
-        SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libsqlite3,libmysqlclient,libpq,libmozjs-${SPIDERMONKEY_VERSION}")
+        #SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libsqlite3,libmysqlclient,libpq,libmozjs-${SPIDERMONKEY_VERSION}")
         LIST(APPEND CPACK_GENERATOR "DEB")
     ENDIF(DPKG_BINARY)
 
