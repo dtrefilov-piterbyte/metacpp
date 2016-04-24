@@ -380,7 +380,7 @@ TEST_F(StringTest, TestStrncpy)
     char buffer[256];
     auto check = [&](const char *a, size_t len, const char *check) {
         metacpp::detail::StringHelper<char>::strncpy(buffer, a, len);
-        EXPECT_EQ(buffer, String(check));
+        EXPECT_EQ(String(buffer), String(check));
     };
     check("test", 4, "test");
     check("test123", 4, "test");
