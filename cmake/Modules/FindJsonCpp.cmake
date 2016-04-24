@@ -14,7 +14,6 @@ FIND_PATH(
 FIND_LIBRARY(
     JSONCPP_LIBRARIES
     NAMES
-        libjsoncpp.a
         jsoncpp
     PATHS
         /usr/lib
