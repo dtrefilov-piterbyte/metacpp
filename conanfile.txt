@@ -1,0 +1,13 @@
+[requires]
+gtest/1.7.0@lasote/stable
+sqlite3/3.10.2@TyRoXx/stable
+
+[generators]
+cmake
+
+[options]
+gtest:shared=False
+
+[imports]
+bin, *.dll -> ./build/bin
+lib, *.dylib* -> ./build/bin

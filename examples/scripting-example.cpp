@@ -1,6 +1,9 @@
+#ifdef HAVE_SPIDERMONKEY
+
 #include <Object.h>
 #include <JSScriptEngine.h>
 #include <cstdio>
+#include <iostream>
 
 // That is our program inside a program
 const char szScriptProgram[] = R"#(
@@ -143,3 +146,15 @@ int main(int argc, char **argv)
 
     return 0;
 }
+
+#else
+
+#include <iostream>
+
+int main(int argc, char **argv)
+{
+    std::cerr << "The metacpp has been built with no JS support" << std::endl;
+    return 1;
+}
+
+#endif

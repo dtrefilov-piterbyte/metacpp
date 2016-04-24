@@ -7,7 +7,8 @@
 namespace metacpp {
 namespace scripting {
 
-#ifdef MSVC
+#ifdef _MSC_VER
+#undef _NOEXCEPT
 #define _NOEXCEPT
 #else
 #define _NOEXCEPT noexcept

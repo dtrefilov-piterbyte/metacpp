@@ -18,6 +18,10 @@ SET(SRC_DIRS
 
 IF (MSVC)
     LIST(APPEND SRC_DIRS "${CMAKE_SOURCE_DIR}/src/compat")
+
+    EXECUTE_PROCESS(COMMAND conan.exe install "${CMAKE_SOURCE_DIR}")
+    INCLUDE("${CMAKE_SOURCE_DIR}/conanbuildinfo.cmake")
+    CONAN_BASIC_SETUP()
 ENDIF(MSVC)
 
 FIND_PACKAGE(JsonCpp)
@@ -94,17 +98,13 @@ LIST(GET PRO_VERSION_LIST 1 METACPP_VERSION_MINOR)
 LIST(APPEND INCLUDE_DIRS ${SRC_DIRS})
 STRING(REPLACE ";" "\" \"" SOURCES_STR "${SRC_DIRS}")
 
-IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+IF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
     # using LLVM Clang
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-private-field -std=c++11")
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
     # using GNUCXX
     LIST(APPEND CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-invalid-offsetof -Wno-unused-parameter -Wno-ignored-qualifiers -std=c++11")
     LIST(APPEND LIBS "-lpthread" "-ldl -lz")
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-    # using Intel C++
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    # using Visual Studio C++
 ENDIF()
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)

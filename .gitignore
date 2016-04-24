@@ -1,2 +1,4 @@
 CMakeLists.txt.*
 /build
+/conanbuildinfo.cmake
+/conaninfo.txt
