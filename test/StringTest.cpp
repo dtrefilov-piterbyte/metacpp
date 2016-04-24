@@ -427,7 +427,7 @@ TEST_F(StringTest, TestWStrstr)
     auto check = [](const char16_t *haystack, const char16_t *needle, const char16_t *check) {
         EXPECT_EQ(metacpp::detail::StringHelper<char16_t>::strstr(haystack, needle), check);
     };
-    char16_t test_str[] = U16("very long string");
+    const char16_t test_str[] = U16("very long string");
     check(test_str, test_str, test_str);
     check(test_str, U16("very"), test_str);
     check(test_str, U16("long"), test_str + 5);
