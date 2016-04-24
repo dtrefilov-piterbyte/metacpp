@@ -168,6 +168,7 @@ namespace detail
     {
         char16_t *result = dest;
         while (*source && n--) *dest++ = *source++;
+        *dest = 0;
         return result;
     }
 
