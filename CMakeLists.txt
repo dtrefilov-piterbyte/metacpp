@@ -115,7 +115,7 @@ IF(COVERALLS)
     MESSAGE(STATUS "Building with coverage analysis")
     INCLUDE(Coveralls)
     COVERALLS_TURN_ON_COVERAGE()
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-inline")
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-inline -fno-inline-small-functions -fno-default-inline -fno-elide-constructors")
     COVERALLS_SETUP("${SOURCES};${HEADERS}" ${COVERALLS_UPLOAD})
 ENDIF(COVERALLS)
 
