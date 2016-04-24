@@ -10,7 +10,7 @@ before_install:
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -y libsqlite3-dev libgtest-dev libpq-dev libmysqlclient-dev libmozjs-38-dev libjsoncpp-dev
+  - sudo apt-get install -y libsqlite3-dev libgtest-dev libpq-dev libmysqlclient-dev libmozjs-24-dev libjsoncpp-dev
 
   - pushd /usr/src/gtest
   - sudo cmake -DCMAKE_BUILD_TYPE=Release .

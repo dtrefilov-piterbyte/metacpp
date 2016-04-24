@@ -212,7 +212,7 @@ IF(UNIX)
     IF(DPKG_BINARY)
         SET(CPACK_DEBIAN_PACKAGE_PROVIDES "${CPACK_PACKAGE_NAME}-dev")
         SET(CPACK_DEBIAN_PACKAGE_REPLACES "${CPACK_PACKAGE_NAME}-dev")
-        SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libsqlite3,libmysqlclient,libpq,libmozjs-38")
+        SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libsqlite3,libmysqlclient,libpq,libmozjs-24")
         LIST(APPEND CPACK_GENERATOR "DEB")
     ENDIF(DPKG_BINARY)
 
