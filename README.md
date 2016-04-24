@@ -4,7 +4,7 @@ metacpp
 [![Build status](https://ci.appveyor.com/api/projects/status/lgl2ckqp6undmsc2?svg=true)](https://ci.appveyor.com/project/the-alien/metacpp)
 [![Coverity Scan Build Status](https://scan.coverity.com/projects/7967/badge.svg)](https://scan.coverity.com/projects/metacpp)
 
-A project providing ways of object introspection in C++.
+Yet another reflection library for C++.
 Base functionality:
 * Object reflection and introspection
 * Object serialization
