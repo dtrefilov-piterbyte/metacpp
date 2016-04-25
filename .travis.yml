@@ -3,6 +3,7 @@ sudo: required
 dist: trusty
 addons:
   mariadb: '10.0'
+  postgresql: '9.4'
   apt:
     packages:
     - mariadb-server
