@@ -362,15 +362,16 @@ TEST_F(StringTest, TestStrcpy)
 
 TEST_F(StringTest, TestStrncpy)
 {
-    char buffer[256];
+    char buffer[256] = { 0 };
     auto check = [&](const char *a, size_t len, const char *check) {
-        memset(buffer, 0, sizeof(buffer));
+        memset(buffer, '?', 10);
         metacpp::detail::StringHelper<char>::strncpy(buffer, a, len);
         EXPECT_EQ(String(buffer), String(check));
     };
-    check("test", 4, "test");
-    check("test123", 4, "test");
-    check("test", 3, "tes");
+    check("test", 4, "test??????");
+    check("test123", 4, "test??????");
+    check("test", 3, "tes???????");
+    check("test", 5, "test");
 }
 
 TEST_F(StringTest, TestStrstr)
@@ -398,15 +399,16 @@ TEST_F(StringTest, TestWStrcpy)
 
 TEST_F(StringTest, TestWStrncpy)
 {
-    char16_t buffer[256];
+    char16_t buffer[256] = { 0 };
     auto check = [&](const char16_t *a, size_t len, const char16_t *check) {
-        memset(buffer, 0, sizeof(buffer));
+        std::fill_n(buffer, 10, '?');
         metacpp::detail::StringHelper<char16_t>::strncpy(buffer, a, len);
-        EXPECT_EQ(buffer, WString(check));
+        EXPECT_EQ(WString(buffer), WString(check));
     };
-    check(U16("test"), 4, U16("test"));
-    check(U16("test123"), 4, U16("test"));
-    check(U16("test"), 3, U16("tes"));
+    check(U16("test"), 4, U16("test??????"));
+    check(U16("test123"), 4, U16("test??????"));
+    check(U16("test"), 3, U16("tes???????"));
+    check(U16("test"), 5, U16("test"));
 }
 
 TEST_F(StringTest, TestWStrstr)
@@ -419,4 +421,41 @@ TEST_F(StringTest, TestWStrstr)
     check(test_str, U16("very"), test_str);
     check(test_str, U16("long"), test_str + 5);
     check(test_str, U16("different"), nullptr);
+}
+
+TEST_F(StringTest, TestFormat)
+{
+    EXPECT_EQ(String::format("... %s ...", "test"), String("... test ..."));
+    EXPECT_EQ(String::format("... %.3f ...", 12.34), String("... 12.340 ..."));
+    // known issue
+    EXPECT_THROW(String::format("... %.*f ...", 3, 12.34), std::invalid_argument);
+    EXPECT_EQ(String::format("... % g ...", 12.34), String("...  12.34 ..."));
+    EXPECT_THROW(String::format("%3.4"), std::invalid_argument);
+    EXPECT_EQ(String::format("%08.4f", 12.34), String("012.3400"));
+    EXPECT_EQ(String::format("%8.4f", 12.34), String(" 12.3400"));
+    EXPECT_EQ(String::format("%c", (uint32_t)'a'), String("a"));
+    EXPECT_EQ(String::format("%c", (int32_t)'a'), String("a"));
+    EXPECT_EQ(String::format("%c", (uint64_t)'a'), String("a"));
+    EXPECT_EQ(String::format("%c", (int64_t)'a'), String("a"));
+    EXPECT_EQ(String::format("%c", (double)'a' + 0.5), String("a"));
+    EXPECT_EQ(String::format("%c", (float)'a' + 0.5f), String("a"));
+    EXPECT_EQ(String::format("%d", -1234), String("-1234"));
+    EXPECT_EQ(String::format("%i", -1234), String("-1234"));
+    EXPECT_EQ(String::format("%u", -1234), String("4294966062"));
+    EXPECT_EQ(String::format("%o", -1234), String("37777775456"));
+    EXPECT_EQ(String::format("%x", -1234), String("fffffb2e"));
+    EXPECT_EQ(String::format("%X", -1234), String("FFFFFB2E"));
+    EXPECT_EQ(String::format("%#o", -1234), String("037777775456"));
+    EXPECT_EQ(String::format("%#x", -1234), String("0xfffffb2e"));
+    EXPECT_EQ(String::format("%#X", -1234), String("0XFFFFFB2E"));
+    EXPECT_EQ(String::format("%f", -12.34), String("-12.340000"));
+    EXPECT_EQ(String::format("%F", -12.34), String("-12.340000"));
+    EXPECT_EQ(String::format("%e", -12.34), String("-1.234000e+01"));
+    EXPECT_EQ(String::format("%E", -12.34), String("-1.234000E+01"));
+    EXPECT_EQ(String::format("%g", -12.34), String("-12.34"));
+    EXPECT_EQ(String::format("%G", -12.34), String("-12.34"));
+    EXPECT_EQ(String::format("%a", -12.34), String("-0x1.8ae147ae147aep+3"));
+    EXPECT_EQ(String::format("%A", -12.34), String("-0X1.8AE147AE147AEP+3"));
+    EXPECT_THROW(String::format("%i", DateTime::now()), std::invalid_argument);
+    EXPECT_EQ(String::format("%c%c%c%c%c, %s!", 'H', 'e', 'l', 'l', 'o', "world"), String("Hello, world!"));
 }

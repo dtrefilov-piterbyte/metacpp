@@ -17,6 +17,16 @@ using namespace ::metacpp;
 using namespace ::metacpp::db;
 using namespace ::metacpp::db::sql;
 
+enum EGender {
+    Male = 'm',
+    Female = 'f'
+};
+
+ENUM_INFO_BEGIN(EGender, eEnumSimple, Male)
+    VALUE_INFO(Male)
+    VALUE_INFO(Female)
+ENUM_INFO_END(EGender)
+
 class City : public Object
 {
 public:
@@ -51,6 +61,16 @@ public:
     Nullable<double>    cat_weight;
     int                 cityId;
     Nullable<DateTime>  birthday;
+    Nullable<EGender>   gender;
+
+    bool                test_bool;
+    int32_t             test_int32;
+    uint32_t            test_uint32;
+    int64_t             test_int64;
+    uint64_t            test_uint64;
+    float               test_float;
+    double              test_double;
+    String              test_string;
 
     META_INFO_DECLARE(Person)
 };
@@ -62,6 +82,16 @@ STRUCT_INFO_BEGIN(Person)
     FIELD(Person, cat_weight, 1.0)
     FIELD(Person, cityId)
     FIELD(Person, birthday)
+    FIELD(Person, gender, &ENUM_INFO(EGender))
+
+    FIELD(Person, test_bool, false)
+    FIELD(Person, test_int32, -123)
+    FIELD(Person, test_uint32, 123)
+    FIELD(Person, test_int64, -456)
+    FIELD(Person, test_uint64, 456)
+    FIELD(Person, test_float, 1.2)
+    FIELD(Person, test_double, -1.2)
+    FIELD(Person, test_string, "<empty>")
 STRUCT_INFO_END(Person)
 
 REFLECTIBLE_F(Person)
@@ -97,11 +127,13 @@ void SqlTest::prepareData()
     Storable<Person> person;
     person.name = "Pupkin";
     person.cityId = city.id;
+    person.gender = Male;
     person.insertOne(transaction);
 
     person.name = "Lenin";
     person.cat_weight = 2.0;
     person.age = 53;
+    person.gender.reset();
     person.insertOne(transaction);
 
     city.name = "Ibadan";
@@ -113,6 +145,7 @@ void SqlTest::prepareData()
     person.age = 55;
     person.cat_weight = 1.0;
     person.cityId = city.id;
+    person.gender = Female;
     person.insertOne(transaction);
 
     transaction.commit();
@@ -220,6 +253,20 @@ void SqliteTest::TearDownTestCase()
 
 #ifdef HAVE_SQLITE3
 
+TEST_F(SqliteTest, namedConnectorSet)
+{
+    connectors::SqlConnectorBase::setNamedConnector(
+                connectors::SqlConnectorBase::getDefaultConnector(), "test");
+    EXPECT_EQ(connectors::SqlConnectorBase::getDefaultConnector(),
+              connectors::SqlConnectorBase::getNamedConnector("test"));
+    EXPECT_THROW(connectors::SqlConnectorBase::getNamedConnector("invalid connector name"),
+                 std::invalid_argument);
+    // reset named connector
+    connectors::SqlConnectorBase::setNamedConnector(nullptr, "test");
+    EXPECT_THROW(connectors::SqlConnectorBase::getNamedConnector("test"),
+                 std::invalid_argument);
+}
+
 TEST_F(SqliteTest, transactionCommitTest)
 {
     SqlTransaction transaction;
@@ -306,18 +353,21 @@ TEST_F(SqliteTest, simpleSelectTest)
     EXPECT_EQ(pupkin->birthday, nullptr);
     EXPECT_EQ(pupkin->age, nullptr);
     EXPECT_EQ(pupkin->cat_weight, nullptr);
+    EXPECT_EQ(pupkin->gender, Male);
 
     EXPECT_EQ(smith->cityId, ibadan->id);
     EXPECT_EQ(smith->name, "Smith");
     EXPECT_EQ(smith->birthday, DateTime(1960, April, 4));
     EXPECT_EQ(smith->age, 55);
     EXPECT_EQ(smith->cat_weight, 1.0);
+    EXPECT_EQ(smith->gender, Female);
 
     EXPECT_EQ(lenin->cityId, moscow->id);
     EXPECT_EQ(lenin->name, "Lenin");
     EXPECT_EQ(lenin->birthday, nullptr);
     EXPECT_EQ(lenin->age, 53);
     EXPECT_EQ(lenin->cat_weight, 2.0);
+    EXPECT_EQ(lenin->gender, nullptr);
 }
 
 TEST_F(SqliteTest, testInnerJoin)

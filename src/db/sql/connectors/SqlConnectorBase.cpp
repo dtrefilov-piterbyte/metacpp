@@ -42,17 +42,18 @@ namespace connectors
         return ms_defaultConnector;
     }
 
-    bool SqlConnectorBase::setNamedConnector(SqlConnectorBase *connector, const String& connectionName)
+    void SqlConnectorBase::setNamedConnector(SqlConnectorBase *connector, const String& connectionName)
     {
         std::lock_guard<std::mutex> _guard(ms_namedConnectorsMutex);
-        if (ms_namedConnectors.end() != ms_namedConnectors.find(connectionName))
+        auto it = ms_namedConnectors.find(connectionName);
+        if (connector)
         {
-            std::cerr << "SqlConnectorBase::setNamedConnector(): connector " << connectionName
-                     << " already set" << std::endl;
-            return false;
+            if (ms_namedConnectors.end() != it)
+                throw std::invalid_argument(String("Connector " + connectionName + " has already been set").c_str());
+            ms_namedConnectors[connectionName] = connector;
         }
-        ms_namedConnectors[connectionName] = connector;
-        return true;
+        else
+            ms_namedConnectors.erase(it);
     }
 
     SqlConnectorBase *SqlConnectorBase::getNamedConnector(const String& connectionName)
@@ -60,7 +61,7 @@ namespace connectors
         std::lock_guard<std::mutex> _guard(ms_namedConnectorsMutex);
         auto it = ms_namedConnectors.find(connectionName);
         if (it == ms_namedConnectors.end())
-            return nullptr;
+            throw std::invalid_argument(String("Connector " + connectionName + " was not found").c_str());
         return it->second;
     }
 

@@ -32,16 +32,16 @@ public:
     void doWalk();
 protected:
     void visitNode(detail::ExpressionNodeImplPtr node);
-    virtual void visitColumn(std::shared_ptr<detail::ExpressionNodeImplColumn> column);
-    virtual void visitLiteral(std::shared_ptr<detail::ExpressionNodeImplLiteral> literal);
-    virtual void visitNull(std::shared_ptr<detail::ExpressionNodeImplNull> null);
-    virtual void visitUnaryOperator(std::shared_ptr<detail::ExpressionNodeImplUnaryOperator> unary);
-    virtual void visitCastOperator(std::shared_ptr<detail::ExpressionNodeImplCastOperator> cast);
-    virtual void visitBinaryOperator(std::shared_ptr<detail::ExpressionNodeImplBinaryOperator> binary);
-    virtual void visitFunctionCall(std::shared_ptr<detail::ExpressionNodeImplFunctionCall> functionCall);
-    virtual void visitWhereClauseRelational(std::shared_ptr<detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational);
-    virtual void visitWhereClauseLogical(std::shared_ptr<detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical);
-    virtual void visitWhereClauseConditional(std::shared_ptr<detail::ExpressionNodeImplWhereClauseConditional> whereClauseComplex);
+    virtual void visitColumn(std::shared_ptr<detail::ExpressionNodeImplColumn> column) = 0;
+    virtual void visitLiteral(std::shared_ptr<detail::ExpressionNodeImplLiteral> literal) = 0;
+    virtual void visitNull(std::shared_ptr<detail::ExpressionNodeImplNull> null) = 0;
+    virtual void visitUnaryOperator(std::shared_ptr<detail::ExpressionNodeImplUnaryOperator> unary) = 0;
+    virtual void visitCastOperator(std::shared_ptr<detail::ExpressionNodeImplCastOperator> cast) = 0;
+    virtual void visitBinaryOperator(std::shared_ptr<detail::ExpressionNodeImplBinaryOperator> binary) = 0;
+    virtual void visitFunctionCall(std::shared_ptr<detail::ExpressionNodeImplFunctionCall> functionCall) = 0;
+    virtual void visitWhereClauseRelational(std::shared_ptr<detail::ExpressionNodeImplWhereClauseRelational> whereClauseRelational) = 0;
+    virtual void visitWhereClauseLogical(std::shared_ptr<detail::ExpressionNodeImplWhereClauseLogical> whereClauseLogical) = 0;
+    virtual void visitWhereClauseConditional(std::shared_ptr<detail::ExpressionNodeImplWhereClauseConditional> whereClauseComplex) = 0;
 private:
     detail::ExpressionNodeImplPtr m_rootNode;
 

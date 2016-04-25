@@ -650,7 +650,9 @@ public:
         return *this;
     }
 
-    static StringBase format(const T *format, const Array<Variant>& args);
+    static StringBase format(const T *fmt, const Array<Variant>& args);
+    template<typename... TArgs>
+    static StringBase format(const T *fmt, TArgs... args) { return format(fmt, { args... }); }
     StringBase urlencode() const;
     StringBase urldecode() const;
 private:

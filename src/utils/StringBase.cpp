@@ -167,8 +167,13 @@ namespace detail
     char16_t *StringHelper<char16_t>::strncpy(char16_t *dest, const char16_t *source, size_t n)
     {
         char16_t *result = dest;
-        while (*source && n--) *dest++ = *source++;
-        *dest = 0;
+        while (*source && n) {
+            *dest++ = *source++;
+            --n;
+        }
+        // terminating null
+        if (n)
+            *dest = 0;
         return result;
     }
 
@@ -235,8 +240,7 @@ namespace detail
         iconv_t cd = iconv_open("UTF-16LE", "UTF-8");
         if ((iconv_t)-1 == cd)
         {
-            perror("iconv_open(): ");
-            return WString();
+            throw std::bad_cast();
         }
 
         size_t inputSize = (size_t)-1 != length ? length : detail::StringHelper<char>::strlen(aString);
@@ -264,7 +268,6 @@ namespace detail
 
         if (-1 == iconv_close(cd)) {
             perror("iconv_close(): ");
-            return WString();
         }
         return result;
 #endif
@@ -285,8 +288,7 @@ namespace detail
         iconv_t cd = iconv_open("UTF-8", "UTF-16LE");
         if ((iconv_t)-1 == cd)
         {
-            perror("iconv_open(): ");
-            return String();
+            throw std::bad_cast();
         }
 
         size_t inputSize = (size_t)-1 != length ? length : detail::StringHelper<char16_t>::strlen(wString);
@@ -314,7 +316,6 @@ namespace detail
 
         if (-1 == iconv_close(cd)) {
             perror("iconv_close(): ");
-            return String();
         }
         return result;
 #endif
@@ -411,8 +412,10 @@ namespace detail
                     case '8':
                     case '9':
                     case '.':
-                    case '*':
                         break;
+
+                    case '*':
+                        throw std::invalid_argument("* width specified is not supported");
 
                     // specifiers
                     case 's':
@@ -448,14 +451,14 @@ namespace detail
                     if (argType == eFieldVoid)
                         continue;
                     if (i >= args.size())
-                        throw std::invalid_argument("Not enogh arguments for the given format");
+                        throw std::invalid_argument("Not enough arguments for the given format");
                     Variant arg = args[i++];
                     int nChars = -1;
 
                     switch (argType)
                     {
                     default:
-                        throw std::runtime_error("Unhandled argument type");
+                        throw std::invalid_argument("Unhandled argument type");
                     case eFieldString:
                         result.append(variant_cast<String>(arg));
                         nChars = 0;
@@ -486,7 +489,7 @@ namespace detail
                         break;
                     }
                     if (nChars < 0)
-                        throw std::runtime_error("Generic format error");
+                        throw std::invalid_argument("Generic format error");
                     if (nChars)
                         result.append(buffer, nChars);
 

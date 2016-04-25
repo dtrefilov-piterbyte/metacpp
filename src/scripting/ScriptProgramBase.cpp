@@ -20,7 +20,7 @@ SharedObjectPointer<ScriptThreadBase> ScriptProgramBase::createThread(const Stri
 void ScriptProgramBase::compile(const String& sourceFile) {
     std::ifstream is(sourceFile.c_str(), std::ios_base::binary | std::ios_base::in);
     is.exceptions ( std::ifstream::failbit | std::ifstream::badbit );
-    return compile(is, "filename");
+    return compile(is, sourceFile);
 }
 
 namespace {

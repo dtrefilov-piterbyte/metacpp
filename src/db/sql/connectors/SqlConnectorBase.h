@@ -88,7 +88,7 @@ public:
     static SqlConnectorBase *getDefaultConnector();
 
     /** \brief Sets connector as a named connection */
-    static bool setNamedConnector(SqlConnectorBase *connector, const String& connectionName);
+    static void setNamedConnector(SqlConnectorBase *connector, const String& connectionName);
     /** \brief Gets a named connection previously set by SqlConnectorBase::setNamedConnector */
     static SqlConnectorBase *getNamedConnector(const String &connectionName);
 

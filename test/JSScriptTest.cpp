@@ -7,6 +7,7 @@
 #include "Object.h"
 #include <thread>
 #include <stdexcept>
+#include <fstream>
 
 
 struct MyObject : public metacpp::Object
@@ -97,6 +98,20 @@ TEST_F(JSScriptTest, testCompileFailure)
     EXPECT_THROW(program->compile(ss, "filename"), std::exception);
 }
 
+TEST_F(JSScriptTest, testCompileBuffer)
+{
+    auto program = m_engine->createProgram();
+    char buffer[] = "function f() { return 1; }";
+    program->compile(buffer, sizeof(buffer) - 1, "filename");
+}
+
+TEST_F(JSScriptTest, testCompileFile)
+{
+    std::ofstream("test.js") << "function f() { return 1; }";
+    auto program = m_engine->createProgram();
+    program->compile("test.js");
+}
+
 TEST_F(JSScriptTest, testSimpleRun)
 {
     auto program = m_engine->createProgram();
@@ -183,6 +198,56 @@ TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
     EXPECT_THROW(std::rethrow_exception(ex), std::runtime_error);
 }
 #endif
+
+TEST_F(JSScriptTest, testRunAsyncSuccess)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return 1; }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    std::condition_variable stop_signal;
+    bool finished = false;
+    bool errored = false;
+    std::mutex sync_primitive;
+    std::unique_lock<std::mutex> _lock(sync_primitive);
+    thread->runAsync(
+                [&](const metacpp::Variant&) {
+                    finished = true;
+                    stop_signal.notify_all();
+                },
+                [&](const std::exception_ptr&) {
+                    finished = true;
+                    errored = true;
+                    stop_signal.notify_all();
+                });
+    stop_signal.wait(_lock, [&]() { return finished; });
+    EXPECT_FALSE(errored);
+}
+
+TEST_F(JSScriptTest, testRunAsyncFailure)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("throw 1");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    std::condition_variable stop_signal;
+    bool finished = false;
+    bool errored = false;
+    std::mutex sync_primitive;
+    std::unique_lock<std::mutex> _lock(sync_primitive);
+    thread->runAsync(
+                [&](const metacpp::Variant&) {
+                    finished = true;
+                    stop_signal.notify_all();
+                },
+                [&](const std::exception_ptr&) {
+                    finished = true;
+                    errored = true;
+                    stop_signal.notify_all();
+                });
+    stop_signal.wait(_lock, [&]() { return finished; });
+    EXPECT_TRUE(errored);
+}
 
 TEST_F(JSScriptTest, testSequentialRun)
 {

@@ -51,60 +51,6 @@ void ASTWalkerBase::visitNode(detail::ExpressionNodeImplPtr node)
     }
 }
 
-void ASTWalkerBase::visitColumn(std::shared_ptr<ExpressionNodeImplColumn> column)
-{
-    (void)column;
-}
-
-void ASTWalkerBase::visitLiteral(std::shared_ptr<ExpressionNodeImplLiteral> literal)
-{
-    (void)literal;
-}
-
-void ASTWalkerBase::visitNull(std::shared_ptr<ExpressionNodeImplNull> null)
-{
-    (void)null;
-}
-
-void ASTWalkerBase::visitUnaryOperator(std::shared_ptr<ExpressionNodeImplUnaryOperator> unary)
-{
-    visitNode(unary->innerNode());
-}
-
-void ASTWalkerBase::visitCastOperator(std::shared_ptr<ExpressionNodeImplCastOperator> cast)
-{
-    visitNode(cast->innerNode());
-}
-
-void ASTWalkerBase::visitBinaryOperator(std::shared_ptr<ExpressionNodeImplBinaryOperator> binary)
-{
-    visitNode(binary->leftNode());
-    visitNode(binary->rightNode());
-}
-
-void ASTWalkerBase::visitFunctionCall(std::shared_ptr<ExpressionNodeImplFunctionCall> functionCall)
-{
-    for (auto node : functionCall->argumentNodes())
-        visitNode(node);
-}
-
-void ASTWalkerBase::visitWhereClauseRelational(std::shared_ptr<ExpressionNodeImplWhereClauseRelational> whereClauseRelational)
-{
-    visitNode(whereClauseRelational->leftNode());
-    visitNode(whereClauseRelational->rightNode());
-}
-
-void ASTWalkerBase::visitWhereClauseLogical(std::shared_ptr<ExpressionNodeImplWhereClauseLogical> whereClauseLogical)
-{
-    visitNode(whereClauseLogical->innerNode());
-}
-
-void ASTWalkerBase::visitWhereClauseConditional(std::shared_ptr<ExpressionNodeImplWhereClauseConditional> whereClauseComplex)
-{
-    visitNode(whereClauseComplex->leftNode());
-    visitNode(whereClauseComplex->rightNode());
-}
-
 } // namespace detail
 } // namespace db
 } // namespace metacpp
