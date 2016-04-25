@@ -7,6 +7,13 @@ addons:
     - mysql-server-5.6
     - mysql-client-core-5.6
     - mysql-client-5.6
+    - lcov
+    - curl
+    - libsqlite3-dev
+    - libgtest-dev
+    - libpq-dev
+    - libmysqlclient-dev
+    - libmozjs-24-dev
 
 services:
   - postgresql
@@ -16,12 +23,7 @@ compiler:
 #  - clang
   - gcc
 
-before_install:
-  - sudo apt-get update -qq
-
 install:
-  - sudo apt-get install -y lcov curl libsqlite3-dev libgtest-dev libpq-dev libmysqlclient-dev libmozjs-24-dev
-
   - pushd /usr/src/gtest
   - sudo cmake -DCMAKE_BUILD_TYPE=Release .
   - sudo make VERBOSE=1
@@ -33,9 +35,7 @@ before_script:
   - mysql -e 'create database travis_ci_test;' -uroot
   - mkdir -p build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON \
-   -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres \
-   -DTEST_MYSQL_DBNAME=travis_ci_test -DTEST_MYSQL_DBUSER=root ..
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres -DTEST_MYSQL_DBNAME=travis_ci_test -DTEST_MYSQL_DBUSER=root ..
 
 script:
   - sqlite3 -version
