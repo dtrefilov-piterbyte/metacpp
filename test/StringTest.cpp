@@ -23,21 +23,6 @@ TEST_F(StringTest, TestNull)
 	testNull();
 }
 
-//void StringTest::testRefCount()
-//{
-//    String str("test");
-//	ASSERT_EQ(str.refCount(), 1);
-//    String str2 = str;
-//	ASSERT_EQ(str.refCount(), 2);
-//	ASSERT_EQ(str2.refCount(), 2);
-//	ASSERT_EQ(str, str2);
-//}
-
-//TEST_F(StringTest, TestRefCount)
-//{
-//	testRefCount();
-//}
-
 void StringTest::testDetach()
 {
     String str1 = "1231923j", str2 = str1;
@@ -171,14 +156,14 @@ TEST_F(StringTest, testStreamOperators)
     EXPECT_NO_THROW(TestStreamOperators<char>(""));
     EXPECT_NO_THROW(TestStreamOperators<char>("asdlaasd"));
 
-    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(""));
-    //EXPECT_NO_THROW(TestStreamOperators<char16_t>("asdlaasd"));
+    EXPECT_NO_THROW(TestStreamOperators<char16_t>(""));
+    EXPECT_NO_THROW(TestStreamOperators<char16_t>("asdlaasd"));
 
     EXPECT_NO_THROW(TestStreamOperators<char>(U16("")));
     EXPECT_NO_THROW(TestStreamOperators<char>(U16("asdlaasd")));
 
-    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("")));
-    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("asdlaasd")));
+    EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("")));
+    EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("asdlaasd")));
 }
 
 void StringTest::testStreams()
@@ -288,16 +273,16 @@ TEST_F(StringTest, TestUri)
 
 TEST_F(StringTest, TestAWConversion)
 {
-    EXPECT_EQ(string_cast<WString>("test"), U16("test"));
-    EXPECT_EQ(string_cast<WString>("Hello, world!"), U16("Hello, world!"));
-    EXPECT_EQ(string_cast<WString>("кирилица"), U16("кирилица"));
+    EXPECT_EQ(string_cast<WString>("test"), WString(U16("test")));
+    EXPECT_EQ(string_cast<WString>("Hello, world!"), WString(U16("Hello, world!")));
+    EXPECT_EQ(string_cast<WString>("кирилица"), WString(U16("кирилица")));
 }
 
 TEST_F(StringTest, TestWAConversion)
 {
-    EXPECT_EQ(string_cast<String>(U16("test")), "test");
-    EXPECT_EQ(string_cast<String>(U16("Hello, world!")), "Hello, world!");
-    EXPECT_EQ(string_cast<String>(U16("кирилица")), "кирилица");
+    EXPECT_EQ(string_cast<String>(U16("test")), String("test"));
+    EXPECT_EQ(string_cast<String>(U16("Hello, world!")), String("Hello, world!"));
+    EXPECT_EQ(string_cast<String>(U16("кирилица")), String("кирилица"));
 }
 
 TEST_F(StringTest, TestAAConversion)
@@ -314,10 +299,10 @@ TEST_F(StringTest, TestWWConversion)
 
 TEST_F(StringTest, TestStdAConversion)
 {
-    EXPECT_EQ(string_cast<String>(std::string("test")), "test");
-    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("test"))), "test");
-    EXPECT_EQ(string_cast<String>(std::string("кирилица")), "кирилица");
-    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("кирилица"))), "кирилица");
+    EXPECT_EQ(string_cast<String>(std::string("test")), String("test"));
+    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("test"))), String("test"));
+    EXPECT_EQ(string_cast<String>(std::string("кирилица")), String("кирилица"));
+    EXPECT_EQ(string_cast<String>(std::basic_string<char16_t>(U16("кирилица"))), String("кирилица"));
 }
 
 TEST_F(StringTest, TestStdWConversion)
@@ -331,23 +316,23 @@ TEST_F(StringTest, TestStdWConversion)
 TEST_F(StringTest, TestUrlencode)
 {
     EXPECT_EQ(String("You shall pass!").urlencode(),
-              "You+shall+pass%21");
+              String("You+shall+pass%21"));
     EXPECT_EQ(String("Unescaped characters: [~-_.]").urlencode(),
-              "Unescaped+characters%3A+%5B~-_.%5D");
+              String("Unescaped+characters%3A+%5B~-_.%5D"));
     EXPECT_EQ(WString(U16("You shall pass!")).urlencode(),
-              U16("You+shall+pass%21"));
+              WString(U16("You+shall+pass%21")));
 }
 
 TEST_F(StringTest, TestUrldecode)
 {
     EXPECT_EQ(String("You+shall+pass%21").urldecode(),
-              "You shall pass!");
+              String("You shall pass!"));
     EXPECT_EQ(String("Unescaped+characters%3A+%5B~-_.%5D").urldecode(),
-              "Unescaped characters: [~-_.]");
+              String("Unescaped characters: [~-_.]"));
     EXPECT_EQ(String("Unescaped+characters%3a+%5b~-_.%5d").urldecode(),
-              "Unescaped characters: [~-_.]");
+              String("Unescaped characters: [~-_.]"));
     EXPECT_EQ(WString(U16("You+shall+pass%21")).urldecode(),
-              U16("You shall pass!"));
+              WString(U16("You shall pass!")));
     EXPECT_THROW(String("You+shall+not+pass%!1!").urldecode(), std::invalid_argument);
 }
 

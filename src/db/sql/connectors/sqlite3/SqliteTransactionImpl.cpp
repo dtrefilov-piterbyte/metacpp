@@ -126,7 +126,7 @@ bool SqliteTransactionImpl::bindValues(SqlStatementImpl *statement, const Varian
         else if (v.isString() || v.isDateTime())
         {
             String s = variant_cast<String>(v);
-            error = sqlite3_bind_text(stmt, static_cast<int>(i + 1), s.data(), s.length(), SQLITE_TRANSIENT);
+            error = sqlite3_bind_text(stmt, static_cast<int>(i + 1), s.data(), static_cast<int>(s.length()), SQLITE_TRANSIENT);
         }
         else
             throw std::invalid_argument("Unsupported - not a scalar variant value");
