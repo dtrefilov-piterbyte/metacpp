@@ -500,7 +500,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
             }
             break;
         case eFieldInt64:
-            typeName = "BIGINT UNSIGNED";
+            typeName = "BIGINT";
             if (field->mandatoriness() == eDefaultable)
             {
                 constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
@@ -533,11 +533,6 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
             break;
         case eFieldString:
             typeName = "TEXT";
-            if (field->mandatoriness() == eDefaultable)
-            {
-                constraints.push_back("DEFAULT " + detail::SqlExpressionTreeWalker(std::make_shared<db::detail::ExpressionNodeImplLiteral>
-                                                                                   (reinterpret_cast<const MetaFieldString *>(field)->defaultValue()), false, SqlSyntaxMySql).evaluate());
-            }
             break;
         case eFieldDateTime:
             typeName = "DATETIME";

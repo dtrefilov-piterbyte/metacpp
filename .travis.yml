@@ -4,6 +4,7 @@ dist: trusty
 
 services:
   - postgresql
+  - mysql
 
 compiler:
 #  - clang
@@ -23,9 +24,12 @@ install:
 
 before_script:
   - psql -c 'create database travis_ci_test;' -U postgres
+  - mysql -e 'create database travis_ci_test;' -uroot
   - mkdir -p build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres ..
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON \
+   -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres \
+   -DTEST_MYSQL_DBNAME=travis_ci_test -DTEST_MYSQL_DBUSER=travis ..
 
 script:
   - sqlite3 -version

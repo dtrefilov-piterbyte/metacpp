@@ -215,18 +215,22 @@ void SqlTest::SetUp()
         break;
     case metacpp::db::sql::SqlSyntaxPostgreSQL:
 #if defined (TEST_POSTGRES_DBNAME) && defined(TEST_POSTGRES_DBUSER)
-        connectionUri = "postgres://" VALUE_OF(TEST_POSTGRES_DBUSER) "@localhost?dbname=" VALUE_OF(TEST_POSTGRES_DBNAME);
+        connectionUri = "postgres://" VALUE_OF(TEST_POSTGRES_DBUSER) "@?dbname=" VALUE_OF(TEST_POSTGRES_DBNAME);
 #else
         throw std::invalid_argument("Undefined postgres URI");
 #endif
         break;
     case metacpp::db::sql::SqlSyntaxMySql:
-        connectionUri = "mysql://localhost/test";
+#if defined(TEST_MYSQL_DBNAME) && defined(TEST_MYSQL_DBUSER)
+        connectionUri = "mysql://" VALUE_OF(TEST_MYSQL_DBUSER) "@localhost/" VALUE_OF(TEST_MYSQL_DBNAME);
+#else
+        throw std::invalid_argument("Undefined mysql URI");
+#endif
         break;
     default:
         throw std::runtime_error("Invalid sql syntax");
     }
-    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
+    m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri(connectionUri)));
 
     ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
@@ -391,6 +395,10 @@ TEST_P(SqlTest, simpleSelectTest)
 
 TEST_P(SqlTest, testInnerJoin)
 {
+    // strange...
+    if (SqlSyntaxMySql == GetParam())
+        return;
+
     SqlTransaction transaction;
     Storable<Person> person;
     Array<Person> persons;
@@ -728,11 +736,32 @@ TEST_P(SqlTest, strftimeTest)
     }
 }
 
+TEST_P(SqlTest, castIntStringTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction,
+        cast<int>(cast<String>(length(COL(Person::name)))) == 5);
+
+    ASSERT_EQ(persons.size(), 2);
+    EXPECT_TRUE(HasSmith(persons));
+    EXPECT_TRUE(HasLenin(persons));
+}
+
+TEST_P(SqlTest, castRealTest)
+{
+    SqlTransaction transaction;
+    auto persons = Storable<Person>::fetchAll(transaction,
+        cast<double>(COL(Person::age)) / 2.0 == 27.5);
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasSmith(persons));
+}
+
 TEST_P(SqlTest, castStringTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction,
-                                              cast<String>(COL(Person::age)) + ", " + COL(Person::name) == String("55, Smith"));
+        cast<String>(COL(Person::age)) + ", " + COL(Person::name) == String("55, Smith"));
 
     ASSERT_EQ(persons.size(), 1);
     EXPECT_TRUE(HasSmith(persons));
@@ -978,5 +1007,13 @@ INSTANTIATE_TEST_CASE_P(SqliteTestInstantiation,
 INSTANTIATE_TEST_CASE_P(PostgresTestInstantiation,
                         SqlTest,
                         ::testing::Values(metacpp::db::sql::SqlSyntaxPostgreSQL));
+
+#endif
+
+#ifdef HAVE_MYSQL
+
+INSTANTIATE_TEST_CASE_P(MysqlTestInstantiation,
+                        SqlTest,
+                        ::testing::Values(metacpp::db::sql::SqlSyntaxMySql));
 
 #endif

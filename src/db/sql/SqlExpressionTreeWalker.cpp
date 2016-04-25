@@ -162,6 +162,33 @@ void SqlExpressionTreeWalker::visitCastOperator(std::shared_ptr<db::detail::Expr
             throw std::invalid_argument("Unknown cast type");
         }
     }
+    else if (m_sqlSyntax == SqlSyntaxMySql)
+    {
+        switch (cast->type())
+        {
+        // integer capacity does not have any effect in most databases
+        case eFieldBool:
+        case eFieldInt:
+        case eFieldEnum:
+        case eFieldUint:
+        case eFieldInt64:
+        case eFieldUint64:
+            castType = "INTEGER";
+            break;
+        case eFieldFloat:
+        case eFieldDouble:
+            castType = "DOUBLE";
+            break;
+        case eFieldString:
+            castType = "CHAR";
+            break;
+        case eFieldDateTime:
+            castType = "DATETIME";
+            break;
+        default:
+            throw std::invalid_argument("Unknown cast type");
+        }
+    }
     else
     {
         switch (cast->type())
@@ -188,8 +215,7 @@ void SqlExpressionTreeWalker::visitCastOperator(std::shared_ptr<db::detail::Expr
         default:
             throw std::invalid_argument("Unknown cast type");
         }
-    }
-    m_stack.push_back("CAST(" + evaluateSubnode(inner) + " AS " + castType + ")");
+    }    m_stack.push_back("CAST(" + evaluateSubnode(inner) + " AS " + castType + ")");
 }
 
 void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::ExpressionNodeImplBinaryOperator> binary)
@@ -217,8 +243,24 @@ void SqlExpressionTreeWalker::visitBinaryOperator(std::shared_ptr<db::detail::Ex
         eval = l + " * " + r;
         break;
     case eBinaryOperatorDivide:
-        if (m_sqlSyntax == SqlSyntaxMySql)
-            eval = l + " DIV " + r;
+        if (m_sqlSyntax == SqlSyntaxMySql) {
+            auto is_integral = [](EFieldType type) {
+                switch (type)
+                {
+                case eFieldInt:
+                case eFieldUint:
+                case eFieldInt64:
+                case eFieldUint64:
+                    return true;
+                default:
+                    return false;
+                }
+            };
+            if (is_integral(left->type()) && is_integral(right->type()))
+                eval = l + " DIV " + r;
+            else
+                eval = l + " / " + r;
+        }
         else
             eval = l + " / " + r;
         break;
