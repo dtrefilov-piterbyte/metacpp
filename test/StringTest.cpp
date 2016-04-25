@@ -156,14 +156,14 @@ TEST_F(StringTest, testStreamOperators)
     EXPECT_NO_THROW(TestStreamOperators<char>(""));
     EXPECT_NO_THROW(TestStreamOperators<char>("asdlaasd"));
 
-    EXPECT_NO_THROW(TestStreamOperators<char16_t>(""));
-    EXPECT_NO_THROW(TestStreamOperators<char16_t>("asdlaasd"));
-
     EXPECT_NO_THROW(TestStreamOperators<char>(U16("")));
     EXPECT_NO_THROW(TestStreamOperators<char>(U16("asdlaasd")));
 
-    EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("")));
-    EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("asdlaasd")));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("")));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(U16("asdlaasd")));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>(""));
+    //EXPECT_NO_THROW(TestStreamOperators<char16_t>("asdlaasd"));
+
 }
 
 void StringTest::testStreams()

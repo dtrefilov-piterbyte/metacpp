@@ -116,7 +116,7 @@ IF(COVERALLS)
     INCLUDE(Coveralls)
     COVERALLS_TURN_ON_COVERAGE()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-inline -fno-inline-small-functions -fno-default-inline -fno-elide-constructors")
-    COVERALLS_SETUP("${SOURCES};${HEADERS}" ${COVERALLS_UPLOAD})
+    COVERALLS_SETUP("${SOURCES}" ${COVERALLS_UPLOAD})
 ENDIF(COVERALLS)
 
 CONFIGURE_FILE("${CMAKE_CURRENT_SOURCE_DIR}/config.h.in" "${CMAKE_CURRENT_BINARY_DIR}/config.h" @ONLY)
