@@ -425,6 +425,7 @@ TEST_F(StringTest, TestWStrstr)
 
 TEST_F(StringTest, TestFormat)
 {
+    EXPECT_EQ(String::format("%d%%", 12), String("12%"));
     EXPECT_EQ(String::format("... %s ...", "test"), String("... test ..."));
     EXPECT_EQ(String::format("... %.3f ...", 12.34), String("... 12.340 ..."));
     // known issue
@@ -448,6 +449,7 @@ TEST_F(StringTest, TestFormat)
     EXPECT_EQ(String::format("%#o", -1234), String("037777775456"));
     EXPECT_EQ(String::format("%#x", -1234), String("0xfffffb2e"));
     EXPECT_EQ(String::format("%#X", -1234), String("0XFFFFFB2E"));
+#ifndef _MSC_VER
     EXPECT_EQ(String::format("%f", -12.34), String("-12.340000"));
     EXPECT_EQ(String::format("%F", -12.34), String("-12.340000"));
     EXPECT_EQ(String::format("%e", -12.34), String("-1.234000e+01"));
@@ -456,6 +458,8 @@ TEST_F(StringTest, TestFormat)
     EXPECT_EQ(String::format("%G", -12.34), String("-12.34"));
     EXPECT_EQ(String::format("%a", -12.34), String("-0x1.8ae147ae147aep+3"));
     EXPECT_EQ(String::format("%A", -12.34), String("-0X1.8AE147AE147AEP+3"));
+#endif
     EXPECT_THROW(String::format("%i", DateTime::now()), std::invalid_argument);
     EXPECT_EQ(String::format("%c%c%c%c%c, %s!", 'H', 'e', 'l', 'l', 'o', "world"), String("Hello, world!"));
+    EXPECT_EQ(WString::format(U16("%d"), 12), WString(U16("12")));
 }

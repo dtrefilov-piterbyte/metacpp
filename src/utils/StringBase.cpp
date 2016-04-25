@@ -383,7 +383,7 @@ namespace detail
                 if (*(p + 1) == '%')
                 {
                     result.append('%');
-                    p++;
+                    p += 2;
                     continue;
                 }
                 for (;;)
@@ -470,14 +470,6 @@ namespace detail
                     case eFieldUint:
                         nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
                                                        variant_cast<uint32_t>(arg));
-                        break;
-                    case eFieldInt64:
-                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
-                                                       variant_cast<int64_t>(arg));
-                        break;
-                    case eFieldUint64:
-                        nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
-                                                       variant_cast<uint64_t>(arg));
                         break;
                     case eFieldDouble:
                         nChars = snprintf(buffer, sizeof(buffer), subformat.c_str(),
