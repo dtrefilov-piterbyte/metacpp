@@ -43,6 +43,11 @@ Object::~Object()
 {
 }
 
+void Object::deleteThis()
+{
+    metaObject()->destroyInstance(this);
+}
+
 void Object::init()
 {
     InitVisitor vis;

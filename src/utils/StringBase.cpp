@@ -180,9 +180,6 @@ namespace detail
     template<>
     const char16_t *StringHelper<char16_t>::strstr(const char16_t *haystack, const char16_t *needle)
     {
-        if (!haystack || !needle)
-            return nullptr;
-
         while (*haystack)
         {
             bool match = true;

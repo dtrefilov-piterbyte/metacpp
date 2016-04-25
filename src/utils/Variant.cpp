@@ -129,40 +129,7 @@ namespace detail
 
     SharedDataBase *VariantData::clone() const
     {
-        VariantData *copy = new VariantData();
-        copy->m_datetime = m_datetime;
-        copy->m_string = m_string;
-        copy->m_array = m_array;
-        switch (m_type)
-        {
-        case eFieldBool:
-            copy->m_storage.m_bool = m_storage.m_bool;
-            break;
-        case eFieldInt:
-            copy->m_storage.m_int = m_storage.m_int;
-            break;
-        case eFieldUint:
-            copy->m_storage.m_uint = m_storage.m_uint;
-            break;
-        case eFieldInt64:
-            copy->m_storage.m_int64 = m_storage.m_int64;
-            break;
-        case eFieldUint64:
-            copy->m_storage.m_uint64 = m_storage.m_uint64;
-            break;
-        case eFieldFloat:
-            copy->m_storage.m_float = m_storage.m_float;
-            break;
-        case eFieldDouble:
-            copy->m_storage.m_double = m_storage.m_double;
-            break;
-        case eFieldObject:
-            copy->m_object = m_object;
-            break;
-        default:
-            break;
-        }
-        return copy;
+        throw std::runtime_error("VariantData is not clonable");
     }
 
     template<>

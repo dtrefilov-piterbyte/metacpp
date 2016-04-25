@@ -81,7 +81,7 @@ STRUCT_INFO_BEGIN(Person)
     FIELD(Person, age)
     FIELD(Person, cat_weight, 1.0)
     FIELD(Person, cityId)
-    FIELD(Person, birthday)
+    FIELD(Person, birthday, DateTime(2000, January, 1))
     FIELD(Person, gender, &ENUM_INFO(EGender))
 
     FIELD(Person, test_bool, false)
@@ -739,6 +739,23 @@ TEST_F(SqliteTest, allInOneSelectTest)
     transaction.commit();
 }
 
+TEST_F(SqliteTest, testOffset)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    auto resultSet = person.select().limit(1).offset(1).orderAsc(COL(Person::name)).exec(transaction);
+
+    Array<Person> persons;
+    for (auto row : resultSet)
+    {
+        EXPECT_EQ(row, persons.size());
+        persons.push_back(person);
+    }
+
+    ASSERT_EQ(persons.size(), 1);
+    EXPECT_TRUE(HasPupkin(persons));
+}
+
 TEST_F(SqliteTest, updateOneTest)
 {
     {
@@ -748,6 +765,23 @@ TEST_F(SqliteTest, updateOneTest)
         person.name = "Pupkin Jr";
         ASSERT_TRUE(person.updateOne(transaction));
         transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        Storable<Person> person;
+        ASSERT_FALSE(person.select().where(COL(Person::name) == String("Pupkin")).fetchOne(transaction));
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin Jr")).fetchOne(transaction));
+    }
+}
+
+TEST_F(SqliteTest, transactionAutoCommitTest)
+{
+    {
+        SqlTransaction transaction(SqlTransactionAutoCommit);
+        Storable<Person> person;
+        ASSERT_TRUE(person.select().where(COL(Person::name) == String("Pupkin")).fetchOne(transaction));
+        person.name = "Pupkin Jr";
+        ASSERT_TRUE(person.updateOne(transaction));
     }
     {
         SqlTransaction transaction;

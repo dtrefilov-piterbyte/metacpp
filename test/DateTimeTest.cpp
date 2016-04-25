@@ -141,6 +141,14 @@ TEST_F(DateTimeTest, testSetHMS)
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
     dt.setHMS(0, 12, 23);
     EXPECT_EQ(dt, DateTime::fromString("2004-02-01 0:12:23"));
+    EXPECT_THROW(dt.setHMS(-1, 12, 23), std::invalid_argument);
+    EXPECT_THROW(dt.setHMS(24, 12, 23), std::invalid_argument);
+    EXPECT_THROW(dt.setHMS(0, -1, 23), std::invalid_argument);
+    EXPECT_THROW(dt.setHMS(0, 60, 23), std::invalid_argument);
+    EXPECT_THROW(dt.setHMS(0, 12, -1), std::invalid_argument);
+    EXPECT_THROW(dt.setHMS(0, 12, 61), std::invalid_argument);  // leap second is allowed
+    dt.setHMS(0, 0, 0);
+    dt.setHMS(23, 59, 60);
 }
 
 TEST_F(DateTimeTest, testAddYears)
@@ -206,4 +214,28 @@ TEST_F(DateTimeTest, testAddSeconds)
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
     dt.addSeconds(68);
     EXPECT_EQ(dt, DateTime::fromString("2004-02-01 14:26:24"));
+}
+
+TEST_F(DateTimeTest, testFromString)
+{
+    DateTime dt;
+    dt = DateTime::fromString("2004-02-01 12:23:43", "%Y-%m-%d %H:%M:%S");
+    EXPECT_EQ(dt.year(), 2004);
+    EXPECT_EQ(dt.month(), metacpp::February);
+    EXPECT_EQ(dt.day(), 1);
+    EXPECT_EQ(dt.hours(), 12);
+    EXPECT_EQ(dt.minutes(), 23);
+    EXPECT_EQ(dt.seconds(), 43);
+}
+
+TEST_F(DateTimeTest, testToString)
+{
+    auto dt = DateTime::fromString("2004-02-01 14:25:16");
+    EXPECT_EQ(dt.toString("%Y-%m-%d %H:%M:%S"), "2004-02-01 14:25:16");
+}
+
+TEST_F(DateTimeTest, testInvalid)
+{
+    DateTime dt;
+    EXPECT_THROW(dt.year(), std::runtime_error);
 }

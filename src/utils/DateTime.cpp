@@ -159,7 +159,7 @@ namespace detail
         {
             char *buf = reinterpret_cast<char *>(alloca(bufSize));
             size_t size = strftime(buf, bufSize, format, &m_tm);
-            if (size) return String(buf, size - 1);
+            if (size) return String(buf, size);
         }
     }
 

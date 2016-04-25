@@ -1,9 +1,52 @@
 #include "VariantTest.h"
 #include "Variant.h"
 #include "MetaInfo.h"
+#include "Object.h"
 #include <gtest/gtest-param-test.h>
 
 using namespace metacpp;
+
+namespace {
+struct MyObject : public Object
+{
+    MyObject() { }
+    META_INFO_DECLARE(MyObject)
+};
+
+METHOD_INFO_BEGIN(MyObject)
+    CONSTRUCTOR(MyObject)
+METHOD_INFO_END(MyObject)
+
+REFLECTIBLE_DERIVED_M(MyObject, Object)
+
+META_INFO(MyObject)
+
+}
+
+TEST_F(VariantTest, AssignTest)
+{
+    Variant v(12);
+    Variant v2 = v;
+    EXPECT_EQ(variant_cast<int>(v), 12);
+    EXPECT_EQ(variant_cast<int>(v2), 12);
+    v2 = 13;
+    EXPECT_EQ(variant_cast<int>(v), 12);
+    EXPECT_EQ(variant_cast<int>(v2), 13);
+}
+
+TEST_F(VariantTest, ExtractObjectTest)
+{
+    Variant v(MyObject::staticMetaObject()->createInstance());
+    auto obj = dynamic_cast<MyObject *>(v.extractObject());
+    obj->deleteThis();
+}
+
+TEST_F(VariantTest, StreamTest)
+{
+    std::ostringstream ss;
+    ss << Variant("test") << Variant(12);
+    EXPECT_EQ(ss.str(), "test12");
+}
 
 typedef ::testing::Types<bool, int32_t, uint32_t, int64_t, uint64_t, float, double, String, DateTime> VariantTypes;
 TYPED_TEST_CASE_P(TypedVariantTest);

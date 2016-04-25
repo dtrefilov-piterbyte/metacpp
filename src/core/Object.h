@@ -42,6 +42,11 @@ public:
 
 	virtual ~Object();
 
+    /**
+      \brief Destroys object previously created using MetaObject::createInstance
+      */
+    void deleteThis();
+
 	/**
         \brief initializes object with default values from metainfo
 		\throws std::invalid_argument

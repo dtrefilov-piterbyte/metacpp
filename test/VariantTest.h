@@ -3,6 +3,10 @@
 #include <gtest/gtest.h>
 #include "Variant.h"
 
+class VariantTest : public ::testing::Test
+{
+};
+
 template<typename T>
 class TypedVariantTest : public ::testing::Test
 {

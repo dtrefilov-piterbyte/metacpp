@@ -1,7 +1,9 @@
 #include "ObjectTest.h"
 #include "Object.h"
+#include "TypeResolverFactory.h"
 #include <string>
 #include <memory>
+#include <functional>
 #include "Variant.h"
 
 using namespace metacpp;
@@ -44,8 +46,11 @@ struct TestStruct : public TestBaseStruct
 {
 	EEnumTest enumValue;
 	bool boolValue;
-	int intValue;
-	uint32_t uintValue;
+    int32_t intValue;
+    uint32_t uintValue;
+    int64_t int64Value;
+    uint64_t uint64Value;
+    float floatValue;
     double doubleValue;
     String strValue;
 	TestSubStruct substruct;
@@ -57,7 +62,10 @@ struct TestStruct : public TestBaseStruct
     Nullable<bool> optBoolValue;
     Nullable<int> optIntValue;
     Nullable<uint32_t> optUintValue;
+    Nullable<int64_t> optInt64Value;
+    Nullable<uint64_t> optUint64Value;
     Nullable<float> optFloatValue;
+    Nullable<double> optDoubleValue;
     Nullable<DateTime> optDateTimeValue;
     Nullable<Variant> optVariantValue;
 
@@ -75,6 +83,9 @@ STRUCT_INFO_BEGIN(TestStruct)
     FIELD(TestStruct, boolValue, true)
     FIELD(TestStruct, intValue, -1)
     FIELD(TestStruct, uintValue, 123154)
+    FIELD(TestStruct, int64Value, -1)
+    FIELD(TestStruct, uint64Value, 0)
+    FIELD(TestStruct, floatValue, -12.0f)
     FIELD(TestStruct, doubleValue, 25.0)
     FIELD(TestStruct, strValue, "testValue")
     FIELD(TestStruct, substruct)
@@ -86,13 +97,20 @@ STRUCT_INFO_BEGIN(TestStruct)
     FIELD(TestStruct, optBoolValue, true)
     FIELD(TestStruct, optIntValue, -1)
     FIELD(TestStruct, optUintValue, 123154)
+    FIELD(TestStruct, optInt64Value, -1)
+    FIELD(TestStruct, optUint64Value)
     FIELD(TestStruct, optFloatValue, eOptional)
+    FIELD(TestStruct, optDoubleValue)
     FIELD(TestStruct, optDateTimeValue)
     FIELD(TestStruct, optVariantValue)
 
 STRUCT_INFO_END(TestStruct)
 
-REFLECTIBLE_DERIVED_F(TestStruct, TestBaseStruct)
+METHOD_INFO_BEGIN(TestStruct)
+    CONSTRUCTOR(TestStruct)
+METHOD_INFO_END(TestStruct)
+
+REFLECTIBLE_DERIVED_FM(TestStruct, TestBaseStruct)
 
 META_INFO(TestStruct)
 
@@ -132,7 +150,7 @@ TEST_F(ObjectTest, MetaInfoTest)
     };
 
     EXPECT_EQ(String(t.metaObject()->name()), "TestStruct");
-    EXPECT_EQ(t.metaObject()->totalFields(), 18);
+    EXPECT_EQ(t.metaObject()->totalFields(), 24);
     EXPECT_EQ(String(t.metaObject()->superMetaObject()->name()), "TestBaseStruct");
 
     testField(0, "id", eFieldInt, false, sizeof(int), offsetof(TestStruct, id));
@@ -143,22 +161,28 @@ TEST_F(ObjectTest, MetaInfoTest)
     testField(2, "boolValue", eFieldBool, false, sizeof(bool), offsetof(TestStruct, boolValue));
     testField(3, "intValue", eFieldInt, false, sizeof(int32_t), offsetof(TestStruct, intValue));
     testField(4, "uintValue", eFieldUint, false, sizeof(uint32_t), offsetof(TestStruct, uintValue));
-    testField(5, "doubleValue", eFieldDouble, false, sizeof(double), offsetof(TestStruct, doubleValue));
-    testField(6, "strValue", eFieldString, false, sizeof(String), offsetof(TestStruct, strValue));
-    testField(7, "substruct", eFieldObject, false, sizeof(TestSubStruct), offsetof(TestStruct, substruct));
-    testField(8, "arrValue", eFieldArray, false, sizeof(Array<TestSubStruct>), offsetof(TestStruct, arrValue));
-    testField(9, "datetimeValue", eFieldDateTime, false, sizeof(DateTime), offsetof(TestStruct, datetimeValue));
-    testField(10, "variantValue", eFieldVariant, false, sizeof(Variant), offsetof(TestStruct, variantValue));
-    testField(11, "optEnumValue", eFieldEnum, true, sizeof(Nullable<EEnumTest>), offsetof(TestStruct, optEnumValue));
-    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->defaultValue(), eEnumValueUnk);
-    EXPECT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->enumName()), "EEnumTest");
-    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(11))->enumType(), eEnumSimple);
-    testField(12, "optBoolValue", eFieldBool, true, sizeof(Nullable<bool>), offsetof(TestStruct, optBoolValue));
-    testField(13, "optIntValue", eFieldInt, true, sizeof(Nullable<int>), offsetof(TestStruct, optIntValue));
-    testField(14, "optUintValue", eFieldUint, true, sizeof(Nullable<uint32_t>), offsetof(TestStruct, optUintValue));
-    testField(15, "optFloatValue", eFieldFloat, true, sizeof(Nullable<float>), offsetof(TestStruct, optFloatValue));
-    testField(16, "optDateTimeValue", eFieldDateTime, true, sizeof(Nullable<DateTime>), offsetof(TestStruct, optDateTimeValue));
-    testField(17, "optVariantValue", eFieldVariant, true, sizeof(Nullable<Variant>), offsetof(TestStruct, optVariantValue));
+    testField(5, "int64Value", eFieldInt64, false, sizeof(int64_t), offsetof(TestStruct, int64Value));
+    testField(6, "uint64Value", eFieldUint64, false, sizeof(uint64_t), offsetof(TestStruct, uint64Value));
+    testField(7, "floatValue", eFieldFloat, false, sizeof(float), offsetof(TestStruct, floatValue));
+    testField(8, "doubleValue", eFieldDouble, false, sizeof(double), offsetof(TestStruct, doubleValue));
+    testField(9, "strValue", eFieldString, false, sizeof(String), offsetof(TestStruct, strValue));
+    testField(10, "substruct", eFieldObject, false, sizeof(TestSubStruct), offsetof(TestStruct, substruct));
+    testField(11, "arrValue", eFieldArray, false, sizeof(Array<TestSubStruct>), offsetof(TestStruct, arrValue));
+    testField(12, "datetimeValue", eFieldDateTime, false, sizeof(DateTime), offsetof(TestStruct, datetimeValue));
+    testField(13, "variantValue", eFieldVariant, false, sizeof(Variant), offsetof(TestStruct, variantValue));
+    testField(14, "optEnumValue", eFieldEnum, true, sizeof(Nullable<EEnumTest>), offsetof(TestStruct, optEnumValue));
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(14))->defaultValue(), eEnumValueUnk);
+    EXPECT_EQ(String(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(14))->enumName()), "EEnumTest");
+    EXPECT_EQ(reinterpret_cast<const MetaFieldEnum *>(t.metaObject()->field(14))->enumType(), eEnumSimple);
+    testField(15, "optBoolValue", eFieldBool, true, sizeof(Nullable<bool>), offsetof(TestStruct, optBoolValue));
+    testField(16, "optIntValue", eFieldInt, true, sizeof(Nullable<int>), offsetof(TestStruct, optIntValue));
+    testField(17, "optUintValue", eFieldUint, true, sizeof(Nullable<uint32_t>), offsetof(TestStruct, optUintValue));
+    testField(18, "optInt64Value", eFieldInt64, true, sizeof(Nullable<int64_t>), offsetof(TestStruct, optInt64Value));
+    testField(19, "optUint64Value", eFieldUint64, true, sizeof(Nullable<uint64_t>), offsetof(TestStruct, optUint64Value));
+    testField(20, "optFloatValue", eFieldFloat, true, sizeof(Nullable<float>), offsetof(TestStruct, optFloatValue));
+    testField(21, "optDoubleValue", eFieldDouble, true, sizeof(Nullable<double>), offsetof(TestStruct, optDoubleValue));
+    testField(22, "optDateTimeValue", eFieldDateTime, true, sizeof(Nullable<DateTime>), offsetof(TestStruct, optDateTimeValue));
+    testField(23, "optVariantValue", eFieldVariant, true, sizeof(Nullable<Variant>), offsetof(TestStruct, optVariantValue));
 
 }
 
@@ -170,7 +194,10 @@ TEST_F(ObjectTest, InitVisitorTest)
     EXPECT_EQ(t.boolValue, true);
     EXPECT_EQ(t.intValue, -1);
     EXPECT_EQ(t.uintValue, 123154);
-    EXPECT_EQ(t.doubleValue, 25.0);
+    EXPECT_EQ(t.int64Value, -1);
+    EXPECT_EQ(t.uint64Value, 0);
+    EXPECT_FLOAT_EQ(t.floatValue, -12.0f);
+    EXPECT_DOUBLE_EQ(t.doubleValue, 25.0);
     EXPECT_EQ(t.strValue, "testValue");
     EXPECT_EQ(t.substruct.name, "TestSubStruct");
     EXPECT_TRUE(t.arrValue.empty());
@@ -181,9 +208,33 @@ TEST_F(ObjectTest, InitVisitorTest)
     EXPECT_EQ(*t.optBoolValue, true);
     EXPECT_EQ(*t.optIntValue, -1);
     EXPECT_EQ(*t.optUintValue, 123154);
+    EXPECT_EQ(*t.optInt64Value, -1);
+    EXPECT_FALSE(t.optUint64Value);
     EXPECT_FALSE(t.optFloatValue);
+    EXPECT_FALSE(t.optDoubleValue);
     EXPECT_FALSE(t.optDateTimeValue);
     EXPECT_FALSE(t.optVariantValue);
+}
+
+TEST_F(ObjectTest, TypeResolverFailureTest)
+{
+    metacpp::serialization::TypeResolverFactory factory({
+        TestStruct::staticMetaObject(),
+        TestSubStruct::staticMetaObject() });
+    EXPECT_THROW(factory.createInstance("bad typename"), std::invalid_argument);
+}
+
+TEST_F(ObjectTest, TypeResolverSuccessTest)
+{
+    metacpp::serialization::TypeResolverFactory factory({
+        TestStruct::staticMetaObject(),
+        TestSubStruct::staticMetaObject() });
+    std::function<void (Object *)> object_deleter =
+            [](Object *obj) { obj->metaObject()->destroyInstance(obj); };
+    std::shared_ptr<Object> testStruct(
+                factory.createInstance("TestStruct"),
+                object_deleter);
+    std::dynamic_pointer_cast<TestStruct>(testStruct);
 }
 
 #ifdef HAVE_JSONCPP
@@ -211,6 +262,9 @@ TEST_F(ObjectTest, SerializationTest)
     EXPECT_EQ(t.boolValue, t2.boolValue);
     EXPECT_EQ(t.intValue, t2.intValue);
     EXPECT_EQ(t.uintValue, t2.uintValue);
+    EXPECT_EQ(t.int64Value, t2.int64Value);
+    EXPECT_EQ(t.uint64Value, t2.uint64Value);
+    EXPECT_EQ(t.floatValue, t2.floatValue);
     EXPECT_EQ(t.doubleValue, t2.doubleValue);
     EXPECT_EQ(t.strValue, t2.strValue);
     EXPECT_EQ(t.substruct.name, t2.substruct.name);
@@ -223,7 +277,10 @@ TEST_F(ObjectTest, SerializationTest)
     EXPECT_EQ(*t2.optBoolValue, true);
     EXPECT_EQ(*t2.optIntValue, -1);
     EXPECT_EQ(*t2.optUintValue, 123154);
+    EXPECT_EQ(*t2.optInt64Value, -1);
+    EXPECT_EQ(t.optUint64Value, t2.optUint64Value);
     EXPECT_EQ(t.optFloatValue, t2.optFloatValue);
+    EXPECT_EQ(t.optDoubleValue, t2.optDoubleValue);
     EXPECT_EQ(t.datetimeValue, t2.datetimeValue);
     EXPECT_EQ(variant_cast<int>(*t.optVariantValue), variant_cast<int>(*t2.optVariantValue));
 }
