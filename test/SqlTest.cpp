@@ -162,7 +162,7 @@ void SqlTest::clearData()
 }
 
 
-TEST_F(SqlTest, testConstraints)
+TEST_P(SqlTest, testConstraints)
 {
     ASSERT_EQ(Storable<Person>::numConstraints(), 5);
 
@@ -202,11 +202,32 @@ TEST_F(SqlTest, testConstraints)
 
 }
 
-void SqliteTest::SetUp()
+#define VALUE_OF(v) STRINGIFY(v)
+#define STRINGIFY(v) #v
+
+void SqlTest::SetUp()
 {
+    String connectionUri;
+    switch (GetParam())
+    {
+    case metacpp::db::sql::SqlSyntaxSqlite:
+        connectionUri = "sqlite3://:memory:";
+        break;
+    case metacpp::db::sql::SqlSyntaxPostgreSQL:
+#if defined (TEST_POSTGRES_DBNAME) && defined(TEST_POSTGRES_DBUSER)
+        connectionUri = "postgres://" VALUE_OF(TEST_POSTGRES_DBUSER) "@localhost?dbname=" VALUE_OF(TEST_POSTGRES_DBNAME);
+#else
+        throw std::invalid_argument("Undefined postgres URI");
+#endif
+        break;
+    case metacpp::db::sql::SqlSyntaxMySql:
+        connectionUri = "mysql://localhost/test";
+        break;
+    default:
+        throw std::runtime_error("Invalid sql syntax");
+    }
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("sqlite3://:memory:")));
-    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("postgres://?dbname=alien&hostaddr=127.0.0.1")));
-    //m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri("mysql://localhost/test")));
+
     ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
     ASSERT_TRUE(m_conn->connect());
@@ -215,7 +236,7 @@ void SqliteTest::SetUp()
     prepareData();
 }
 
-void SqliteTest::TearDown()
+void SqlTest::TearDown()
 {
     clearData();
 
@@ -225,7 +246,7 @@ void SqliteTest::TearDown()
     m_conn.reset();
 }
 
-void SqliteTest::SetUpTestCase()
+void SqlTest::SetUpTestCase()
 {
 #ifdef HAVE_SQLITE3
     connectors::SqlConnectorBase::registerConnectorFactory("sqlite3", std::make_shared<connectors::sqlite::SqliteConnectorFactory>());
@@ -238,7 +259,7 @@ void SqliteTest::SetUpTestCase()
 #endif
 }
 
-void SqliteTest::TearDownTestCase()
+void SqlTest::TearDownTestCase()
 {
 #ifdef HAVE_SQLITE3
     connectors::SqlConnectorBase::unregisterConnectorFactory("sqlite3");
@@ -251,9 +272,7 @@ void SqliteTest::TearDownTestCase()
 #endif
 }
 
-#ifdef HAVE_SQLITE3
-
-TEST_F(SqliteTest, namedConnectorSet)
+TEST_P(SqlTest, namedConnectorSet)
 {
     connectors::SqlConnectorBase::setNamedConnector(
                 connectors::SqlConnectorBase::getDefaultConnector(), "test");
@@ -267,19 +286,19 @@ TEST_F(SqliteTest, namedConnectorSet)
                  std::invalid_argument);
 }
 
-TEST_F(SqliteTest, transactionCommitTest)
+TEST_P(SqlTest, transactionCommitTest)
 {
     SqlTransaction transaction;
     ASSERT_NO_THROW(transaction.commit());
 }
 
-TEST_F(SqliteTest, transactionRollbackTest)
+TEST_P(SqlTest, transactionRollbackTest)
 {
     SqlTransaction transaction;
     ASSERT_NO_THROW(transaction.rollback());
 }
 
-TEST_F(SqliteTest, transactionManualBegin)
+TEST_P(SqlTest, transactionManualBegin)
 {
     SqlTransaction transaction(SqlTransactionAutoCloseManual);
     ASSERT_NO_THROW(transaction.begin());
@@ -288,7 +307,7 @@ TEST_F(SqliteTest, transactionManualBegin)
     ASSERT_ANY_THROW(transaction.commit());
 }
 
-TEST_F(SqliteTest, multipleTransactionsTest)
+TEST_P(SqlTest, multipleTransactionsTest)
 {
     const size_t numThreads = 10;
     std::thread threads[numThreads];
@@ -319,7 +338,7 @@ static bool HasPupkin(const Array<Person>& persons) { return HasPerson(persons, 
 static bool HasSmith(const Array<Person>& persons) { return HasPerson(persons, "Smith"); }
 static bool HasLenin(const Array<Person>& persons) { return HasPerson(persons, "Lenin"); }
 
-TEST_F(SqliteTest, simpleSelectTest)
+TEST_P(SqlTest, simpleSelectTest)
 {
     SqlTransaction transaction;
 
@@ -370,7 +389,7 @@ TEST_F(SqliteTest, simpleSelectTest)
     EXPECT_EQ(lenin->gender, nullptr);
 }
 
-TEST_F(SqliteTest, testInnerJoin)
+TEST_P(SqlTest, testInnerJoin)
 {
     SqlTransaction transaction;
     Storable<Person> person;
@@ -389,14 +408,14 @@ TEST_F(SqliteTest, testInnerJoin)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testMixedJoin)
+TEST_P(SqlTest, testMixedJoin)
 {
     Storable<Person> person;
 
     EXPECT_THROW(person.select().innerJoin<City>().outerJoin<City>(), std::logic_error);
 }
 
-TEST_F(SqliteTest, testOuterJoin)
+TEST_P(SqlTest, testOuterJoin)
 {
     SqlTransaction transaction;
     Storable<Person> person;
@@ -416,7 +435,7 @@ TEST_F(SqliteTest, testOuterJoin)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testIsNullOperator)
+TEST_P(SqlTest, testIsNullOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age).isNull());
@@ -425,7 +444,7 @@ TEST_F(SqliteTest, testIsNullOperator)
     EXPECT_TRUE(HasPupkin(persons));
 }
 
-TEST_F(SqliteTest, testIsNotNullOperator)
+TEST_P(SqlTest, testIsNotNullOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::birthday).isNotNull());
@@ -434,7 +453,7 @@ TEST_F(SqliteTest, testIsNotNullOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testEqualOperator)
+TEST_P(SqlTest, testEqualOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Smith"));
@@ -443,7 +462,7 @@ TEST_F(SqliteTest, testEqualOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testNotEqualOperator)
+TEST_P(SqlTest, testNotEqualOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name) != String("Smith"));
@@ -453,7 +472,7 @@ TEST_F(SqliteTest, testNotEqualOperator)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testLessOperator)
+TEST_P(SqlTest, testLessOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) < 55);
@@ -462,7 +481,7 @@ TEST_F(SqliteTest, testLessOperator)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testLessOrEqualOperator)
+TEST_P(SqlTest, testLessOrEqualOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) <= 55);
@@ -472,7 +491,7 @@ TEST_F(SqliteTest, testLessOrEqualOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testGreaterOperator)
+TEST_P(SqlTest, testGreaterOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) > 53);
@@ -481,7 +500,7 @@ TEST_F(SqliteTest, testGreaterOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testGreaterOrEqualOperator)
+TEST_P(SqlTest, testGreaterOrEqualOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) >= 53);
@@ -491,7 +510,7 @@ TEST_F(SqliteTest, testGreaterOrEqualOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testLikeOperator)
+TEST_P(SqlTest, testLikeOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name).like("%n"));
@@ -501,7 +520,7 @@ TEST_F(SqliteTest, testLikeOperator)
     EXPECT_TRUE(HasPupkin(persons));
 }
 
-TEST_F(SqliteTest, testPlusOperator)
+TEST_P(SqlTest, testPlusOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) + 2 == 55);
@@ -510,7 +529,7 @@ TEST_F(SqliteTest, testPlusOperator)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testConcatOperator)
+TEST_P(SqlTest, testConcatOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction,
@@ -520,7 +539,7 @@ TEST_F(SqliteTest, testConcatOperator)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testMinusOperator)
+TEST_P(SqlTest, testMinusOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) - 2 == 53);
@@ -529,7 +548,7 @@ TEST_F(SqliteTest, testMinusOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testMultiplyOperator)
+TEST_P(SqlTest, testMultiplyOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) * 2 == 110);
@@ -538,7 +557,7 @@ TEST_F(SqliteTest, testMultiplyOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testDivideOperator)
+TEST_P(SqlTest, testDivideOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) / 2 == 26);
@@ -547,7 +566,7 @@ TEST_F(SqliteTest, testDivideOperator)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, testReminderOperator)
+TEST_P(SqlTest, testReminderOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, COL(Person::age) % 2 == 1);
@@ -557,7 +576,7 @@ TEST_F(SqliteTest, testReminderOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testBitwiseAndOperator)
+TEST_P(SqlTest, testBitwiseAndOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, (COL(Person::age) & 1) == 1);
@@ -567,7 +586,7 @@ TEST_F(SqliteTest, testBitwiseAndOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testBitwiseOrOperator)
+TEST_P(SqlTest, testBitwiseOrOperator)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, (COL(Person::age) | 128) == 128 + 55);
@@ -576,7 +595,7 @@ TEST_F(SqliteTest, testBitwiseOrOperator)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testShiftLeft)
+TEST_P(SqlTest, testShiftLeft)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, (COL(Person::age) << 2) == 55 << 2);
@@ -585,7 +604,7 @@ TEST_F(SqliteTest, testShiftLeft)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testShiftRight)
+TEST_P(SqlTest, testShiftRight)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, (COL(Person::age) >> 1) == 55 >> 1);
@@ -594,7 +613,7 @@ TEST_F(SqliteTest, testShiftRight)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testUnaryPlus)
+TEST_P(SqlTest, testUnaryPlus)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, +COL(Person::cat_weight) > 0);
@@ -604,7 +623,7 @@ TEST_F(SqliteTest, testUnaryPlus)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testUnaryMinus)
+TEST_P(SqlTest, testUnaryMinus)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, -COL(Person::cat_weight) > -1.5);
@@ -613,7 +632,7 @@ TEST_F(SqliteTest, testUnaryMinus)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, testBinaryNegation)
+TEST_P(SqlTest, testBinaryNegation)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, ~COL(Person::age) == ~55);
@@ -622,7 +641,7 @@ TEST_F(SqliteTest, testBinaryNegation)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, TestNegation)
+TEST_P(SqlTest, TestNegation)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, !(COL(Person::name) == String("Smith")));
@@ -631,7 +650,7 @@ TEST_F(SqliteTest, TestNegation)
     EXPECT_FALSE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, upperFunctionTest)
+TEST_P(SqlTest, upperFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, upper(COL(Person::name)) == String("SMITH"));
@@ -640,7 +659,7 @@ TEST_F(SqliteTest, upperFunctionTest)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, lowerFunctionTest)
+TEST_P(SqlTest, lowerFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, lower(COL(Person::name)) == String("smith"));
@@ -649,7 +668,7 @@ TEST_F(SqliteTest, lowerFunctionTest)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, trimFunctionTest)
+TEST_P(SqlTest, trimFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, trim(" " + COL(Person::name) + " ") == String("Smith"));
@@ -658,7 +677,7 @@ TEST_F(SqliteTest, trimFunctionTest)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, ltrimFunctionTest)
+TEST_P(SqlTest, ltrimFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, ltrim(" " + COL(Person::name) + " ") == String("Smith "));
@@ -667,7 +686,7 @@ TEST_F(SqliteTest, ltrimFunctionTest)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, rtrimFunctionTest)
+TEST_P(SqlTest, rtrimFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, rtrim(" " + COL(Person::name) + " ") == String(" Smith"));
@@ -676,7 +695,7 @@ TEST_F(SqliteTest, rtrimFunctionTest)
     EXPECT_TRUE(HasSmith(persons));
 }
 
-TEST_F(SqliteTest, lengthFunctionTest)
+TEST_P(SqlTest, lengthFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, length(COL(Person::name)) == 5);
@@ -686,7 +705,7 @@ TEST_F(SqliteTest, lengthFunctionTest)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, coalesceFunctionTest)
+TEST_P(SqlTest, coalesceFunctionTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction, coalesce(COL(Person::age), 53) == 53);
@@ -695,18 +714,21 @@ TEST_F(SqliteTest, coalesceFunctionTest)
     EXPECT_TRUE(HasLenin(persons));
 }
 
-TEST_F(SqliteTest, castIntTest)
+TEST_P(SqlTest, strftimeTest)
 {
-    SqlTransaction transaction;
-    auto persons = Storable<Person>::fetchAll(transaction,
-                                              cast<int>(sqlite::strftime("%m", COL(Person::birthday))) ==
-                                              static_cast<int>(April) + 1);
+    if (GetParam() == metacpp::db::sql::SqlSyntaxSqlite)
+    {
+        SqlTransaction transaction;
+        auto persons = Storable<Person>::fetchAll(transaction,
+                                                  cast<int>(sqlite::strftime("%m", COL(Person::birthday))) ==
+                                                  static_cast<int>(April) + 1);
 
-    ASSERT_EQ(persons.size(), 1);
-    EXPECT_TRUE(HasSmith(persons));
+        ASSERT_EQ(persons.size(), 1);
+        EXPECT_TRUE(HasSmith(persons));
+    }
 }
 
-TEST_F(SqliteTest, castStringTest)
+TEST_P(SqlTest, castStringTest)
 {
     SqlTransaction transaction;
     auto persons = Storable<Person>::fetchAll(transaction,
@@ -717,7 +739,7 @@ TEST_F(SqliteTest, castStringTest)
 }
 
 // test a complex query
-TEST_F(SqliteTest, allInOneSelectTest)
+TEST_P(SqlTest, allInOneSelectTest)
 {
     SqlTransaction transaction;
     Storable<Person> person;
@@ -739,7 +761,7 @@ TEST_F(SqliteTest, allInOneSelectTest)
     transaction.commit();
 }
 
-TEST_F(SqliteTest, testOffset)
+TEST_P(SqlTest, testOffset)
 {
     SqlTransaction transaction;
     Storable<Person> person;
@@ -756,7 +778,7 @@ TEST_F(SqliteTest, testOffset)
     EXPECT_TRUE(HasPupkin(persons));
 }
 
-TEST_F(SqliteTest, updateOneTest)
+TEST_P(SqlTest, updateOneTest)
 {
     {
         SqlTransaction transaction;
@@ -774,7 +796,7 @@ TEST_F(SqliteTest, updateOneTest)
     }
 }
 
-TEST_F(SqliteTest, transactionAutoCommitTest)
+TEST_P(SqlTest, transactionAutoCommitTest)
 {
     {
         SqlTransaction transaction(SqlTransactionAutoCommit);
@@ -791,7 +813,7 @@ TEST_F(SqliteTest, transactionAutoCommitTest)
     }
 }
 
-TEST_F(SqliteTest, updateRefTest)
+TEST_P(SqlTest, updateRefTest)
 {
     {
         SqlTransaction transaction;
@@ -815,7 +837,7 @@ TEST_F(SqliteTest, updateRefTest)
     }
 }
 
-TEST_F(SqliteTest, updateMultipleSetsTest)
+TEST_P(SqlTest, updateMultipleSetsTest)
 {
     {
         SqlTransaction transaction;
@@ -836,7 +858,7 @@ TEST_F(SqliteTest, updateMultipleSetsTest)
     }
 }
 
-TEST_F(SqliteTest, insertOneTest)
+TEST_P(SqlTest, insertOneTest)
 {
     auto now = DateTime::now();
     Storable<Person> pupkin;
@@ -872,7 +894,7 @@ TEST_F(SqliteTest, insertOneTest)
     }
 }
 
-TEST_F(SqliteTest, insertAllTest)
+TEST_P(SqlTest, insertAllTest)
 {
     auto now = DateTime::now();
     Storable<Person> pupkin;
@@ -907,7 +929,7 @@ TEST_F(SqliteTest, insertAllTest)
     }
 }
 
-TEST_F(SqliteTest, deleteOneTest)
+TEST_P(SqlTest, deleteOneTest)
 {
     {
         SqlTransaction transaction;
@@ -922,7 +944,7 @@ TEST_F(SqliteTest, deleteOneTest)
     }
 }
 
-TEST_F(SqliteTest, deleteRefTest)
+TEST_P(SqlTest, deleteRefTest)
 {
     {
         SqlTransaction transaction;
@@ -942,5 +964,19 @@ TEST_F(SqliteTest, deleteRefTest)
         EXPECT_FALSE(HasLenin(persons));
     }
 }
+
+#ifdef HAVE_SQLITE3
+
+INSTANTIATE_TEST_CASE_P(SqliteTestInstantiation,
+                        SqlTest,
+                        ::testing::Values(metacpp::db::sql::SqlSyntaxSqlite));
+
+#endif
+
+#ifdef HAVE_POSTGRES
+
+INSTANTIATE_TEST_CASE_P(PostgresTestInstantiation,
+                        SqlTest,
+                        ::testing::Values(metacpp::db::sql::SqlSyntaxPostgreSQL));
 
 #endif

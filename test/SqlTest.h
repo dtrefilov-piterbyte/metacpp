@@ -3,16 +3,12 @@
 #include <gtest/gtest.h>
 #include "SqlTransaction.h"
 
-class SqlTest : public testing::Test
+class SqlTest : public testing::TestWithParam<metacpp::db::sql::SqlSyntax>
 {
 public:
     void prepareSchema();
     void prepareData();
     void clearData();
-};
-
-class SqliteTest : public SqlTest
-{
 public:
     void SetUp() override;
     void TearDown() override;

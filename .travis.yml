@@ -2,6 +2,9 @@ language: cpp
 sudo: required
 dist: trusty
 
+services:
+  - postgresql
+
 compiler:
 #  - clang
   - gcc
@@ -19,9 +22,10 @@ install:
   - popd
 
 before_script:
+  - psql -c 'create database travis_ci_test;' -U postgres
   - mkdir -p build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON ..
+  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres ..
 
 script:
   - sqlite3 -version
