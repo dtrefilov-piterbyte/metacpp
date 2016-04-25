@@ -10,6 +10,10 @@ compiler:
 #  - clang
   - gcc
 
+env:
+  - DB=pgsql
+  - DB=mysql
+
 before_install:
   - sudo apt-get update -qq
 
@@ -23,13 +27,18 @@ install:
   - popd
 
 before_script:
-  - psql -c 'create database travis_ci_test;' -U postgres
-  - mysql -e 'create database travis_ci_test;' -uroot
   - mkdir -p build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=ON \
-   -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres \
-   -DTEST_MYSQL_DBNAME=travis_ci_test -DTEST_MYSQL_DBUSER=travis ..
+  - if [[ "$DB" == "pgsql" ]]; then
+    psql -c 'create database travis_ci_test;' -U postgres
+    cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=OFF \
+      -DTEST_POSTGRES_DBNAME=travis_ci_test -DTEST_POSTGRES_DBUSER=postgres ..
+    fi
+  - if [[ "$DB" == "pgsql" ]]; then
+    mysql -e 'create database travis_ci_test;' -uroot
+    cmake -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=ON -DCOVERALLS=ON -DCOVERALLS_UPLOAD=OFF \
+      -DTEST_MYSQL_DBNAME=travis_ci_test -DTEST_MYSQL_DBUSER=travis ..
+    fi
 
 script:
   - sqlite3 -version
