@@ -81,7 +81,7 @@ STRUCT_INFO_BEGIN(Person)
     FIELD(Person, age)
     FIELD(Person, cat_weight, 1.0)
     FIELD(Person, cityId)
-    FIELD(Person, birthday, DateTime(2000, January, 1))
+    FIELD(Person, birthday, DateTime(static_cast<time_t>(0)))
     FIELD(Person, gender, &ENUM_INFO(EGender))
 
     FIELD(Person, test_bool, false)
