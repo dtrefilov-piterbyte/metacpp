@@ -408,8 +408,6 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
     }
     queryStr += join(columns, ", ") + ")";
 
-    std::cout << queryStr << std::endl;
-
     // main statement CREATE TABLE
     SqlStatementCustom statement(queryStr);
     statement.exec(transaction);
