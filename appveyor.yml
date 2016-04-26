@@ -30,4 +30,7 @@ build_script:
     msbuild metacpp.sln /p:Configuration=Release /toolsversion:12.0 /p:Platform=x64 /p:PlatformToolset=v120
 
 test_script:
-- ps: '& "C:\projects\metacpp\build\bin\metacpp-test.exe"'
+- ps: >-
+    & "C:\projects\metacpp\build\bin\metacpp-test.exe" --gtest_output=xml
+    $wc = New-Object 'System.Net.WebClient'
+    $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path test_detail.xml))
