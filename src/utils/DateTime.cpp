@@ -25,9 +25,6 @@
 
 namespace metacpp {
 
-// standard time lib isn't thread safe
-static std::mutex g_stdTimeMutex;
-
 #ifdef _MSC_VER
 #define sprintf(buf, fmt, ...) sprintf_s(buf, fmt, __VA_ARGS__)
 #endif
@@ -36,7 +33,10 @@ namespace detail
 {
     DateTimeData::DateTimeData(time_t stdTime)
     {
+        // standard time lib isn't thread safe
+        static std::mutex g_stdTimeMutex;
         std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
+
 #ifdef _MSC_VER
 		if (0 != localtime_s(&m_tm, &stdTime))
 			throw std::invalid_argument("stdTime");
