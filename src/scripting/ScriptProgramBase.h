@@ -27,10 +27,10 @@ public:
     }
 
 public:
-    virtual void compile(std::istream& source, const String& fileName) = 0;
+    virtual void compile(std::istream& is, const String& filename);
 
     virtual void compile(const String& sourceFile);
-    virtual void compile(const void *pBuffer, size_t size, const String& fileName);
+    virtual void compile(const void *pBuffer, size_t size, const String& fileName) = 0;
 protected:
     virtual ScriptThreadBase *createThreadImpl(const String& functionName,
                                            const VariantArray& args = VariantArray()) = 0;

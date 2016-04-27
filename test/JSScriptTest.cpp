@@ -36,6 +36,8 @@ struct MyObject : public metacpp::Object
         });
     }
 
+    static void sleep(int seconds) { std::this_thread::sleep_for(std::chrono::seconds(seconds)); }
+
     META_INFO_DECLARE(MyObject)
 };
 
@@ -57,6 +59,7 @@ METHOD_INFO_BEGIN(MyObject)
     METHOD(MyObject, getNames)
     SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)())
     SIGNATURE_METHOD(MyObject, foo, metacpp::String (*)(const metacpp::String&))
+    METHOD(MyObject, sleep)
 METHOD_INFO_END(MyObject)
 
 REFLECTIBLE_FM(MyObject)
@@ -130,6 +133,78 @@ TEST_F(JSScriptTest, testThrow)
     EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
 }
 
+TEST_F(JSScriptTest, testMultipleThreads)
+{
+    // test multiple threads in same script engine running simultenioulsy
+    auto program = m_engine->createProgram();
+    std::istringstream ss("MyObject.sleep(1)");
+    program->compile(ss, "filename");
+    std::vector<std::thread> threads;
+    std::vector<metacpp::SharedObjectPointer<metacpp::scripting::ScriptThreadBase>> scriptThreads;
+    const size_t numThreads = 10;
+
+    for (size_t i = 0; i < numThreads; ++i)
+    {
+        auto thread = program->createThread();
+        scriptThreads.push_back(thread);
+        threads.emplace_back([&]{ try { thread->run();  } catch (...) {  } });
+        // wait for start of execution
+        while (!thread->running())
+            std::this_thread::yield();
+    }
+
+    for (size_t i = 0; i < numThreads; ++i)
+    {
+        if (threads[i].joinable())
+            threads[i].join();
+    }
+}
+
+TEST_F(JSScriptTest, testThreadWait)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("MyObject.sleep(1)");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    std::exception_ptr ex;
+    std::thread th([&]{ try { thread->run();  } catch  (...) { ex = std::current_exception(); } });
+    EXPECT_TRUE(thread->wait(2000));
+    if (th.joinable())
+        th.join();
+}
+
+TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
+{
+    // test failure running same thread simultiniously
+    auto program = m_engine->createProgram();
+    std::istringstream ss("MyObject.sleep(1)");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    std::exception_ptr ex = nullptr;
+    std::thread thMain([&]{ try { thread->run();  } catch (...) { } });
+    while (!thread->running())
+        std::this_thread::yield();
+    // supplementary thread will fail to start
+    std::thread thSupp([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
+
+    EXPECT_TRUE(thread->wait(2000));
+    thMain.join();
+    thSupp.join();
+
+    ASSERT_TRUE((bool)ex);
+    EXPECT_THROW(std::rethrow_exception(ex), std::runtime_error);
+}
+
+TEST_F(JSScriptTest, testOutOfMemory)
+{
+    auto program = m_engine->createProgram();
+    // Heap memory is limited by 32MB
+    std::istringstream ss("var objs = []; for (i = 0; i < 50000000; ++i) { objs.push(MyObject(i)) }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread();
+    EXPECT_THROW(thread->run(), metacpp::scripting::ScriptRuntimeError);
+}
+
 // Threads are not terminatable
 #if MOZJS_MAJOR_VERSION >= 38
 TEST_F(JSScriptTest, testTerminate)
@@ -142,61 +217,13 @@ TEST_F(JSScriptTest, testTerminate)
     std::thread th([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
     while (!thread->running())
         std::this_thread::yield();
-    thread->abort(1000);
+    ASSERT_TRUE(thread->abort(1000));
     if (th.joinable())
         th.join();
     ASSERT_TRUE((bool)ex);
     EXPECT_THROW(std::rethrow_exception(ex), metacpp::scripting::TerminationException);
 }
 
-TEST_F(JSScriptTest, testMultipleThreads)
-{
-    // test multiple threads in same script engine running simultenioulsy
-    auto program = m_engine->createProgram();
-    std::istringstream ss("while (1) { }");
-    program->compile(ss, "filename");
-    std::vector<std::thread> threads;
-    std::vector<metacpp::SharedObjectPointer<metacpp::scripting::ScriptThreadBase>> scriptThreads;
-    const size_t numThreads = 10;
-
-    for (size_t i = 0; i < numThreads; ++i)
-    {
-        auto thread = program->createThread();
-        scriptThreads.push_back(thread);
-        threads.emplace_back([&]{ try { thread->run();  } catch (...) {  } });
-        while (!thread->running())
-            std::this_thread::yield();
-    }
-
-    for (size_t i = 0; i < numThreads; ++i)
-    {
-        scriptThreads[i]->abort(1000);
-        if (threads[i].joinable())
-            threads[i].join();
-    }
-}
-
-TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
-{
-    // test failure running same thread simultiniously
-    auto program = m_engine->createProgram();
-    std::istringstream ss("while (1) { }");
-    program->compile(ss, "filename");
-    auto thread = program->createThread();
-    std::exception_ptr ex = nullptr;
-    std::thread thMain([&]{ try { thread->run();  } catch (...) { } });
-    while (!thread->running())
-        std::this_thread::yield();
-    // supplementary thread will fail to start
-    std::thread thSupp([&]{ try { thread->run();  } catch (...) { ex = std::current_exception(); } });
-
-    EXPECT_TRUE(thread->abort(1000));
-    thMain.join();
-    thSupp.join();
-
-    ASSERT_TRUE((bool)ex);
-    EXPECT_THROW(std::rethrow_exception(ex), std::runtime_error);
-}
 #endif
 
 TEST_F(JSScriptTest, testRunAsyncSuccess)
@@ -269,6 +296,46 @@ TEST_F(JSScriptTest, testFunctionCall)
     metacpp::Variant value = thread->run();
     ASSERT_TRUE(value.isString());
     EXPECT_EQ(metacpp::variant_cast<metacpp::String>(value), "7");
+}
+
+TEST_F(JSScriptTest, testBoolResult)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(a, b) { return a === b }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f", 12, 12);
+    EXPECT_TRUE(metacpp::variant_cast<bool>(thread->run()));
+    thread = program->createThread("f", 12, 13);
+    EXPECT_FALSE(metacpp::variant_cast<bool>(thread->run()));
+}
+
+TEST_F(JSScriptTest, testBoolArgument)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(a) { return typeof(a) + ', ' + a }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f", true);
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "boolean, true");
+    thread = program->createThread("f", false);
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "boolean, false");
+}
+
+TEST_F(JSScriptTest, testUndefinedResult)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f() { return undefined }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f");
+    EXPECT_FALSE(thread->run().valid());
+}
+
+TEST_F(JSScriptTest, testUndefinedArgument)
+{
+    auto program = m_engine->createProgram();
+    std::istringstream ss("function f(a) { return typeof(a) }");
+    program->compile(ss, "filename");
+    auto thread = program->createThread("f", metacpp::Variant());
+    EXPECT_EQ(metacpp::variant_cast<metacpp::String>(thread->run()), "undefined");
 }
 
 TEST_F(JSScriptTest, testArrayResult)

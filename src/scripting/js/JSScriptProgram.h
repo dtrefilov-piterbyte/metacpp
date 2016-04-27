@@ -21,7 +21,6 @@ public:
     explicit JSScriptProgram(JSScriptEngine *engine);
     ~JSScriptProgram();
 
-    void compile(std::istream& source, const String& filename) override;
     void compile(const void *pBuffer, size_t size, const String& filename) override;
 protected:
     ScriptThreadBase *createThreadImpl(const String& functionName,

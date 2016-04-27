@@ -262,27 +262,9 @@ bool SqliteTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlStor
     auto pkey = storable->primaryKey();
     if (pkey)
     {
-        switch (storable->primaryKey()->type())
-        {
-        case eFieldInt:
-            assignField<int32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          (int32_t)sqlite3_last_insert_rowid(m_dbHandle));
-            return true;
-        case eFieldUint:
-            assignField<uint32_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          (uint32_t)sqlite3_last_insert_rowid(m_dbHandle));
-            return true;
-        case eFieldInt64:
-            assignField<int64_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          sqlite3_last_insert_rowid(m_dbHandle));
-            return true;
-        case eFieldUint64:
-            assignField<uint64_t>(pkey, SQLITE_INTEGER, SQLITE_INTEGER, storable->record(),
-                          sqlite3_last_insert_rowid(m_dbHandle));
-            return true;
-        default:
-            return false;
-        }
+        if (!pkey->isIntegral())
+            throw std::runtime_error("non-integral primary key");
+        pkey->setValue((int64_t)sqlite3_last_insert_rowid(m_dbHandle), storable->record());
     }
     return false;
 }
@@ -294,6 +276,8 @@ bool SqliteTransactionImpl::closeStatement(SqlStatementImpl *statement)
     auto it = std::find(m_statements.begin(), m_statements.end(), sqliteStatement);
     if (it == m_statements.end())
     {
+        // It is better no to throw anything here, since close operation
+        // might be called while handling another exception
         std::cerr << "SqliteTransactionImpl::closeStatement(): there's no such statement" << std::endl;
         return false;
     }

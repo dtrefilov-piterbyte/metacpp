@@ -211,7 +211,7 @@ void SqlTest::SetUp()
     switch (GetParam())
     {
     case metacpp::db::sql::SqlSyntaxSqlite:
-        connectionUri = "sqlite3://:memory:";
+        connectionUri = "sqlite3://test.db";
         break;
     case metacpp::db::sql::SqlSyntaxPostgreSQL:
 #if defined (TEST_POSTGRES_DBNAME) && defined(TEST_POSTGRES_DBUSER)
@@ -231,6 +231,7 @@ void SqlTest::SetUp()
         throw std::runtime_error("Invalid sql syntax");
     }
     m_conn = std::move(connectors::SqlConnectorBase::createConnector(Uri(connectionUri)));
+    m_conn->setConnectionPooling(2);
 
     ASSERT_TRUE(static_cast<bool>(m_conn)) << "Sql connector unavailable";
     connectors::SqlConnectorBase::setDefaultConnector(m_conn.get());
@@ -284,6 +285,9 @@ TEST_P(SqlTest, namedConnectorSet)
               connectors::SqlConnectorBase::getNamedConnector("test"));
     EXPECT_THROW(connectors::SqlConnectorBase::getNamedConnector("invalid connector name"),
                  std::invalid_argument);
+    {
+        SqlTransaction transaction("test");
+    }
     // reset named connector
     connectors::SqlConnectorBase::setNamedConnector(nullptr, "test");
     EXPECT_THROW(connectors::SqlConnectorBase::getNamedConnector("test"),

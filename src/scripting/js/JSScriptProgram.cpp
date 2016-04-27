@@ -18,17 +18,6 @@ JSScriptProgram::~JSScriptProgram()
 {
 }
 
-void JSScriptProgram::compile(std::istream &is, const String &filename)
-{
-    is.seekg (0, is.end);
-    size_t length = is.tellg();
-    is.seekg (0, is.beg);
-    Array<char> buffer;
-    buffer.resize(length);
-    is.read(buffer.data(), buffer.size());
-    compile(buffer.data(), buffer.size(), filename);
-}
-
 void JSScriptProgram::compile(const void *pBuffer, size_t size, const String &filename)
 {
     JS_AbortIfWrongThread(m_engine->rootRuntime());

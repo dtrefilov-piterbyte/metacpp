@@ -37,7 +37,7 @@ protected:
     /** \brief Method called before starting introspection */
     virtual void previsitStruct(Object *obj);
     /** \brief Method called on each property of the object during introspection */
-    virtual void visitField(Object *obj, const MetaFieldBase *);
+    virtual void visitField(Object *obj, const MetaFieldBase *) = 0;
     /** \brief Method called at the end of introspection */
     virtual void postvisitStruct(Object *obj);
 };

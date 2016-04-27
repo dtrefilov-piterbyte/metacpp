@@ -67,7 +67,8 @@ bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement, size_t numPar
     String idString = "metacpp_prepared_stmt_" + String::fromValue(statementId++);
     Oid *paramTypes = (Oid *)alloca(sizeof(Oid) * numParams);
     std::fill_n(paramTypes, numParams, InvalidOid);
-    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(), static_cast<int>(numParams), paramTypes);
+    PGresult *result = PQprepare(m_dbConn, idString.c_str(), statement->queryText().c_str(),
+                       static_cast<int>(numParams), paramTypes);
     ExecStatusType status = PQresultStatus(result);
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {
@@ -77,6 +78,7 @@ bool PostgresTransactionImpl::prepare(SqlStatementImpl *statement, size_t numPar
     }
     PostgresStatementImpl *postgresStatement = reinterpret_cast<PostgresStatementImpl *>(statement);
     postgresStatement->setPrepared();
+    // NOTE: ownership is passed to the statement
     postgresStatement->setResult(result, idString);
     return true;
 }
@@ -243,51 +245,36 @@ bool PostgresTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlSt
     (void)statement;
     auto pkey = storable->primaryKey();
     if (!pkey) return false;
-    String query = String("SELECT currval(pg_get_serial_sequence(\'") + storable->record()->metaObject()->name()
-            + "\', \'" + pkey->name() + "\'))";
-    PGresult *result = PQexec(m_dbConn, query.c_str());
-    ExecStatusType status = PQresultStatus(result);
-    if (PGRES_TUPLES_OK != status)
+    try
     {
-        std::cerr << "PostgresTransactionImpl::getLastInsertId(): PQexec() failed: " << PQresultErrorMessage(result);
-        PQclear(result);
-        return false;
+        String query = String("SELECT currval(pg_get_serial_sequence(\'")
+                + storable->record()->metaObject()->name()
+                + "\', \'" + pkey->name() + "\'))";
+        std::unique_ptr<PGresult, std::decay<decltype(PQclear)>::type>
+                result(PQexec(m_dbConn, query.c_str()), PQclear);
+        ExecStatusType status = PQresultStatus(result.get());
+        if (PGRES_TUPLES_OK != status)
+            throw std::runtime_error(std::string("PQexec() failed") +
+                                     PQresultErrorMessage(result.get()));
+        if (1 != PQntuples(result.get()) || 1 != PQnfields(result.get()))
+            throw std::runtime_error("Unexpected number of columns or rows");
+        const char *res = PQgetvalue(result.get(), 0, 0);
+        if (!res)
+            throw std::runtime_error("Result is null");
+        uint64_t lastId = String(res).toValue<uint64_t>();
+        if (pkey)
+        {
+            if (!pkey->isIntegral())
+                throw std::runtime_error("non-integral primary key");
+            pkey->setValue(lastId, storable->record());
+        }
     }
-    if (1 != PQntuples(result) || 1 != PQnfields(result))
+    catch (const std::exception& e)
     {
-        std::cerr << "PostgresTransactionImpl::getLastInsertId(): Unexpected number of columns or rows";
-        PQclear(result);
-        return false;
-    }
-    const char *res = PQgetvalue(result, 0, 0);
-    if (!res)
-    {
-        std::cerr << "PostgresTransactionImpl::getLastInsertId(): Result is null";
-        PQclear(result);
-        return false;
-    }
-    uint64_t lastId = String(res).toValue<uint64_t>();
-    switch (pkey->type())
-    {
-    case eFieldInt:
-        pkey->access<int32_t>(storable->record()) = (int32_t)lastId;
-        break;
-    case eFieldUint:
-        pkey->access<uint32_t>(storable->record()) = (uint32_t)lastId;
-        break;
-    case eFieldInt64:
-        pkey->access<int64_t>(storable->record()) = lastId;
-        break;
-    case eFieldUint64:
-        pkey->access<uint64_t>(storable->record()) = lastId;
-        break;
-    default:
-        std::cerr << "PostgresTransactionImpl::getLastInsertId(): Non-integer primary keys are not supported";
-        PQclear(result);
+        std::cerr << "PostgresTransactionImpl::getLastInsertId(): " << e.what() << std::endl;
         return false;
     }
 
-    PQclear(result);
     return true;
 }
 
@@ -308,15 +295,14 @@ bool PostgresTransactionImpl::closeStatement(SqlStatementImpl *statement)
 
 bool PostgresTransactionImpl::execCommand(const char *query, const char *invokeContext)
 {
-    PGresult *result = PQexec(m_dbConn, query);
-    ExecStatusType status = PQresultStatus(result);
+    std::unique_ptr<PGresult, std::decay<decltype(PQclear)>::type> result
+            (PQexec(m_dbConn, query), PQclear);
+    ExecStatusType status = PQresultStatus(result.get());
     if (PGRES_TUPLES_OK != status && PGRES_COMMAND_OK != status)
     {
-        std::cerr << invokeContext << ": PQexec() failed: " << PQresultErrorMessage(result);
-        PQclear(result);
+        std::cerr << invokeContext << ": PQexec() failed: " << PQresultErrorMessage(result.get());
         return false;
     }
-    PQclear(result);
     return true;
 }
 
