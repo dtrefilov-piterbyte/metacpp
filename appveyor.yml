@@ -5,10 +5,7 @@ image: Visual Studio 2013
 clone_folder: C:\projects\metacpp
 
 install:
-    # Set up Visual Studio build environment, 32-bit output with a 64-bit builder
-    # > Increment version number when newer version of Visual Studio supported by Appveyor
     - cmd: '"C:/Program Files (x86)/Microsoft Visual Studio 12.0/VC/vcvarsall.bat" amd64_x86'
-    # Set up Conan package manager
     - cmd: echo Downloading Conan package manager...
     - ps: wget http://downloads.conan.io/latest_windows -OutFile conan_installer.exe
     - cmd: conan_installer.exe /SILENT
@@ -25,7 +22,7 @@ build_script:
 
     cd build
 
-    cmake -LA -G "Visual Studio 12 Win64" ..
+    cmake -LA -G "Visual Studio 12 Win64" -DUSE_CONAN=1 ..
 
     msbuild metacpp.sln /p:Configuration=Release /toolsversion:12.0 /p:Platform=x64 /p:PlatformToolset=v120
 

@@ -329,31 +329,31 @@ class Array : protected SharedDataPointer<detail::ArrayData<T> >
     typedef SharedDataPointer<detail::ArrayData<T> > Base;
 public:
     /** \brief Random access STL iterator for this array */
-	typedef T *iterator;
+    typedef T *iterator;
     /** \brief Const random access STL iterator for this array */
-	typedef const T *const_iterator;
+    typedef const T *const_iterator;
     /** \brief Reference to the element of array */
-	typedef T& reference;
+    typedef T& reference;
     /** \brief Const reference to the element of array */
-	typedef const T& const_reference;
+    typedef const T& const_reference;
 
     /** \brief Constructs a new empty array */
     Array()
         : Base(new detail::ArrayData<T>())
     {
-	}
+    }
 
     /** \brief Constructs a new array from the existing. Both arrays shares the same data buffer
      * until someone will not try to change one of them  */
     Array(const Array& o) : Base(o)
-	{
+    {
     }
 
     /** \brief Constructs a new array and initializes it's data from raw buffer */
     Array(const T *data, size_t size)
         : Base(new detail::ArrayData<T>(data, size))
-	{
-	}
+    {
+    }
 
     /** \brief Constructs a new array and initializes it with braced initializer list */
     Array(const std::initializer_list<T>& init)
@@ -364,19 +364,19 @@ public:
     }
 
     ~Array()
-	{
-	}
+    {
+    }
 
     /** \brief Gets the pointer to the raw buffer */
     T *data() { this->detachOrInitialize(); return this->m_d->_data(); }
     /** \brief Gets the pointer to the readonly raw buffer */
-	const T *data() const { return this->m_d ? this->m_d->_data() : nullptr; }
+    const T *data() const { return this->m_d ? this->m_d->_data() : nullptr; }
     /** \brief Gets number of elements in the array */
-	size_t size() const { return this->m_d ? this->m_d->_size() : 0; }
+    size_t size() const { return this->m_d ? this->m_d->_size() : 0; }
     /** \brief Checks whether array is empty (i.e. either uninitialized or having no elements) */
-	bool empty() const { return 0 == size(); }
+    bool empty() const { return 0 == size(); }
     /** \brief Gets maximum number of arguments that may be fitted into this array without need of expanding buffers */
-	size_t capacity() const { return this->m_d ? this->m_d->_capacity() : 0; }
+    size_t capacity() const { return this->m_d ? this->m_d->_capacity() : 0; }
     /** \brief Ensures that array may fit given number of arguments */
     void reserve(size_t size) { this->detachOrInitialize(); this->m_d->_reserve(size); }
     /** \brief Resizes array to the given number of arguments.
@@ -397,25 +397,25 @@ public:
     /** \brief Gets reference to the element at specified index */
     reference operator[](size_t i) { this->detachOrInitialize(); assert(i < size()); return this->m_d->_data()[i]; }
     /** \brief Gets const reference to the element at specified index */
-	const_reference operator[](size_t i) const { assert(i < size()); return this->m_d->_data()[i]; }
+    const_reference operator[](size_t i) const { assert(i < size()); return this->m_d->_data()[i]; }
 
     /** \brief Gets reference to the first element in the array. Array should not be empty. */
-	reference front() { assert(size()); return *begin(); }
+    reference front() { assert(size()); return *begin(); }
     /** \brief Gets const reference to the first element in the array. Array should not be empty. */
-	const_reference front() const { assert(size()); return *begin(); }
+    const_reference front() const { assert(size()); return *begin(); }
     /** \brief Gets reference to the last element in the array. Array should not be empty. */
-	reference back() { assert(size()); return *(end() - 1); }
+    reference back() { assert(size()); return *(end() - 1); }
     /** \brief Gets const reference to the last element in the array. Array should not be empty. */
-	const_reference back() const { assert(size()); return *(end() - 1); }
+    const_reference back() const { assert(size()); return *(end() - 1); }
 
     /** \brief Gets an STL iterator pointing to the begin of this array */
     iterator begin() { this->detachOrInitialize(); return this->m_d->_data(); }
     /** \brief Gets an STL iterator pointing to the end of this array */
     iterator end() { this->detachOrInitialize(); return this->m_d->_data() + this->m_d->_size(); }
     /** \brief Gets an const STL iterator pointing to the begin of this array */
-	const_iterator begin() const { return this->m_d->_data(); }
+    const_iterator begin() const { return this->m_d->_data(); }
     /** \brief Gets an const STL iterator pointing to the end of this array */
-	const_iterator end() const { return this->m_d->_data() + this->m_d->_size(); }
+    const_iterator end() const { return this->m_d->_data() + this->m_d->_size(); }
 
     /** \brief Puts given element into the end of this array. Operation has complexity O(1). */
     void push_back(const T& v) { this->detachOrInitialize(); this->m_d->_push_back(v); }

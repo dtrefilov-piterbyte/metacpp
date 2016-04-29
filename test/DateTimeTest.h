@@ -7,7 +7,6 @@
 
 class DateTimeTest : public ::testing::Test
 {
-    
 };
 
 #endif // DATETIMETEST_H

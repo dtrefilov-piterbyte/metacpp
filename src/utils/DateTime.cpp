@@ -38,8 +38,8 @@ namespace detail
         std::lock_guard<std::mutex> _guard(g_stdTimeMutex);
 
 #ifdef _MSC_VER
-		if (0 != localtime_s(&m_tm, &stdTime))
-			throw std::invalid_argument("stdTime");
+        if (0 != localtime_s(&m_tm, &stdTime))
+            throw std::invalid_argument("stdTime");
 #else
         m_tm = *localtime(&stdTime);
 #endif
@@ -165,7 +165,7 @@ namespace detail
 
     void DateTimeData::fromString(const char *isoString)
     {
-		return fromString(isoString, "%Y-%m-%d %H:%M:%S");
+        return fromString(isoString, "%Y-%m-%d %H:%M:%S");
     }
 
     void DateTimeData::fromString(const char *str, const char *format)

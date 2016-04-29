@@ -212,18 +212,17 @@ namespace detail
     template<>
     StringBase<char16_t> StringBase<char16_t>::ms_empty = U16("");
 
-	template<>
+    template<>
     String string_cast<String>(const char *aString, size_t length) {
         return String(aString, length);
-	}
+    }
 
-	template<>
+    template<>
     WString string_cast<WString>(const char16_t *wString, size_t length) {
-		
         return WString(wString, length);
-	}
+    }
 
-	template<>
+    template<>
     WString string_cast<WString>(const char *aString, size_t length) {
 #ifdef _WIN32
         if (length != (size_t)-1)
@@ -268,16 +267,16 @@ namespace detail
         }
         return result;
 #endif
-	}
+    }
 
-	template<>
+    template<>
     String string_cast<String>(const char16_t *wString, size_t length) {
 #ifdef _WIN32
         if (length != (size_t)-1)
             length += 1;
         int resultLength = WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wString, (int)length, NULL, 0, NULL, NULL) - 1;
-		String result(nullptr, resultLength);
-		WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wString, (int)length, const_cast<char *>(result.data()), resultLength + 1, NULL, NULL);
+        String result(nullptr, resultLength);
+        WideCharToMultiByte(CP_ACP, 0, (LPCWSTR)wString, (int)length, const_cast<char *>(result.data()), resultLength + 1, NULL, NULL);
         return result;
 #else
 
@@ -316,11 +315,11 @@ namespace detail
         }
         return result;
 #endif
-	}
-	
-	template<> 
+    }
+
+template<>
     String string_cast<String>(const String& strA) {
-		return strA;
+        return strA;
     }
 
     template<>
@@ -335,11 +334,11 @@ namespace detail
         return string_cast<String>(strW.data(), strW.length());
     }
 
-	template<> 
+    template<>
     WString string_cast<WString>(const WString& strW)
-	{
-		return strW;
-	}
+    {
+        return strW;
+    }
 
     template<>
     String string_cast<String>(const std::string& str)

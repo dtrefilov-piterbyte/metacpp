@@ -30,7 +30,7 @@ namespace json
 
 /** \brief Visitor for json deserialization of objects */
 class JsonDeserializerVisitor :
-	public VisitorBase
+    public VisitorBase
 {
 public:
     /** \brief Constructs new instance of JsonDeserializerVisitor with a given value */
@@ -43,7 +43,7 @@ protected:
 private:
     void parseValue(const Json::Value& val, EFieldType type, void *pValue, const MetaFieldBase *desc = nullptr);
 private:
-	const Json::Value& m_value;
+    const Json::Value& m_value;
     TypeResolverFactory *m_typeResolver;
 };
 

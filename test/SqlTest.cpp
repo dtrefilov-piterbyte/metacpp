@@ -106,11 +106,43 @@ DEFINE_STORABLE(Person,
                  CHECK(COL(Person::age), COL(Person::age) < 120)    // humans do not live so much
                  )
 
+// Order and limit are reserved words in SQL
+class Order : public Object
+{
+public:
+    int                id;
+    int                person_id;
+    String             title;
+    int                limit;
+
+    META_INFO_DECLARE(Order)
+};
+
+STRUCT_INFO_BEGIN(Order)
+    FIELD(Order, id)
+    FIELD(Order, person_id)
+    FIELD(Order, title)
+    FIELD(Order, limit)
+STRUCT_INFO_END(Order)
+
+REFLECTIBLE_F(Order)
+
+META_INFO(Order)
+
+DEFINE_STORABLE(Order,
+                PRIMARY_KEY(COL(Order::id)),
+                REFERENCES(COL(Order::person_id), COL(Person::id)),
+                INDEX(COL(Order::person_id)),
+                INDEX(COL(Order::limit)),
+                CHECK(COL(Order::limit), COL(Order::limit) >= 0)
+                )
+
 void SqlTest::prepareSchema()
 {
     SqlTransaction transaction;
     Storable<City>::createSchema(transaction);
     Storable<Person>::createSchema(transaction);
+    Storable<Order>::createSchema(transaction);
     transaction.commit();
 }
 
@@ -156,6 +188,8 @@ void SqlTest::clearData()
     SqlTransaction transaction;
     Storable<City> city;
     Storable<Person> person;
+    Storable<Order> order;
+    order.remove().exec(transaction);
     person.remove().exec(transaction);
     city.remove().exec(transaction);
     transaction.commit();
@@ -198,8 +232,7 @@ TEST_P(SqlTest, testConstraints)
     ASSERT_EQ(constraintCheck->metaObject(), Person::staticMetaObject());
     ASSERT_EQ(constraintCheck->metaField()->name(), String("age"));
     ASSERT_EQ(std::dynamic_pointer_cast<SqlConstraintCheck>(constraintCheck)
-              ->checkExpression(), String("age < 120"));
-
+              ->checkExpression(), String("\"age\" < 120"));
 }
 
 #define VALUE_OF(v) STRINGIFY(v)
@@ -211,7 +244,7 @@ void SqlTest::SetUp()
     switch (GetParam())
     {
     case metacpp::db::sql::SqlSyntaxSqlite:
-        connectionUri = "sqlite3://test.db";
+        connectionUri = "sqlite3://test.db?cache=shared";
         break;
     case metacpp::db::sql::SqlSyntaxPostgreSQL:
 #if defined (TEST_POSTGRES_DBNAME) && defined(TEST_POSTGRES_DBUSER)
@@ -996,6 +1029,61 @@ TEST_P(SqlTest, deleteRefTest)
         ASSERT_EQ(persons.size(), 2);
         EXPECT_FALSE(HasLenin(persons));
     }
+}
+
+TEST_P(SqlTest, testReservedWords)
+{
+    // Check quotation of table and column names which are reserved names in SQL
+    {
+        SqlTransaction transaction;
+        auto persons = Storable<Person>::fetchAll(transaction, COL(Person::name) == String("Pupkin"));
+        ASSERT_EQ(persons.size(), 1);
+
+        Storable<Order> order;
+        order.init();
+        order.title = "Item 1";
+        order.limit = 5;
+        order.person_id = persons[0].id;
+        order.insertOne(transaction);
+
+        order.title = "Item 2";
+        order.limit = 0;
+        order.insertOne(transaction);
+
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        auto orders = Storable<Order>::fetchAll(transaction, COL(Order::limit) == 5);
+        ASSERT_EQ(orders.size(), 1);
+        EXPECT_EQ(orders[0].title, "Item 1");
+        Storable<Order> order = orders[0];
+        order.removeOne(transaction);
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        auto orders = Storable<Order>::fetchAll(transaction, COL(Order::limit) == 5);
+        ASSERT_EQ(orders.size(), 0);
+        Storable<Order> order;
+        order.update().set(COL(Order::limit) = 5).where(COL(Order::limit) == 0).exec(transaction);
+        transaction.commit();
+    }
+    {
+        SqlTransaction transaction;
+        Storable<Order> order;
+        order.remove().where(COL(Order::limit) == 0).exec(transaction);
+        transaction.commit();
+    }
+}
+
+TEST_P(SqlTest, TestUnsatisfiedConstraint)
+{
+    SqlTransaction transaction;
+    Storable<Person> person;
+    person.init();
+    person.age = 120;
+    EXPECT_THROW(person.insertOne(transaction), std::runtime_error);
 }
 
 #ifdef HAVE_SQLITE3

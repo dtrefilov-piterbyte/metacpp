@@ -29,7 +29,7 @@ namespace json
 static const char szTypeName[] = "@type";
 
 JsonSerializerVisitor::JsonSerializerVisitor(void)
-	: m_value(Json::objectValue)
+    : m_value(Json::objectValue)
 {
 }
 
@@ -93,42 +93,42 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, co
         if (!pValue)
             return;
     }
-	switch (type)
-	{
-	default:
-	case eFieldVoid:
-		throw std::invalid_argument(std::string("Unknown field type: ") + (char *)type);
-	case eFieldBool:
-		val = *reinterpret_cast<const bool *>(pValue);
-		break;
-	case eFieldInt:
-		val = *reinterpret_cast<const int32_t *>(pValue);
-		break;
-	case eFieldUint:
-		val = *reinterpret_cast<const uint32_t *>(pValue);
-		break;
+    switch (type)
+    {
+    default:
+    case eFieldVoid:
+        throw std::invalid_argument(std::string("Unknown field type: ") + (char *)type);
+    case eFieldBool:
+        val = *reinterpret_cast<const bool *>(pValue);
+        break;
+    case eFieldInt:
+        val = *reinterpret_cast<const int32_t *>(pValue);
+        break;
+    case eFieldUint:
+        val = *reinterpret_cast<const uint32_t *>(pValue);
+        break;
     case eFieldInt64:
         val = (Json::Int64)*reinterpret_cast<const int64_t *>(pValue);
         break;
     case eFieldUint64:
         val = (Json::UInt64)*reinterpret_cast<const uint64_t *>(pValue);
         break;
-	case eFieldFloat:
-		val = *reinterpret_cast<const float *>(pValue);
-		break;
+    case eFieldFloat:
+        val = *reinterpret_cast<const float *>(pValue);
+        break;
     case eFieldDouble:
         val = *reinterpret_cast<const double *>(pValue);
         break;
-	case eFieldString:
+    case eFieldString:
         val = reinterpret_cast<const metacpp::String *>(pValue)->data();
-		break;
-	case eFieldEnum:
+        break;
+    case eFieldEnum:
         if (field)
             val = reinterpret_cast<const MetaFieldEnum *>(field)->toString(*reinterpret_cast<const uint32_t *>(pValue));
-		else
-			val = *reinterpret_cast<const uint32_t *>(pValue);
-		break;
-	case eFieldArray:
+        else
+            val = *reinterpret_cast<const uint32_t *>(pValue);
+        break;
+    case eFieldArray:
     {
         if (!field)
             throw std::invalid_argument("Nested arrays are not supported");
@@ -141,14 +141,14 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, co
                     reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(),
                     pSubValue);
         }
-		break;
-	}
-	case eFieldObject: {
+        break;
+    }
+    case eFieldObject: {
         JsonSerializerVisitor nestedSerializer;
         nestedSerializer.visit(const_cast<Object *>(reinterpret_cast<const Object *>(pValue)));
-		val = nestedSerializer.rootValue();
-		break;
-	}
+        val = nestedSerializer.rootValue();
+        break;
+    }
     case eFieldDateTime: {
         auto pDateTime = reinterpret_cast<const metacpp::DateTime *>(pValue);
         if (pDateTime->valid())
@@ -170,7 +170,7 @@ void JsonSerializerVisitor::appendSubValue(Json::Value& val, EFieldType type, co
         }
         break;
     }
-	}	// switch
+    } // switch
 }
 
 const Json::Value& JsonSerializerVisitor::rootValue() const

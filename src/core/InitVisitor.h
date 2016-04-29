@@ -23,7 +23,7 @@ namespace metacpp
 
 /** \brief Visitor used for initialization of object using common introspection mechanism  */
 class InitVisitor :
-	public VisitorBase
+    public VisitorBase
 {
 public:
     /** \brief Constructs a new instance of InitVisitor  */

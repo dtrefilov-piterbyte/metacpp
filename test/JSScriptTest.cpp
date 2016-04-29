@@ -198,7 +198,7 @@ TEST_F(JSScriptTest, testMultipleThreadsRunFailure)
 TEST_F(JSScriptTest, testOutOfMemory)
 {
     auto program = m_engine->createProgram();
-    // Heap memory is limited by 32MB
+    // Heap memory is limited to 32MB
     std::istringstream ss("var objs = []; for (i = 0; i < 50000000; ++i) { objs.push(MyObject(i)) }");
     program->compile(ss, "filename");
     auto thread = program->createThread();

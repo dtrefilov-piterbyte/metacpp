@@ -148,7 +148,7 @@ namespace detail
             ArrayData<T>::_resize(m_dwLength + length + 1);
             std::copy(data, data + length, this->m_data + m_dwLength);
             m_dwLength += length;
-            this->m_data[m_dwLength] = T(0);	// null terminator
+            this->m_data[m_dwLength] = T(0);    // null terminator
         }
     private:
         size_t m_dwLength;
@@ -163,8 +163,8 @@ template<typename T>
 class StringBufBase : public std::basic_streambuf<T>
 {
 public:
-    typedef typename std::basic_streambuf<T>::char_type			char_type;
-    typedef typename std::basic_streambuf<T>::traits_type 		traits_type;
+    typedef typename std::basic_streambuf<T>::char_type         char_type;
+    typedef typename std::basic_streambuf<T>::traits_type       traits_type;
     typedef typename traits_type::int_type                      int_type;
     typedef typename traits_type::pos_type                      pos_type;
     typedef typename traits_type::off_type                      off_type;
@@ -265,7 +265,7 @@ private:
         update_ptrs(nInputCurrent, nOutputBase, nOutputCurrent);
     }
 
-	void update_ptrs(size_t nInput, size_t nBase, size_t nOutputCurrent)
+    void update_ptrs(size_t nInput, size_t nBase, size_t nOutputCurrent)
     {
         // avoid detach
         char_type *beg = const_cast<char_type *>(const_cast<const StringBase<T>&>(m_str).begin());
@@ -359,13 +359,13 @@ class StringBase : protected SharedDataPointer<detail::StringData<T> >
     typedef  SharedDataPointer<detail::StringData<T> > Base;
 public:
     /** \brief Random access iterator for accessing an individual character in the string (or supplementary and surrogate character) */
-	typedef T *iterator;
+    typedef T *iterator;
     /** \brief Const random access iterator for accessing individual characters in the string (or supplementary and surrogate character) */
-	typedef const T *const_iterator;
+    typedef const T *const_iterator;
     /** \brief Represents reference to an individual character in the string (or supplementary and surrogate character) */
-	typedef T& reference;
+    typedef T& reference;
     /** \brief Represents const reference to an individual character in the string (or supplementary and surrogate character) */
-	typedef const T& const_reference;
+    typedef const T& const_reference;
     /** \brief Invalid/end-of-string character index */
     static const size_t npos;
 
@@ -389,36 +389,36 @@ public:
     const T *c_str() const { return this->m_d ? this->m_d->_data() : ms_empty.data(); }
 
     /** \brief Checks whether this string is undefined */
-	bool isNull() const { return !this->m_d || !this->m_d->_data(); }
+    bool isNull() const { return !this->m_d || !this->m_d->_data(); }
     /** \brief Checks whether this string is either undefined or empty */
-	bool isNullOrEmpty() const { return isNull() || !*this->m_d->_data(); }
+    bool isNullOrEmpty() const { return isNull() || !*this->m_d->_data(); }
 
     /** \brief Sets new string value to this instance from given C-string */
     StringBase& operator=(const T *rhs)
     {
         this->clear();
         this->m_d = new Data(rhs);
-		return *this;
-	}
+        return *this;
+    }
 
     /** \brief Checks two strings for equality */
     bool equals(const StringBase& rhs, bool caseSensetive = true) const
-	{
-		bool hasA = !isNullOrEmpty(), hasB = !rhs.isNullOrEmpty();
-		if (hasA && hasB) return 0 == (caseSensetive ? this->m_d->_cmp(rhs.data()) : this->m_d->_icmp(rhs.data()));
-		return hasA == hasB;
-	}
+    {
+        bool hasA = !isNullOrEmpty(), hasB = !rhs.isNullOrEmpty();
+        if (hasA && hasB) return 0 == (caseSensetive ? this->m_d->_cmp(rhs.data()) : this->m_d->_icmp(rhs.data()));
+        return hasA == hasB;
+    }
 
     /** \brief Checks two strings for equality */
-	bool equals(const T *rhs, bool caseSensetive = true)
-	{
-		bool hasA = !isNullOrEmpty(), hasB = rhs && *rhs;
-		if (hasA && hasB) return 0 == (caseSensetive ? this->m_d->_cmp(rhs) : this->m_d->_icmp(rhs));
-		return hasA == hasB;
-	}
+    bool equals(const T *rhs, bool caseSensetive = true)
+    {
+        bool hasA = !isNullOrEmpty(), hasB = rhs && *rhs;
+        if (hasA && hasB) return 0 == (caseSensetive ? this->m_d->_cmp(rhs) : this->m_d->_icmp(rhs));
+        return hasA == hasB;
+    }
 
     /** \brief Gets length of this string in characters (excluding terminating null character) */
-	size_t length() const { return this->m_d ? this->m_d->_length() : 0; }
+    size_t length() const { return this->m_d ? this->m_d->_length() : 0; }
 
     /** \brief Gets a const reference to the character at given position */
     const_reference operator[](size_t i) const { assert(i < length()); return this->m_d->_data()[i];  }
@@ -426,9 +426,9 @@ public:
     reference operator[](size_t i) { assert(i < length()); this->detachOrInitialize(); return this->m_d->_data()[i];  }
 
     /** \brief Gets length of this string in characters (excluding terminating null character) */
-	size_t size() const { return length(); }
+    size_t size() const { return length(); }
     /** \brief Gets current length of the buffer used to store value of this string */
-	size_t capacity() const { return this->m_d ? this->m_d->_capacity() - 1 : 0; }
+    size_t capacity() const { return this->m_d ? this->m_d->_capacity() - 1 : 0; }
     /** \brief Ensures buffer is capable to store string value of the given length */
     void reserve(size_t length) { this->detachOrInitialize(); this->m_d->_reserve(length + 1); }
     /** \brief Squeezes buffer to it's minimum possible length capable to store current string value */
@@ -439,9 +439,9 @@ public:
     /** \brief Gets a reference to the first character in the string. String should not be null or empty. */
     reference front() { assert(size()); return *begin(); }
     /** \brief Gets a const reference to the first character in the string. String should not be null or empty. */
-	const_reference front() const { assert(size()); return *begin(); }
+    const_reference front() const { assert(size()); return *begin(); }
     /** \brief Gets a reference to the last character in the string. String should not be null or empty. */
-	reference back() { assert(size()); return *(end() - 1); }
+    reference back() { assert(size()); return *(end() - 1); }
     /** \brief Gets a const reference to the last character in the string. String should not be null or empty. */
     const_reference back() const { assert(size()); return *(end() - 1); }
 
@@ -455,17 +455,17 @@ public:
     const_iterator end() const { return isNull() ? ms_empty.end() : (this->m_d->_data() + this->m_d->_length()); }
 
     /** \brief Appends given character buffer to this string */
-	void append(const T *str, size_t length = npos)
-	{
-		if (str && *str)
-		{
+    void append(const T *str, size_t length = npos)
+    {
+        if (str && *str)
+        {
             this->detachOrInitialize();
-			this->m_d->_append(str, length);
-		}
-	}
+            this->m_d->_append(str, length);
+        }
+    }
 
     /** \brief Appends one character to this string */
-	void append(const T& ch) { append(&ch, 1); }
+    void append(const T& ch) { append(&ch, 1); }
 
     /** \brief Appends another string to this string */
     void append(const StringBase& other) { append(other.data(), other.length()); }
@@ -486,12 +486,12 @@ public:
      * \returns npos if nothing found
      */
     size_t nextIndexOf(const T *str, size_t pos, size_t length = npos) const
-	{
+    {
         if (length == npos) length = detail::StringHelper<T>::strlen(str);
         if (pos >= size()) return npos;
         auto it = std::search(begin() + pos, end(), str, str + length);
-		return it == end() ? npos : std::distance(begin(), it);
-	}
+        return it == end() ? npos : std::distance(begin(), it);
+    }
 
     /** \brief Gets a position of the next occurence of given substring in this string starting from the specified position.
      *
@@ -526,12 +526,12 @@ public:
      *
      * \returns npos if nothing found
      */
-	size_t lastIndexOf(const T *str, size_t length = npos) const
-	{
+    size_t lastIndexOf(const T *str, size_t length = npos) const
+    {
         if (length == npos) length = detail::StringHelper<T>::strlen(str);
-		auto it = std::find_end(begin(), end(), str, str + length);
-		return it == end() ? npos : std::distance(begin(), it);
-	}
+        auto it = std::find_end(begin(), end(), str, str + length);
+        return it == end() ? npos : std::distance(begin(), it);
+    }
 
     /** \brief Gets a position of the last occurence of given character buffer in this string.
      *
@@ -547,31 +547,31 @@ public:
     bool contains(const StringBase& other) const { return firstIndexOf(other) != npos; }
 
     /** \brief Checks whether the beginning of this string matches given character buffer */
-	bool startsWith(const T *str, size_t length = npos) const
-	{
+    bool startsWith(const T *str, size_t length = npos) const
+    {
         if (length == npos) length = detail::StringHelper<T>::strlen(str);
-		if (isNullOrEmpty()) return false;
+        if (isNullOrEmpty()) return false;
         return 0 == detail::StringHelper<T>::strncmp(begin(), str, length);
-	}
+    }
 
     /** \brief Checks whether the beginning of this string matches given null-terminated string literal */
-	template<size_t N>
-	bool startsWith(const T (&str)[N]) const { return startsWith(str, N - 1); }
+    template<size_t N>
+    bool startsWith(const T (&str)[N]) const { return startsWith(str, N - 1); }
 
     /** \brief Checks whether the beginning of this string matches given string */
     bool startsWith(const StringBase& other) const { return startsWith(other.data(), other.size()); }
 
     /** \brief Checks whether end of this string matches given character buffer */
-	bool endsWith(const T *str, size_t length = npos) const
-	{
+    bool endsWith(const T *str, size_t length = npos) const
+    {
         if (length == npos) length = detail::StringHelper<T>::strlen(str);
-		if (isNullOrEmpty()) return false;
+        if (isNullOrEmpty()) return false;
         return 0 == detail::StringHelper<T>::strncmp(end() - length, str, length);
-	}
+    }
 
     /** \brief Checks whether the end of this string matches given null-terminated string literal */
-	template<size_t N>
-	bool endsWith(const T (&str)[N]) const { return endsWith(str, N - 1); }
+    template<size_t N>
+    bool endsWith(const T (&str)[N]) const { return endsWith(str, N - 1); }
 
     /** \brief Checks whether the end of this string matches given string */
     bool endsWith(const StringBase& other) const { return endsWith(other.data(), other.size()); }
@@ -582,7 +582,7 @@ public:
     static const StringBase& getNull() { return ms_null; }
 
     /** \brief Transforms given value to the string */
-	template<typename T1>
+    template<typename T1>
     static StringBase fromValue(const T1& value)
     {
         OutputStringStreamBase<T> ss;
@@ -608,20 +608,20 @@ public:
 
     /** \brief Returns array of substring in this instance delimited by given seperator */
     Array<StringBase<T> > split(T separator, bool keepEmptyElements = false) const
-	{
+    {
         Array<StringBase<T> > result;
-		result.reserve(20);
-		auto b = begin(), e = end();
-		while (true)
-		{
-			auto ps = std::find(b, e, separator);
+        result.reserve(20);
+        auto b = begin(), e = end();
+        while (true)
+        {
+            auto ps = std::find(b, e, separator);
             StringBase<T> elem(b, std::distance(b, ps));
-			if (keepEmptyElements || !elem.isNullOrEmpty()) result.push_back(elem);
-			if (ps == e) break;
-			b = ps + 1;
-		}
-		return result;
-	}
+            if (keepEmptyElements || !elem.isNullOrEmpty()) result.push_back(elem);
+            if (ps == e) break;
+            b = ps + 1;
+        }
+        return result;
+    }
 
     /** \brief Retrieves a substring from this string */
     StringBase substr(size_t start = 0, size_t length = npos) const
@@ -812,25 +812,25 @@ public:
     typedef typename detail::StringBuilderHelper<T1>::CharT CharT;
 
     StringBuilder(const detail::StringBuilderHelper<T1>& a, const detail::StringBuilderHelper<T2>& b)
-		: m_a(a), m_b(b)
-	{
-	}
+        : m_a(a), m_b(b)
+    {
+    }
 
-	size_t length() const { return m_a.length() + m_b.length(); }
+    size_t length() const { return m_a.length() + m_b.length(); }
     void appendTo(StringBase<CharT>& acc) const
-	{
-		m_a.appendTo(acc);
-		m_b.appendTo(acc);
-	}
+    {
+        m_a.appendTo(acc);
+        m_b.appendTo(acc);
+    }
 
     operator StringBase<CharT>() const
-	{
+    {
         StringBase<CharT> result;
-		size_t length = this->length();
-		result.reserve(length);
-		appendTo(result);
-		return result;
-	}
+        size_t length = this->length();
+        result.reserve(length);
+        appendTo(result);
+        return result;
+    }
 
 private:
     detail::StringBuilderHelper<T1> m_a;

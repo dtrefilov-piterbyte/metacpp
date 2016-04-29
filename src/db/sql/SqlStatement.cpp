@@ -25,6 +25,19 @@ namespace db
 namespace sql
 {
 
+static String quote(const char *name, SqlSyntax syntax)
+{
+    static String quote_char = "\"";
+    static String mysql_quote_char = "`";
+    switch (syntax)
+    {
+    case SqlSyntaxMySql:
+        return mysql_quote_char + name + mysql_quote_char;
+    default:
+        return quote_char + name + quote_char;
+    }
+}
+
 SqlStatementBase::SqlStatementBase()
 {
 
@@ -68,11 +81,12 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax)
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
     String res;
-    String tblName = m_storable->record()->metaObject()->name();
+    const char *tblName = m_storable->record()->metaObject()->name();
     StringArray columns;
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
-        columns.push_back(tblName + "." + m_storable->record()->metaObject()->field(i)->name());
-    res = "SELECT " + join(columns, ", ") + " FROM " + tblName;
+        columns.push_back(quote(tblName, syntax) + "." +
+                          quote(m_storable->record()->metaObject()->field(i)->name(), syntax));
+    res = "SELECT " + join(columns, ", ") + " FROM " + quote(tblName, syntax);
     if (!m_whereClause.empty())
     {
         detail::SqlExpressionTreeWalker walker(m_whereClause.impl(), true, syntax);
@@ -94,7 +108,7 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax)
 
             for (size_t i = 0; i < m_joins.size(); ++i)
             {
-                res += m_joins[i]->name();
+                res += quote(m_joins[i]->name(), syntax);
                 if (m_joins.size() - 1 != i) res += ", ";
             }
             res += " ON " + whereExpr;
@@ -104,7 +118,17 @@ String SqlStatementSelect::buildQuery(SqlSyntax syntax)
             res += " WHERE " + whereExpr;
         }
     }
-    if (m_order.size()) res += " ORDER BY " + join(m_order, ", ");
+    if (m_order.size())
+    {
+        auto orders = m_order.template map<String>(
+            [=](const std::pair<db::detail::ExpressionNodeImplPtr, bool>& order)
+                    -> String
+            {
+                return detail::SqlExpressionTreeWalker(order.first, true, syntax)
+                        .evaluate() + (order.second ? " ASC" : "DESC");
+            });
+        res += " ORDER BY " + join(orders, ", ");
+    }
     if (m_limit) res += " LIMIT " + String::fromValue(*m_limit);
     if (m_offset) res += " OFFSET " + String::fromValue(*m_offset);
     return res;
@@ -164,8 +188,8 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax)
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
     String res;
-    String tblName = m_storable->record()->metaObject()->name();
-    res = "INSERT INTO " + tblName;
+    const char *tblName = m_storable->record()->metaObject()->name();
+    res = "INSERT INTO " + quote(tblName, syntax);
     auto pkey = m_storable->primaryKey();
     StringArray columns, placeholders;
     for (size_t i = 0; i < m_storable->record()->metaObject()->totalFields(); ++i)
@@ -173,7 +197,7 @@ String SqlStatementInsert::buildQuery(SqlSyntax syntax)
         auto field = m_storable->record()->metaObject()->field(i);
         if (field != pkey)
         {
-            columns.push_back(field->name());
+            columns.push_back(quote(field->name(), syntax));
             if (SqlSyntaxPostgreSQL == syntax)
                 placeholders.push_back("$" + String::fromValue(placeholders.size() + 1));
             else
@@ -247,8 +271,8 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
     if (!m_storable->record()->metaObject()->totalFields())
         throw std::runtime_error("Invalid storable");
     String res;
-    String tblName = m_storable->record()->metaObject()->name();
-    res = "UPDATE " + tblName;
+    const char *tblName = m_storable->record()->metaObject()->name();
+    res = "UPDATE " + quote(tblName, syntax);
     auto pkey = m_storable->primaryKey();
     StringArray sets;
     if (!m_sets.size())
@@ -261,22 +285,24 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
             {
                 m_literals.push_back(field->getValue(m_storable->record()));
                 if (syntax == SqlSyntaxPostgreSQL)
-                    sets.push_back(String(field->name()) + " = $" + String::fromValue(m_literals.size()));
+                    sets.push_back(quote(field->name(), syntax) + " = $" +
+                                   String::fromValue(m_literals.size()));
                 else
-                    sets.push_back(String(field->name()) + " = ?");
+                    sets.push_back(quote(field->name(), syntax) + " = ?");
             }
         }
     }
     else {
-        assert(m_sets.size() == m_literals.size());
-        size_t i = 1;
         sets.reserve(m_sets.size());
-        for (String set : m_sets)
+        m_literals.reserve(m_sets.size());
+        for (auto& set : m_sets)
         {
-            if (syntax == SqlSyntaxPostgreSQL)
-                sets.push_back(set.replace("?", "$" + String::fromValue(i++)));
-            else
-                sets.push_back(set);
+            String expr = detail::SqlExpressionTreeWalker(set.first, false, syntax)
+                    .evaluate() + " = ";
+            detail::SqlExpressionTreeWalker walker(set.second, true, syntax, m_literals.size());
+            expr += walker.evaluate();
+            m_literals.append(walker.literals());
+            sets.push_back(expr);
         }
     }
 
@@ -293,7 +319,7 @@ String SqlStatementUpdate::buildQuery(SqlSyntax syntax)
         String joins;
         for (size_t i = 0; i < m_joins.size(); ++i)
         {
-            joins += m_joins[i]->name();
+            joins += quote(m_joins[i]->name(), syntax);
             if (i != m_joins.size() - 1)
                 joins += ", ";
         }
@@ -358,7 +384,7 @@ SqlStatementType SqlStatementDelete::type() const
 String SqlStatementDelete::buildQuery(SqlSyntax syntax)
 {
     String res;
-    String tblName = m_storable->record()->metaObject()->name();
+    const char *tblName = m_storable->record()->metaObject()->name();
 
     String whereExpr;
     if (!m_whereClause.empty())
@@ -370,27 +396,30 @@ String SqlStatementDelete::buildQuery(SqlSyntax syntax)
 
     if (m_joins.size())
     {
-        StringArray joins = m_joins.template map<String>([](const MetaObject * mo) { return mo->name(); });
+        StringArray joins = m_joins.template map<String>(
+                    [=](const MetaObject * mo) { return quote(mo->name(), syntax); });
         if (SqlSyntaxSqlite == syntax)
         {
-            res = "DELETE FROM " + tblName + " WHERE EXISTS (SELECT 1 FROM " + join(joins, ", ");
+            res = "DELETE FROM " + quote(tblName, syntax) +
+                    " WHERE EXISTS (SELECT 1 FROM " + join(joins, ", ");
             if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
             res += ")";
         }
         else if (SqlSyntaxPostgreSQL == syntax)
         {
-            res = "DELETE FROM " + tblName + " USING " + join(joins, ", ");
+            res = "DELETE FROM " + quote(tblName, syntax) + " USING " + join(joins, ", ");
             if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
         }
         else // MySql
         {
-            res = "DELETE " + tblName + " FROM " + tblName + " JOIN " + join(joins, " JOIN ");
+            res = "DELETE " + quote(tblName, syntax) + " FROM " + quote(tblName, syntax) +
+                    " JOIN " + join(joins, " JOIN ");
             if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
         }
     }
     else
     {
-        res = "DELETE FROM " + tblName;
+        res = "DELETE FROM " + quote(tblName, syntax);
         if (!whereExpr.isNullOrEmpty()) res += " WHERE " + whereExpr;
     }
     return res;

@@ -40,7 +40,7 @@ void VisitorBase::postvisitStruct(Object *obj)
 void VisitorBase::visit(Object *obj)
 {
     previsitStruct(obj);
-	for (size_t i = 0; i < obj->metaObject()->totalFields(); ++i)
+    for (size_t i = 0; i < obj->metaObject()->totalFields(); ++i)
         visitField(obj, obj->metaObject()->field(i));
     postvisitStruct(obj);
 }

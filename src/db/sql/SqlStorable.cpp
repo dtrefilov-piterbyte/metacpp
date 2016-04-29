@@ -107,7 +107,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             throw std::runtime_error("Constraint does not belong to this table");
     }
 
-    String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
+    String queryStr = "CREATE TABLE IF NOT EXISTS \"" + tblName + "\"(";
     StringArray columns;
     auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
     {
@@ -223,8 +223,8 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
                     findConstraint(SqlConstraintTypeForeignKey, field));
         if (foreignKey)
         {
-            constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
-                                  "(" + foreignKey->referenceMetaField()->name() + ")");
+            constraints.push_back(String("REFERENCES \"") + foreignKey->referenceMetaObject()->name() +
+                                  "\"(\"" + foreignKey->referenceMetaField()->name() + "\")");
         }
 
         auto check = findConstraint(SqlConstraintTypeCheck, field);
@@ -235,7 +235,7 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
                                   + ")");
         }
 
-        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
+        String column = "\"" + name + "\" " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
         columns.push_back(column);
     }
     queryStr += join(columns, ", ") + ")";
@@ -251,8 +251,8 @@ void SqlStorable::createSchemaSqlite(SqlTransaction &transaction, const MetaObje
             std::shared_ptr<SqlConstraintIndex> constrIdx = std::dynamic_pointer_cast<SqlConstraintIndex>(constraint);
             String queryStr = constrIdx->unique() ?
                         "CREATE UNIQUE INDEX IF NOT EXISTS" : "CREATE INDEX IF NOT EXISTS";
-            queryStr += " idx_" + tblName + "_" + constrIdx->metaField()->name() +
-                    " ON " + tblName + "(" + constrIdx->metaField()->name() + ")";
+            queryStr += " \"idx_" + tblName + "_" + constrIdx->metaField()->name() +
+                    "\" ON \"" + tblName + "\"(\"" + constrIdx->metaField()->name() + "\")";
             SqlStatementCustom statement(queryStr);
             statement.exec(transaction);
         }
@@ -270,7 +270,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
             throw std::runtime_error("Constraint does not belong to this table");
     }
 
-    String queryStr = "CREATE TABLE IF NOT EXISTS " + tblName + "(";
+    String queryStr = "CREATE TABLE IF NOT EXISTS \"" + tblName + "\"(";
     StringArray columns;
     auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
     {
@@ -391,8 +391,8 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
                     findConstraint(SqlConstraintTypeForeignKey, field));
         if (foreignKey)
         {
-            constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
-                                  "(" + foreignKey->referenceMetaField()->name() + ")");
+            constraints.push_back(String("REFERENCES \"") + foreignKey->referenceMetaObject()->name() +
+                                  "\"(\"" + foreignKey->referenceMetaField()->name() + "\")");
         }
 
         auto check = findConstraint(SqlConstraintTypeCheck, field);
@@ -403,7 +403,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
                                   + ")");
         }
 
-        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
+        String column = "\"" + name + "\" " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
         columns.push_back(column);
     }
     queryStr += join(columns, ", ") + ")";
@@ -426,7 +426,7 @@ void SqlStorable::createSchemaPostgreSQL(SqlTransaction &transaction, const Meta
                     "SELECT TRUE INTO index_exists FROM pg_indexes WHERE indexname = lower(\'" + indexName + "\') LIMIT 1;"
                     "IF NOT FOUND THEN" +
                     (constrIdx->unique() ? " CREATE UNIQUE INDEX " : " CREATE INDEX ") + indexName +
-                    " ON " + tblName + "(" + columnName + ");"
+                    " ON \"" + tblName + "\"(\"" + columnName + "\");"
                     "END IF;"
                     "END$$ LANGUAGE plpgsql";
             SqlStatementCustom statement(queryStr);
@@ -445,7 +445,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
             throw std::runtime_error("Constraint does not belong to this table");
     }
 
-    String queryStr = "CREATE TABLE " + tblName + "(";
+    String queryStr = "CREATE TABLE `" + tblName + "`(";
     StringArray columns;
     auto findConstraint = [constraints](SqlConstraintType type, const MetaFieldBase *field)
     {
@@ -559,8 +559,8 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
                     findConstraint(SqlConstraintTypeForeignKey, field));
         if (foreignKey)
         {
-            constraints.push_back(String("REFERENCES ") + foreignKey->referenceMetaObject()->name() +
-                                  "(" + foreignKey->referenceMetaField()->name() + ")");
+            constraints.push_back(String("REFERENCES `") + foreignKey->referenceMetaObject()->name() +
+                                  "`(`" + foreignKey->referenceMetaField()->name() + "`)");
         }
 
         auto check = findConstraint(SqlConstraintTypeCheck, field);
@@ -571,7 +571,7 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
                                   + ")");
         }
 
-        String column = name + " " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
+        String column = "`" + name + "` " + typeName + (constraints.size() ? " " : "") + join(constraints, " ");
         columns.push_back(column);
     }
     queryStr += join(columns, ", ") + ")";
@@ -592,9 +592,13 @@ void SqlStorable::createSchemaMySql(SqlTransaction &transaction, const MetaObjec
         if (constraint->type() == SqlConstraintTypeIndex)
         {
             if (std::dynamic_pointer_cast<SqlConstraintIndex>(constraint)->unique())
-                SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD UNIQUE (" + constraint->metaField()->name() + ")").exec(transaction);
+                SqlStatementCustom(String("ALTER TABLE `") + metaObject->name() +
+                                   "` ADD UNIQUE (`" + constraint->metaField()->name() + "`)")
+                        .exec(transaction);
             else
-                SqlStatementCustom(String("ALTER TABLE ") + metaObject->name() + " ADD INDEX (" + constraint->metaField()->name() + ")").exec(transaction);
+                SqlStatementCustom(String("ALTER TABLE `") + metaObject->name() +
+                                   "` ADD INDEX (`" + constraint->metaField()->name() + "`)")
+                        .exec(transaction);
         }
     }
 }

@@ -29,19 +29,19 @@ namespace metacpp
     template<typename T>
     class SharedDataPointer {
 
-	public:
-		typedef T Type;
+    public:
+        typedef T Type;
 
         SharedDataPointer()
-			: m_d(nullptr)
-		{
-		}
+            : m_d(nullptr)
+        {
+        }
 
         SharedDataPointer(const SharedDataPointer& other)
-			: m_d(other.m_d)
-		{
-			if (m_d) m_d->ref();
-		}
+            : m_d(other.m_d)
+        {
+            if (m_d) m_d->ref();
+        }
 
         SharedDataPointer(SharedDataPointer&& other)
         {
@@ -59,47 +59,47 @@ namespace metacpp
         virtual ~SharedDataPointer()
         {
             clear();
-		}
+        }
 
         inline bool operator==(const SharedDataPointer& rhs) const { return m_d == rhs.m_d; }
         inline bool operator!=(const SharedDataPointer& rhs) const { return m_d == rhs.m_d; }
-		inline bool operator==(const T *rhs) const { return m_d == rhs; }
-		inline bool operator!=(const T *rhs) const { return m_d == rhs; }
+        inline bool operator==(const T *rhs) const { return m_d == rhs; }
+        inline bool operator!=(const T *rhs) const { return m_d == rhs; }
 
-		// use copy-on-write technique
-		inline T& operator*() { detach(); return *m_d; }
-		inline const T& operator*() const { return *m_d; }
-		inline T& operator->() { detach(); return *m_d; }
-		inline const T& operator->() const { return *m_d; }
+        // use copy-on-write technique
+        inline T& operator*() { detach(); return *m_d; }
+        inline const T& operator*() const { return *m_d; }
+        inline T& operator->() { detach(); return *m_d; }
+        inline const T& operator->() const { return *m_d; }
 
         SharedDataPointer& operator=(const SharedDataPointer& o)
-		{
-			if (o.m_d != m_d)
-			{
-				if (m_d && ! m_d->deref()) delete m_d;
-				m_d = o.m_d;
-				if (m_d) m_d->ref();
-			}
-			return *this;
-		}
+        {
+            if (o.m_d != m_d)
+            {
+                if (m_d && ! m_d->deref()) delete m_d;
+                m_d = o.m_d;
+                if (m_d) m_d->ref();
+            }
+            return *this;
+        }
 
         SharedDataPointer& operator=(const T *d)
-		{
-			if (d != m_d)
-			{
-				if (m_d && ! m_d->deref()) delete m_d;
-				m_d = d;
-				if (m_d) m_d->ref();
-			}
-			return *this;
-		}
+        {
+            if (d != m_d)
+            {
+                if (m_d && ! m_d->deref()) delete m_d;
+                m_d = d;
+                if (m_d) m_d->ref();
+            }
+            return *this;
+        }
 
-		int refCount() const { return m_d ? m_d->count() : 0; }
+        int refCount() const { return m_d ? m_d->count() : 0; }
 
-	protected:
+    protected:
         explicit SharedDataPointer(T *data) : m_d(data)
-		{
-		}
+        {
+        }
 
         T *data() const { return m_d; }
 
@@ -144,8 +144,8 @@ namespace metacpp
                 m_d = new T(args...);
         }
 
-		T *m_d;
-	};
+        T *m_d;
+    };
 
     template<typename T>
     class SharedObjectPointer : protected SharedDataPointer<SharedObjectDataBase<T> >

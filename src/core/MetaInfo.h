@@ -45,16 +45,16 @@ class MetaObject;
 /** \brief A structure describing enumeration element */
 struct EnumValueInfoDescriptor
 {
-    const char		*m_pszValue;    /**< \brief name of the value */
-    uint32_t		m_uValue;       /**< \brief value casted to uint32_t */
+    const char      *m_pszValue;    /**< \brief name of the value */
+    uint32_t        m_uValue;       /**< \brief value casted to uint32_t */
 };
 
 /** \brief A structure describing enumeration */
 struct EnumInfoDescriptor
 {
-    EEnumType		m_type;                                 /**< \brief Type of enumeration */
-    const char		*m_enumName;                            /**< \brief Name of enumeration */
-    uint32_t		m_defaultValue;                         /**< \brief Default value for this enum */
+    EEnumType       m_type;                                 /**< \brief Type of enumeration */
+    const char      *m_enumName;                            /**< \brief Name of enumeration */
+    uint32_t        m_defaultValue;                         /**< \brief Default value for this enum */
     const EnumValueInfoDescriptor *m_valueDescriptors;      /**< \brief Pointer to the array of value descriptors (terminated with dummy descriptor) */
 };
 
@@ -62,31 +62,31 @@ struct EnumInfoDescriptor
 struct FieldInfoDescriptor
 {
     const char *m_pszName;  /**< \brief field name */
-    size_t		m_dwSize;   /**< \brief size of field in bytes */
-    ptrdiff_t	m_dwOffset; /**< \brief offset of field in class */
-    EFieldType	m_eType;    /**< \brief type of the field */
+    size_t      m_dwSize;   /**< \brief size of field in bytes */
+    ptrdiff_t   m_dwOffset; /**< \brief offset of field in class */
+    EFieldType  m_eType;    /**< \brief type of the field */
     bool        m_nullable; /**< \brief if this flag is set, field is in form Nullable<T> */
 
     /** \brief Type-specific extension */
-	struct Extension
-	{
+    struct Extension
+    {
         union UExtension
         {
             struct
-			{
-				const char	*defaultValue;
+            {
+                const char  *defaultValue;
             } m_string;
             struct
-			{
-				bool		defaultValue;
+            {
+                bool        defaultValue;
             } m_bool;
             struct
-			{
-				int32_t		defaultValue;
+            {
+                int32_t     defaultValue;
             } m_int;
             struct
-			{
-                uint32_t	defaultValue;
+            {
+                uint32_t    defaultValue;
             } m_uint;
             struct
             {
@@ -97,19 +97,19 @@ struct FieldInfoDescriptor
                 uint64_t    defaultValue;
             } m_uint64;
             struct
-			{
-				float		defaultValue;
+            {
+                float       defaultValue;
             } m_float;
             struct
             {
                 double      defaultValue;
             } m_double;
             struct
-			{
+            {
                 const EnumInfoDescriptor *enumInfo;
             } m_enum;
             struct
-			{
+            {
                 EFieldType      elemType;
                 size_t          elemSize;
             } m_array;
@@ -122,58 +122,66 @@ struct FieldInfoDescriptor
                 const metacpp::MetaObject *metaObject;
             } m_obj;
         } ext;
-        EMandatoriness	mandatoriness;  /**< \brief Mandatoriness of the field */
+        EMandatoriness  mandatoriness;  /**< \brief Mandatoriness of the field */
 
         /** \brief Constructs default Extension */
         explicit Extension()
-		{
+        {
             mandatoriness = eOptional;
         }
+
         /** \brief Constructs bool Extension with default value v */
         explicit Extension(bool v)
-		{
+        {
             ext.m_bool.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs int32_t Extension with default value v */
-		explicit Extension(int32_t v)
-		{
+        explicit Extension(int32_t v)
+        {
             ext.m_int.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs uint32_t Extension with default value v */
-		explicit Extension(uint32_t v)
-		{
+        explicit Extension(uint32_t v)
+        {
             ext.m_uint.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs int64_t Extension with default value v */
         explicit Extension(int64_t v)
         {
             ext.m_int64.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs uint64_t Extension with default value v */
         explicit Extension(uint64_t v)
         {
             ext.m_uint64.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs float Extension with default value v */
-		explicit Extension(float v)
-		{
+        explicit Extension(float v)
+        {
             ext.m_float.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs double Extension with default value v */
         explicit Extension(double v)
         {
             ext.m_double.defaultValue = v;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs metacpp::String Extension with default value v */
-		explicit Extension(const char *v)
-		{
+        explicit Extension(const char *v)
+        {
             ext.m_string.defaultValue = v;
             mandatoriness = eDefaultable;
         }
@@ -190,15 +198,17 @@ struct FieldInfoDescriptor
         {
             mandatoriness = m;
         }
+
         /** \brief Constructs enum Extension with given enumInfo */
         explicit Extension(const EnumInfoDescriptor *enumInfo)
-		{
+        {
             ext.m_enum.enumInfo = enumInfo;
             mandatoriness = eDefaultable;
         }
+
         /** \brief Constructs metacpp::Array Extension with given elemType and elemSize */
         explicit Extension(EFieldType elemType, size_t elemSize)
-		{
+        {
             ext.m_array.elemType = elemType;
             ext.m_array.elemSize = elemSize;
             mandatoriness = eDefaultable;
@@ -209,7 +219,7 @@ struct FieldInfoDescriptor
             ext.m_obj.metaObject = metaObject;
             mandatoriness = eDefaultable;
         }
-	} valueInfo;
+    } valueInfo;
 };
 
 namespace detail
@@ -409,17 +419,17 @@ namespace
     template<typename THead, typename TTail>
     struct argtuple_impl;
 
-	template<typename...THeadArgs>
-	struct argtuple_impl<std::tuple<THeadArgs...>, std::tuple<> >
-	{
-		typedef std::tuple<THeadArgs...> type;
-	};
+    template<typename...THeadArgs>
+    struct argtuple_impl<std::tuple<THeadArgs...>, std::tuple<> >
+    {
+        typedef std::tuple<THeadArgs...> type;
+    };
 
-	template<typename... TArgs>
-	struct argtuple
-	{
-		typedef typename argtuple_impl<std::tuple<>, std::tuple<TArgs...> >::type type;
-	};
+    template<typename... TArgs>
+    struct argtuple
+    {
+        typedef typename argtuple_impl<std::tuple<>, std::tuple<TArgs...> >::type type;
+    };
 
     template<template<typename... > class THead, typename...THeadArgs,
         template<typename... > class TTail, typename TCurrent, typename...TTailArgs>
@@ -761,7 +771,7 @@ struct MetaInfoDescriptor
     const char                      *m_strucName;           /**< \brief Name of the struct */
     size_t                          m_dwSize;               /**< \brief Size of the struct */
     const MetaInfoDescriptor        *m_superDescriptor;     /**< \brief Pointer to the super (base) struct descriptor */
-    const FieldInfoDescriptor		*m_fieldDescriptors;    /**< \brief Pointer to the array of property descriptors (terminated with dummy descriptor) */
+    const FieldInfoDescriptor       *m_fieldDescriptors;    /**< \brief Pointer to the array of property descriptors (terminated with dummy descriptor) */
     const MethodInfoDescriptor      *m_methodDescriptors;   /**< \brief Pointer to the array of method descriptors (terminated with dummy descriptor) */
 };
 
@@ -900,8 +910,8 @@ struct MetaInfoDescriptor
  * \relates EnumInfoDescriptor
  */
 #define ENUM_INFO_END(_enum) \
-		{ nullptr, 0 } \
-	};
+        { nullptr, 0 } \
+    };
 
 /** \brief Macro used for accessing previously declared EnumInfoDescriptor
   \relates EnumInfoDescriptor
@@ -918,6 +928,6 @@ struct MetaInfoDescriptor
  * \see ENUM_INFO_BEGIN, ENUM_INFO_END
  */
 #define VALUE_INFO(name) \
-	{ #name, (uint32_t)name },
+    { #name, (uint32_t)name },
 
 #endif // METAINFO_H

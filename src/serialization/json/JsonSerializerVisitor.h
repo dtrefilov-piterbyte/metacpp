@@ -48,7 +48,7 @@ protected:
 private:
     void appendSubValue(Json::Value& val, EFieldType type, const void *pValue, const MetaFieldBase *field = nullptr);
 private:
-	Json::Value m_value;
+    Json::Value m_value;
 };
 
 } // namespace json

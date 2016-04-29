@@ -24,10 +24,10 @@ namespace sql
 namespace detail
 {
 
-SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode, 
-	bool fullQualified, SqlSyntax sqlSyntax, size_t startLiteralIndex)
+SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode,
+    bool fullQualified, SqlSyntax sqlSyntax, size_t startLiteralIndex)
     : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax),
-	m_startLiteralIndex(startLiteralIndex)
+    m_startLiteralIndex(startLiteralIndex)
 {
 }
 
@@ -51,11 +51,14 @@ const VariantArray &SqlExpressionTreeWalker::literals() const
 
 void SqlExpressionTreeWalker::visitColumn(std::shared_ptr<db::detail::ExpressionNodeImplColumn> column)
 {
+    static String quote_char = "\"";
+    static String mysql_quote_char = "`";
+    String quote = m_sqlSyntax == SqlSyntaxMySql ? mysql_quote_char : quote_char;
     String eval;
     if (m_fullQualified)
-        eval = String() + column->metaField()->metaObject()->name() + "." + column->metaField()->name();
+        eval = quote + column->metaField()->metaObject()->name() + quote + "." + quote + column->metaField()->name() + quote;
     else
-        eval = column->metaField()->name();
+        eval = quote + column->metaField()->name() + quote;
     m_stack.push_back(eval);
 }
 

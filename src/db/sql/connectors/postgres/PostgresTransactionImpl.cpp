@@ -121,7 +121,7 @@ bool PostgresTransactionImpl::execStatement(SqlStatementImpl *statement, int *nu
             }
         }
         result = PQexecPrepared(m_dbConn, postgresStatement->getIdString().c_str(), static_cast<int>(values.size()),
-			paramValues, nullptr, nullptr, 0 /* text format */);
+            paramValues, nullptr, nullptr, 0 /* text format */);
         for (size_t i = 0; i < values.size(); ++i)
         {
             if (values[i].isDateTime())
@@ -248,7 +248,7 @@ bool PostgresTransactionImpl::getLastInsertId(SqlStatementImpl *statement, SqlSt
     try
     {
         String query = String("SELECT currval(pg_get_serial_sequence(\'")
-                + storable->record()->metaObject()->name()
+                + "\"" + storable->record()->metaObject()->name() + "\""
                 + "\', \'" + pkey->name() + "\'))";
         std::unique_ptr<PGresult, std::decay<decltype(PQclear)>::type>
                 result(PQexec(m_dbConn, query.c_str()), PQclear);

@@ -40,30 +40,30 @@ public:
     Object();
     Object(const Object& other);
 
-	virtual ~Object();
+    virtual ~Object();
 
     /**
       \brief Destroys object previously created using MetaObject::createInstance
       */
     void deleteThis();
 
-	/**
+    /**
         \brief initializes object with default values from metainfo
-		\throws std::invalid_argument
-	*/
+        \throws std::invalid_argument
+    */
     void init();
 
 #ifdef HAVE_JSONCPP
     /**
         \brief Performs json object serialization
-		\throws std::invalid_argument
-	*/
+        \throws std::invalid_argument
+    */
     String toJson(bool prettyFormatted = true) const;
 
-	/**
+    /**
         \brief Performs json object deserialization
-		\throws std::invalid_argument
-	*/
+        \throws std::invalid_argument
+    */
     void fromJson(const String &s, const Array<const MetaObject *>& knownTypes = Array<const MetaObject *>());
 #endif
 

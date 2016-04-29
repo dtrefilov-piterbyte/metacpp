@@ -66,13 +66,13 @@ String Object::toJson(bool prettyFormatted) const
     using namespace serialization::json;
     JsonSerializerVisitor vis;
     vis.visit(const_cast<Object *>(this));
-	if (prettyFormatted)
-	{
-		Json::StyledWriter writer;
+    if (prettyFormatted)
+    {
+        Json::StyledWriter writer;
         return String(writer.write(vis.rootValue()).c_str());
-	}
-	else
-	{
+    }
+    else
+    {
         Json::FastWriter writer;
         return String(writer.write(vis.rootValue()).c_str());
     }
@@ -81,10 +81,10 @@ String Object::toJson(bool prettyFormatted) const
 void Object::fromJson(const String& s, const Array<const MetaObject *> &knownTypes)
 {
     using namespace serialization::json;
-	Json::Reader reader;
-	Json::Value root;
+    Json::Reader reader;
+    Json::Value root;
     if (!reader.parse(s.begin(), s.end(), root, false))
-		throw std::invalid_argument("Json::Reader::parse failed");
+        throw std::invalid_argument("Json::Reader::parse failed");
     metacpp::serialization::TypeResolverFactory typeResolver(knownTypes);
     JsonDeserializerVisitor vis(root, &typeResolver);
     vis.visit(this);

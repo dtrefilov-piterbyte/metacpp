@@ -86,7 +86,7 @@ TEST_F(DateTimeTest, testSetYear)
 {
     DateTime dt;
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
-	dt.setYear(2005);
+    dt.setYear(2005);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Tuesday);
 #endif
@@ -97,7 +97,7 @@ TEST_F(DateTimeTest, testSetYMD)
 {
     DateTime dt;
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
-	dt.setYMD(2006, metacpp::April, 15);
+    dt.setYMD(2006, metacpp::April, 15);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Sataday);
 #endif
@@ -166,12 +166,12 @@ TEST_F(DateTimeTest, testAddMonths)
 {
     DateTime dt;
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
-	dt.addMonths(-5);
+    dt.addMonths(-5);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Monday);
 #endif
     EXPECT_EQ(dt, DateTime::fromString("2003-09-01 14:25:16"));
-	dt.addMonths(5);
+    dt.addMonths(5);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Sunday);
 #endif
@@ -182,7 +182,7 @@ TEST_F(DateTimeTest, testAddDays)
 {
     DateTime dt;
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
-	dt.addDays(-64);
+    dt.addDays(-64);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Sataday);
 #endif
@@ -193,7 +193,7 @@ TEST_F(DateTimeTest, testAddHours)
 {
     DateTime dt;
     ASSERT_NO_THROW(dt = DateTime::fromString("2004-02-01 14:25:16"));
-	dt.addHours(26);
+    dt.addHours(26);
 #ifndef _MSC_VER
     EXPECT_EQ(dt.dayOfWeek(), metacpp::Monday);
 #endif

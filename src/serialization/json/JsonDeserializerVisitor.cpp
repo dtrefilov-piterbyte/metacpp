@@ -140,23 +140,23 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
     if (!pValue)
         return;
 
-	switch (type)
-	{
-	default:
-	case eFieldVoid:
-		throw std::invalid_argument(std::string("Unknown field type: ") + (char *)type);
-	case eFieldBool:
+    switch (type)
+    {
+    default:
+    case eFieldVoid:
+        throw std::invalid_argument(std::string("Unknown field type: ") + (char *)type);
+    case eFieldBool:
         if (!val.isBool()) throw std::invalid_argument("Type mismatch: not a boolean");
-		*reinterpret_cast<bool *>(pValue) = val.asBool();
-		break;
-	case eFieldInt:
+        *reinterpret_cast<bool *>(pValue) = val.asBool();
+        break;
+    case eFieldInt:
         if (!val.isIntegral()) throw std::invalid_argument("Type mismatch: not an int");
-		*reinterpret_cast<int32_t *>(pValue) = val.asInt();
-		break;
-	case eFieldUint:
+        *reinterpret_cast<int32_t *>(pValue) = val.asInt();
+        break;
+    case eFieldUint:
         if (!val.isIntegral()) throw std::invalid_argument("Type mismatch: not an uint");
-		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
-		break;
+        *reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
+        break;
     case eFieldInt64:
         if (!val.isIntegral()) throw std::invalid_argument("Type mismatch: not a long");
         *reinterpret_cast<int64_t *>(pValue) = val.asInt64();
@@ -165,27 +165,27 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
         if (!val.isIntegral()) throw std::invalid_argument("Type mismatch: not an ulong");
         *reinterpret_cast<uint64_t *>(pValue) = val.asUInt64();
         break;
-	case eFieldFloat:
+    case eFieldFloat:
         if (!val.isDouble()) throw std::invalid_argument("Type mismatch: not a float");
-		*reinterpret_cast<float *>(pValue) = (float)val.asDouble();
-		break;
+        *reinterpret_cast<float *>(pValue) = (float)val.asDouble();
+        break;
     case eFieldDouble:
         if (!val.isDouble()) throw std::invalid_argument("Type mismatch: not a double");
         *reinterpret_cast<double *>(pValue) = val.asDouble();
         break;
-	case eFieldString:
+    case eFieldString:
         if (!val.isString()) throw std::invalid_argument("Type mismatch: not a string");
         *reinterpret_cast<metacpp::String *>(pValue) = val.asString();
-		break;
-	case eFieldEnum:
+        break;
+    case eFieldEnum:
         if (field && val.isString())
-		{
+        {
             *reinterpret_cast<uint32_t *>(pValue) = reinterpret_cast<const MetaFieldEnum *>(field)->fromString(val.asCString());
-			break;
-		}
+            break;
+        }
         if (!val.isUInt()) throw std::invalid_argument("Type mismatch: invalid enum");
-		*reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
-		break;
+        *reinterpret_cast<uint32_t *>(pValue) = val.asUInt();
+        break;
     case eFieldArray: {
         if (!field)
             throw std::invalid_argument("Nested arrays are not supported");
@@ -199,13 +199,13 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
                        reinterpret_cast<const MetaFieldArray *>(field)->arrayElementType(),
                        pValue);
         }
-		break;
-	}
-	case eFieldObject: {
+        break;
+    }
+    case eFieldObject: {
         JsonDeserializerVisitor nestedSerializer(val, m_typeResolver);
         nestedSerializer.visit(reinterpret_cast<Object *>(pValue));
-		break;
-	}
+        break;
+    }
     case eFieldDateTime:
         if (val.isNull()) {
             *reinterpret_cast<DateTime *>(pValue) = DateTime();
@@ -219,7 +219,7 @@ void JsonDeserializerVisitor::parseValue(const Json::Value& val, EFieldType type
     case eFieldVariant:
         *reinterpret_cast<Variant *>(pValue) = ToVariant(val, m_typeResolver);
         break;
-	}	// switch
+    } // switch
 }
 
 } // namespace json

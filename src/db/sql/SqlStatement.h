@@ -161,7 +161,7 @@ private:
     {
         m_orderAsc = true;
         m_order.reserve(m_order.size() + 1 + sizeof...(others));
-        m_order.push_back(detail::SqlExpressionTreeWalker(column.impl()).evaluate() + (asc ? " ASC" : " DESC"));
+        m_order.emplace_back(column.impl(), asc);
         return orderByHelper(asc, others...);
     }
 private:
@@ -178,7 +178,7 @@ private:
     Nullable<size_t> m_offset;
     Array<const MetaObject *> m_joins;
     SqlStorable *m_storable;
-    StringArray m_order;
+    Array<std::pair<db::detail::ExpressionNodeImplPtr, bool> > m_order;
     Nullable<bool> m_orderAsc;
 };
 
@@ -239,11 +239,7 @@ public:
     template<typename TObj>
     SqlStatementUpdate& set(const ExpressionAssignmentBase<TObj>& assignment)
     {
-        String expr = detail::SqlExpressionTreeWalker(assignment.lhs(), false).evaluate() + " = ";
-        detail::SqlExpressionTreeWalker walker(assignment.rhs());
-        expr += walker.evaluate();
-        m_literals.append(walker.literals());
-        m_sets.push_back(expr);
+        m_sets.emplace_back(assignment.lhs(), assignment.rhs());
         return *this;
     }
 
@@ -263,7 +259,7 @@ public:
 private:
     Array<const MetaObject *> m_joins;
     ExpressionNodeWhereClause m_whereClause;
-    StringArray m_sets;
+    Array<std::pair<db::detail::ExpressionNodeImplPtr, db::detail::ExpressionNodeImplPtr> > m_sets;
     SqlStorable *m_storable;
 };
 

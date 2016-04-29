@@ -20,64 +20,64 @@ void StringTest::testNull()
 
 TEST_F(StringTest, TestNull)
 {
-	testNull();
+    testNull();
 }
 
 void StringTest::testDetach()
 {
     String str1 = "1231923j", str2 = str1;
-	str1[2] = '1';
-	ASSERT_EQ(str1, "1211923j");
-	ASSERT_EQ(str2, "1231923j");
+    str1[2] = '1';
+    ASSERT_EQ(str1, "1211923j");
+    ASSERT_EQ(str2, "1231923j");
 }
 
 TEST_F(StringTest, TestDetach)
 {
-	testDetach();
+    testDetach();
 }
 
 // test random access iterators
 void StringTest::testStl()
 {
     String str = "12378923";
-	std::sort(str.begin(), str.end());
-	ASSERT_EQ(str, "12233789");
+    std::sort(str.begin(), str.end());
+    ASSERT_EQ(str, "12233789");
 }
 
 TEST_F(StringTest, TestStl)
 {
-	testStl();
+    testStl();
 }
 
 void StringTest::testAppend(const char *a, const char *b, const char *result)
 {
     String str1 = a;
-	str1.append(b);
-	ASSERT_EQ(str1, result);
+    str1.append(b);
+    ASSERT_EQ(str1, result);
 }
 
 TEST_F(StringTest, TestAppend)
 {
-	testAppend("123123", "abc", "123123abc");
-	testAppend(nullptr, "123", "123");
-	testAppend("123", nullptr, "123");
-	testAppend("1asd3", "", "1asd3");
+    testAppend("123123", "abc", "123123abc");
+    testAppend(nullptr, "123", "123");
+    testAppend("123", nullptr, "123");
+    testAppend("1asd3", "", "1asd3");
 }
 
 void StringTest::testArrayOfStrings()
 {
     Array<String> arr;
-	arr.push_back("Hello, ");
-	arr.push_back("world!");
+    arr.push_back("Hello, ");
+    arr.push_back("world!");
     String join;
-	join += arr[0];
-	join += arr[1];
-	ASSERT_EQ(join, "Hello, world!");
+    join += arr[0];
+    join += arr[1];
+    ASSERT_EQ(join, "Hello, world!");
 }
 
 TEST_F(StringTest, TestArrayOfStrings)
 {
-	testArrayOfStrings();
+    testArrayOfStrings();
 }
 
 void StringTest::testFindSubstr()
@@ -93,7 +93,7 @@ void StringTest::testFindSubstr()
 
 TEST_F(StringTest, TestSubstr)
 {
-	testFindSubstr();
+    testFindSubstr();
 }
 
 void StringTest::testSubStr2()
@@ -109,20 +109,20 @@ void StringTest::testSubStr2()
 
 TEST_F(StringTest, TestSubstr2)
 {
-	testSubStr2();
+    testSubStr2();
 }
 
 void StringTest::testStringBuilder()
 {
     String a = ", "; String b = "world";
-	const char *hello = "Hello";
+    const char *hello = "Hello";
     String sb = hello + a + b + "!";
-	ASSERT_EQ(sb, "Hello, world!");
+    ASSERT_EQ(sb, "Hello, world!");
 }
 
 TEST_F(StringTest, TestStringBuilder)
 {
-	testStringBuilder();
+    testStringBuilder();
 }
 
 void StringTest::testAssign(const char *str)

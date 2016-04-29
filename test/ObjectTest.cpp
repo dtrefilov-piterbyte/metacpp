@@ -10,9 +10,9 @@ using namespace metacpp;
 
 enum EEnumTest
 {
-	eEnumValue0,
-	eEnumValue1,
-	eEnumValueUnk = -1
+    eEnumValue0,
+    eEnumValue1,
+    eEnumValueUnk = -1
 };
 
 REFLECTIBLE_DESCRIPTOR_DECLARE(TestStruct)
@@ -44,8 +44,8 @@ struct TestBaseStruct : public Object
 
 struct TestStruct : public TestBaseStruct
 {
-	EEnumTest enumValue;
-	bool boolValue;
+    EEnumTest enumValue;
+    bool boolValue;
     int32_t intValue;
     uint32_t uintValue;
     int64_t int64Value;
@@ -53,7 +53,7 @@ struct TestStruct : public TestBaseStruct
     float floatValue;
     double doubleValue;
     String strValue;
-	TestSubStruct substruct;
+    TestSubStruct substruct;
     Array<TestSubStruct> arrValue;
     DateTime datetimeValue;
     Variant variantValue;
@@ -73,9 +73,9 @@ struct TestStruct : public TestBaseStruct
 };
 
 ENUM_INFO_BEGIN(EEnumTest, eEnumSimple, eEnumValueUnk)
-	VALUE_INFO(eEnumValue0)
-	VALUE_INFO(eEnumValue1)
-	VALUE_INFO(eEnumValueUnk)
+    VALUE_INFO(eEnumValue0)
+    VALUE_INFO(eEnumValue1)
+    VALUE_INFO(eEnumValueUnk)
 ENUM_INFO_END(EEnumTest)
 
 STRUCT_INFO_BEGIN(TestStruct)

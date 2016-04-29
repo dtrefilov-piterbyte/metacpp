@@ -29,8 +29,8 @@ class VisitorBase
 {
 public:
     /** \brief Constructs a new instance of the VisitorBase */
-	VisitorBase();
-	virtual ~VisitorBase(void);
+    VisitorBase();
+    virtual ~VisitorBase(void);
     /** \brief Introspects object using this visitor */
     void visit(Object *object);
 protected:
