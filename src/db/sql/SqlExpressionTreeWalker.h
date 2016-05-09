@@ -65,7 +65,7 @@ protected:
 private:
     String evaluateSubnode(const db::detail::ExpressionNodeImplPtr& node, bool bracesRequired = false);
 private:
-    bool m_fullQualified;
+    bool m_fullyQualified;
     SqlSyntax m_sqlSyntax;
     Array<String> m_stack;
     VariantArray m_bindValues;

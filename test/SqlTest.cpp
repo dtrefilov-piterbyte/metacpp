@@ -1079,10 +1079,16 @@ TEST_P(SqlTest, testReservedWords)
 
 TEST_P(SqlTest, TestUnsatisfiedConstraint)
 {
+    // Check constraints are not supported
+    if (GetParam() == SqlSyntaxMySql)
+        return;
+
     SqlTransaction transaction;
     Storable<Person> person;
     person.init();
     person.age = 120;
+    person.birthday = DateTime::now();
+    person.cityId = Storable<City>::fetchAll(transaction)[0].id;
     EXPECT_THROW(person.insertOne(transaction), std::runtime_error);
 }
 

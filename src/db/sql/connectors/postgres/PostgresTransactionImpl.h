@@ -29,7 +29,7 @@ namespace postgres {
 class PostgresTransactionImpl : public SqlTransactionImpl
 {
 public:
-    PostgresTransactionImpl(PGconn *dbConn);
+    explicit PostgresTransactionImpl(PGconn *dbConn);
     ~PostgresTransactionImpl();
 
     bool begin() override;

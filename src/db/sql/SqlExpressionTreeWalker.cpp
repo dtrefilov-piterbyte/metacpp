@@ -26,7 +26,7 @@ namespace detail
 
 SqlExpressionTreeWalker::SqlExpressionTreeWalker(const db::detail::ExpressionNodeImplPtr &rootNode,
     bool fullQualified, SqlSyntax sqlSyntax, size_t startLiteralIndex)
-    : db::detail::ASTWalkerBase(rootNode), m_fullQualified(fullQualified), m_sqlSyntax(sqlSyntax),
+    : db::detail::ASTWalkerBase(rootNode), m_fullyQualified(fullQualified), m_sqlSyntax(sqlSyntax),
     m_startLiteralIndex(startLiteralIndex)
 {
 }
@@ -55,7 +55,7 @@ void SqlExpressionTreeWalker::visitColumn(std::shared_ptr<db::detail::Expression
     static String mysql_quote_char = "`";
     String quote = m_sqlSyntax == SqlSyntaxMySql ? mysql_quote_char : quote_char;
     String eval;
-    if (m_fullQualified)
+    if (m_fullyQualified)
         eval = quote + column->metaField()->metaObject()->name() + quote + "." + quote + column->metaField()->name() + quote;
     else
         eval = quote + column->metaField()->name() + quote;
@@ -65,7 +65,7 @@ void SqlExpressionTreeWalker::visitColumn(std::shared_ptr<db::detail::Expression
 void SqlExpressionTreeWalker::visitLiteral(std::shared_ptr<db::detail::ExpressionNodeImplLiteral> literal)
 {
     m_bindValues.push_back(literal->value());
-    if (m_fullQualified)
+    if (m_fullyQualified)
     {
         if (m_sqlSyntax == SqlSyntaxPostgreSQL)
             m_stack.push_back("$" + String::fromValue(m_startLiteralIndex + m_bindValues.size()));
